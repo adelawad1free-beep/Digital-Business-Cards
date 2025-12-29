@@ -6,7 +6,7 @@ import { uploadImageToCloud } from '../services/uploadService';
 import { generateProfessionalBio } from '../services/geminiService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Sun, Moon, Pipette, Camera, CheckCircle2, Loader2, Trash2, CloudUpload, AlertCircle, Sparkles } from 'lucide-react';
+import { Save, Plus, X, Pipette, Camera, CheckCircle2, Loader2, Trash2, CloudUpload, Sparkles } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -61,15 +61,22 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleCloudUpload = async () => {
-    if (!formData.profileImage || !formData.profileImage.startsWith('data:')) return;
+  const handleCloudUpload = async (autoSave = false) => {
+    if (!formData.profileImage || !formData.profileImage.startsWith('data:')) return true;
+    
     setUploading(true);
     const cloudUrl = await uploadImageToCloud(formData.profileImage);
     if (cloudUrl) {
-      handleChange('profileImage', cloudUrl);
+      const updatedData = { ...formData, profileImage: cloudUrl };
+      setFormData(updatedData);
       setImageStatus('cloud');
+      setUploading(false);
+      if (autoSave) onSave(updatedData);
+      return true;
     }
     setUploading(false);
+    alert(lang === 'ar' ? 'فشل رفع الصورة، يرجى المحاولة لاحقاً' : 'Image upload failed, please try again.');
+    return false;
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,7 +94,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
     setSocialInput({ ...socialInput, url: '' });
   };
 
-  // AI Logic to generate professional bio
   const handleGenerateAIBio = async () => {
     if (!formData.name || !formData.title) {
       alert(lang === 'ar' ? 'يرجى إدخال الاسم والمسمى الوظيفي أولاً' : 'Please fill Name and Title first');
@@ -95,26 +101,24 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
     }
     setIsGeneratingBio(true);
     try {
-      const generatedBio = await generateProfessionalBio(
-        formData.name,
-        formData.title,
-        formData.company,
-        formData.bio, // Use existing text as keywords
-        lang
-      );
-      if (generatedBio) {
-        handleChange('bio', generatedBio);
-      }
+      const generatedBio = await generateProfessionalBio(formData.name, formData.title, formData.company, formData.bio, lang);
+      if (generatedBio) handleChange('bio', generatedBio);
     } finally {
       setIsGeneratingBio(false);
+    }
+  };
+
+  const handleFinalSave = async () => {
+    if (imageStatus === 'local') {
+      await handleCloudUpload(true);
+    } else {
+      onSave(formData);
     }
   };
 
   return (
     <div className="flex flex-col lg:flex-row gap-12">
       <div className="flex-1 space-y-10">
-        
-        {/* مقدمة المحرر */}
         <div className="px-2">
           <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
             {lang === 'ar' ? 'صمم بطاقتك' : 'Design Your Card'}
@@ -126,7 +130,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
 
         <div className="bg-white dark:bg-[#121215] p-6 md:p-12 rounded-[2.5rem] md:rounded-[4rem] shadow-2xl border border-gray-100 dark:border-gray-800 space-y-10">
           
-          {/* الصورة والرفع */}
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-gray-100 dark:border-gray-800">
             <div className="flex flex-col md:flex-row items-center gap-10">
               <div className="relative group">
@@ -147,10 +150,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
                   </div>
                 )}
 
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-3 -right-3 p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all z-20"
-                >
+                <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-3 -right-3 p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all z-20">
                   <Plus size={24} strokeWidth={3} />
                 </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
@@ -160,18 +160,12 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
                 <label className={labelClasses}>{lang === 'ar' ? 'صورة الهوية الرقمية' : 'Digital ID Picture'}</label>
                 
                 {imageStatus === 'local' && (
-                  <div className="p-5 bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-200 dark:border-amber-900/30 rounded-3xl animate-pulse">
-                    <p className="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
-                      <AlertCircle size={16} />
-                      {lang === 'ar' ? 'تنبيه: يجب تأمين الصورة للمشاركة' : 'Warning: Secure image to enable sharing'}
-                    </p>
-                    <button 
-                      onClick={handleCloudUpload}
-                      disabled={uploading}
-                      className="w-full py-3 bg-amber-500 text-white rounded-xl text-xs font-black hover:bg-amber-600 transition-all flex items-center justify-center gap-2"
-                    >
-                      {uploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={16} />}
-                      {lang === 'ar' ? 'ضغط وتأمين الصورة الآن' : 'Compress & Secure Now'}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 rounded-2xl flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase">
+                      {lang === 'ar' ? 'الصورة جاهزة للرفع' : 'Image ready for upload'}
+                    </span>
+                    <button onClick={() => handleCloudUpload()} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black flex items-center gap-2">
+                      <CloudUpload size={14} /> {lang === 'ar' ? 'رفع الآن' : 'Upload Now'}
                     </button>
                   </div>
                 )}
@@ -179,8 +173,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
                 {imageStatus === 'cloud' && (
                   <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-2xl flex items-center gap-3">
                     <CheckCircle2 size={20} className="text-emerald-500" />
-                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase">
-                      {lang === 'ar' ? 'الصورة جاهزة للنشر' : 'Image ready for publishing'}
+                    <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase">
+                      {lang === 'ar' ? 'الصورة مؤمنة' : 'Image Secured'}
                     </span>
                   </div>
                 )}
@@ -203,7 +197,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
             </div>
           </div>
 
-          {/* الحقول الأساسية */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
                <div>
@@ -215,35 +208,22 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
                   <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className={inputClasses} placeholder={t('placeholderTitle')} />
                </div>
             </div>
-            
             <div className="space-y-6">
               <div className="relative">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <label className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{t('bio')}</label>
-                  {/* AI Bio Generator Button */}
-                  <button 
-                    onClick={handleGenerateAIBio}
-                    disabled={isGeneratingBio}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-100 transition-all active:scale-95 disabled:opacity-50"
-                  >
+                  <button onClick={handleGenerateAIBio} disabled={isGeneratingBio} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-100 transition-all disabled:opacity-50">
                     {isGeneratingBio ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                     {lang === 'ar' ? 'توليد ذكي' : 'AI Magic'}
                   </button>
                 </div>
-                <textarea 
-                  value={formData.bio} 
-                  onChange={e => handleChange('bio', e.target.value)} 
-                  rows={4} 
-                  className={`${inputClasses} resize-none`} 
-                  placeholder={lang === 'ar' ? 'اكتب نبذة مختصرة عنك...' : 'Tell the world who you are...'}
-                />
+                <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} rows={4} className={`${inputClasses} resize-none`} placeholder={lang === 'ar' ? 'اكتب نبذة مختصرة عنك...' : 'Tell the world who you are...'} />
               </div>
             </div>
           </div>
 
           <hr className="border-gray-100 dark:border-gray-800" />
 
-          {/* معلومات الاتصال */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <label className={labelClasses}>{t('phone')}</label>
@@ -266,7 +246,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
             </div>
           </div>
 
-          {/* الموقع */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <label className={labelClasses}>{t('location')}</label>
@@ -280,15 +259,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
 
           <hr className="border-gray-100 dark:border-gray-800" />
 
-          {/* روابط التواصل الاجتماعي */}
           <div className="space-y-6">
             <label className={labelClasses}>{t('socials')}</label>
             <div className="flex flex-col sm:flex-row gap-4">
-              <select 
-                value={socialInput.platformId} 
-                onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} 
-                className="w-full sm:w-48 px-4 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1f] font-black text-sm outline-none cursor-pointer"
-              >
+              <select value={socialInput.platformId} onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} className="w-full sm:w-48 px-4 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1f] font-black text-sm outline-none cursor-pointer">
                 {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <input type="text" value={socialInput.url} onChange={e => setSocialInput({...socialInput, url: e.target.value})} className={`${inputClasses} flex-1`} placeholder="Link/Username..." />
@@ -309,24 +283,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
             </div>
           </div>
 
-          {/* التخصيص البصري */}
           <div className="pt-6 space-y-8">
              <div>
                 <label className={labelClasses}>{t('theme')}</label>
                 <div className="flex items-center gap-4 overflow-x-auto pb-4 pt-2 no-scrollbar">
                   {THEME_COLORS.map(c => (
-                    <button 
-                      key={c} 
-                      onClick={() => handleChange('themeColor', c)} 
-                      className={`flex-shrink-0 w-14 h-14 rounded-3xl border-[6px] transition-all hover:scale-110 ${formData.themeColor.toLowerCase() === c.toLowerCase() ? 'border-blue-500 scale-110 shadow-2xl' : 'border-white dark:border-gray-800 shadow-sm'}`} 
-                      style={{backgroundColor: c}} 
-                    />
+                    <button key={c} onClick={() => handleChange('themeColor', c)} className={`flex-shrink-0 w-14 h-14 rounded-3xl border-[6px] transition-all hover:scale-110 ${formData.themeColor.toLowerCase() === c.toLowerCase() ? 'border-blue-500 scale-110 shadow-2xl' : 'border-white dark:border-gray-800 shadow-sm'}`} style={{backgroundColor: c}} />
                   ))}
-                  <button 
-                    onClick={() => colorInputRef.current?.click()}
-                    className={`flex-shrink-0 w-14 h-14 rounded-3xl border-[6px] flex items-center justify-center transition-all ${!THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? 'border-blue-500 scale-110 shadow-2xl' : 'border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-800'}`}
-                    style={{ backgroundColor: !THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? formData.themeColor : undefined }}
-                  >
+                  <button onClick={() => colorInputRef.current?.click()} className={`flex-shrink-0 w-14 h-14 rounded-3xl border-[6px] flex items-center justify-center transition-all ${!THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? 'border-blue-500 scale-110 shadow-2xl' : 'border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-800'}`} style={{ backgroundColor: !THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? formData.themeColor : undefined }}>
                     <Pipette size={24} className={!THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? 'text-white' : 'text-gray-500'} />
                   </button>
                   <input ref={colorInputRef} type="color" value={formData.themeColor} onChange={(e) => handleChange('themeColor', e.target.value)} className="hidden" />
@@ -334,23 +298,17 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
              </div>
 
              <button 
-                onClick={() => {
-                  if (imageStatus === 'local') {
-                    alert(lang === 'ar' ? 'يرجى تأمين الصورة أولاً قبل الحفظ لضمان ظهورها عند المشاركة.' : 'Please secure the photo first before saving to ensure it shows when shared.');
-                    return;
-                  }
-                  onSave(formData);
-                }} 
-                className="w-full py-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2.5rem] font-black text-2xl shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-4 active:scale-[0.97]"
+                onClick={handleFinalSave}
+                disabled={uploading}
+                className="w-full py-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2.5rem] font-black text-2xl shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-4 active:scale-[0.97] disabled:opacity-70"
               >
-                <Save size={28} strokeWidth={2.5} />
-                <span>{t('save')}</span>
+                {uploading ? <Loader2 size={28} className="animate-spin" /> : <Save size={28} strokeWidth={2.5} />}
+                <span>{uploading ? (lang === 'ar' ? 'جاري الحفظ والرفع...' : 'Saving & Uploading...') : t('save')}</span>
               </button>
           </div>
         </div>
       </div>
 
-      {/* المعاينة الجانبية (فقط لسطح المكتب) */}
       <div className="hidden lg:block w-[420px] sticky top-12 self-start space-y-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         <div className="text-center">
           <span className="px-6 py-2 bg-white dark:bg-[#121215] text-gray-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-gray-100 dark:border-gray-800 shadow-sm">
