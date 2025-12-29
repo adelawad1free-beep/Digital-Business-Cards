@@ -4,11 +4,11 @@ export type Language = 'en' | 'ar';
 export interface SocialLink {
   platform: string;
   url: string;
-  platformId: string; // Used to identify the correct SVG icon
+  platformId: string;
 }
 
 export interface CardData {
-  id: string;
+  id: string; // المعرف الفريد (اسم المستخدم أو الرقم التسلسلي)
   name: string;
   title: string;
   company: string;

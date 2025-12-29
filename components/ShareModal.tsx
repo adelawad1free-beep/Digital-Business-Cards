@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Language, CardData } from '../types';
-import { generateShareUrl, shortenUrl } from '../utils/share';
-import { Copy, Check, Share2, Download, X, Link, Loader2, Wand2 } from 'lucide-react';
+import { generateShareUrl } from '../utils/share';
+import { Copy, Check, Download, X, Send, Hash, Info } from 'lucide-react';
 
 interface ShareModalProps {
   data: CardData;
@@ -12,117 +12,108 @@ interface ShareModalProps {
 
 const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
   const [copied, setCopied] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
-  const [isShortening, setIsShortening] = useState(false);
-  const [isShort, setIsShort] = useState(false);
+  const [url, setUrl] = useState('');
 
   useEffect(() => {
-    setCurrentUrl(generateShareUrl(data));
+    setUrl(generateShareUrl(data));
   }, [data]);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(currentUrl);
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShorten = async () => {
-    setIsShortening(true);
-    const short = await shortenUrl(currentUrl);
-    setCurrentUrl(short);
-    setIsShort(true);
-    setIsShortening(false);
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: data.name,
+          text: lang === 'ar' ? `بطاقة أعمال رقمية: ${data.name} (ID: ${data.id})` : `${data.name}'s Digital ID (ID: ${data.id})`,
+          url: url,
+        });
+      } catch (err) {
+        copyToClipboard();
+      }
+    } else {
+      copyToClipboard();
+    }
   };
 
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(currentUrl)}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=2563eb&margin=2`;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all">
-      <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-fade-in-up border border-gray-100 dark:border-gray-800">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-8">
           <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-3">
-               <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
-                  <Share2 size={20} />
-               </div>
-               <div>
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight">
-                    {lang === 'ar' ? 'بطاقتك جاهزة!' : 'Card is Ready!'}
-                  </h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {lang === 'ar' ? 'انشر هويتك الرقمية الآن' : 'Publish your digital ID'}
-                  </p>
-               </div>
-            </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-400">
-              <X size={20} />
+             <div className="flex flex-col">
+                <h3 className="text-xl font-black dark:text-white">
+                  {lang === 'ar' ? 'تم حفظ بطاقتك!' : 'Card Saved!'}
+                </h3>
+                <div className="flex items-center gap-1.5 mt-1">
+                   <Hash size={12} className="text-blue-600" />
+                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Serial: {data.id}</span>
+                </div>
+             </div>
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+              <X size={24} />
             </button>
           </div>
 
-          <div className="flex flex-col items-center mb-8">
-            <div className="p-5 bg-white rounded-[2.5rem] shadow-2xl border-[10px] border-gray-50 mb-4 transition-transform hover:scale-105">
-              <img src={qrApiUrl} alt="QR Code" className="w-44 h-44" />
+          <div className="flex flex-col items-center gap-6 mb-8">
+            <div className="relative group">
+              <div className="absolute -inset-4 bg-blue-500/10 rounded-[3rem] blur-xl"></div>
+              <div className="relative p-6 bg-white rounded-[2.5rem] shadow-inner border border-gray-50">
+                <img src={qrApiUrl} alt="QR Code" className="w-36 h-36" />
+              </div>
             </div>
-            <p className="text-[10px] font-black text-gray-400 text-center uppercase tracking-[0.2em]">
-              {lang === 'ar' ? 'امسح الرمز أو انسخ الرابط' : 'Scan code or copy link'}
-            </p>
+            <div className="text-center px-4">
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                 {lang === 'ar' ? 'امسح الكود للمشاركة الفورية' : 'Scan for instant share'}
+               </p>
+            </div>
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                  <Link size={12} /> {lang === 'ar' ? 'الرابط الفريد' : 'Unique Link'}
-                </label>
-                {!isShort && (
-                  <button 
-                    onClick={handleShorten}
-                    disabled={isShortening}
-                    className="text-[10px] font-black text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors disabled:opacity-50"
-                  >
-                    {isShortening ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-                    {lang === 'ar' ? 'اختصار الرابط' : 'Shorten Link'}
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <input 
-                  readOnly 
-                  value={currentUrl} 
-                  className="flex-1 bg-transparent border-none text-[11px] font-bold text-blue-600 dark:text-blue-400 px-3 outline-none truncate"
-                />
-                <button 
-                  onClick={copyToClipboard}
-                  className={`p-3 rounded-xl transition-all flex items-center gap-2 ${copied ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-200 shadow-sm'}`}
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  <span className="text-[10px] font-black">{copied ? (lang === 'ar' ? 'تم!' : 'Copied!') : (lang === 'ar' ? 'نسخ' : 'Copy')}</span>
-                </button>
-              </div>
-            </div>
+            <button 
+              onClick={handleNativeShare}
+              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl shadow-blue-600/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <Send size={18} />
+              {lang === 'ar' ? 'مشاركة عبر التطبيقات' : 'Share via Apps'}
+            </button>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <a 
-                href={`https://wa.me/?text=${encodeURIComponent(currentUrl)}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 py-4 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 rounded-2xl font-black text-xs hover:bg-emerald-100 transition-all active:scale-95"
+            <div className="flex gap-2">
+              <button 
+                onClick={copyToClipboard}
+                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-xs transition-all border ${copied ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-100 dark:border-gray-700 hover:bg-gray-100'}`}
               >
-                {lang === 'ar' ? 'واتساب' : 'WhatsApp'}
-              </a>
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+                {copied ? (lang === 'ar' ? 'تم النسخ' : 'Copied') : (lang === 'ar' ? 'نسخ الرابط' : 'Copy Link')}
+              </button>
+              
               <button 
                 onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = qrApiUrl;
-                  link.download = `qr-code-${data.name}.png`;
-                  link.click();
+                   const link = document.createElement('a');
+                   link.href = qrApiUrl;
+                   link.download = `qr-${data.id}.png`;
+                   link.click();
                 }}
-                className="flex items-center justify-center gap-2 py-4 bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 rounded-2xl font-black text-xs hover:bg-blue-100 transition-all active:scale-95"
+                className="px-6 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl border border-gray-100 dark:border-gray-700 hover:bg-gray-100"
               >
-                <Download size={16} />
-                {lang === 'ar' ? 'تحميل الرمز' : 'Get QR'}
+                <Download size={20} />
               </button>
             </div>
+          </div>
+          
+          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl flex gap-3 items-start">
+             <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+             <p className="text-[10px] leading-relaxed text-blue-800 dark:text-blue-300 font-bold">
+                {lang === 'ar' 
+                  ? 'تم إنشاء رابطك "داخلياً" برقم تسلسلي خاص بك. يمكنك استخدامه كبطاقة أعمال ذكية مدى الحياة.' 
+                  : 'Your link was generated "internally" with a unique serial ID. Use it as your lifelong smart business card.'}
+             </p>
           </div>
         </div>
       </div>

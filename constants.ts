@@ -4,10 +4,6 @@ import { TranslationStrings, CardData } from './types';
 export const TRANSLATIONS: TranslationStrings = {
   appName: { en: 'My Digital Identity', ar: 'هويتي الرقمية' },
   tagline: { en: 'Your professional profile, smarter and faster.', ar: 'هويتك المهنية، بذكاء وسرعة.' },
-  seoTagline: { 
-    en: 'The #1 Digital Business Card platform. Create, share, and connect instantly with QR technology.', 
-    ar: 'المنصة الأولى لإنشاء بطاقات الأعمال الرقمية. أنشئ، شارك، وتواصل فوراً بتقنية QR.' 
-  },
   createBtn: { en: 'Create My Card', ar: 'ابدأ بإنشاء بطاقتي' },
   preview: { en: 'Live Preview', ar: 'معاينة مباشرة' },
   edit: { en: 'Edit Card', ar: 'تعديل البيانات' },
@@ -24,16 +20,16 @@ export const TRANSLATIONS: TranslationStrings = {
   locationUrl: { en: 'Google Maps Link', ar: 'رابط خرائط جوجل' },
   socials: { en: 'Professional Links', ar: 'روابط التواصل الاجتماعي' },
   theme: { en: 'Brand Color', ar: 'لون الهوية' },
-  cardTheme: { en: 'Display Theme', ar: 'نمط العرض' },
-  lightMode: { en: 'Light Mode', ar: 'وضع نهاري' },
-  darkMode: { en: 'Dark Mode', ar: 'وضع ليلي' },
-  share: { en: 'Share My Profile', ar: 'مشاركة الملف الشخصي' },
-  downloadQR: { en: 'Get QR Code', ar: 'تحميل كود QR' },
   placeholderName: { en: 'John Doe', ar: 'أحمد محمد' },
   placeholderTitle: { en: 'Project Manager', ar: 'مدير مشاريع' },
-  backToHome: { en: 'Home', ar: 'الرئيسية' },
   call: { en: 'Call Now', ar: 'اتصال هاتفي' },
-  whatsappBtn: { en: 'WhatsApp', ar: 'تواصل واتساب' }
+  whatsappBtn: { en: 'WhatsApp', ar: 'تواصل واتساب' },
+  imageSource: { en: 'Profile Picture', ar: 'صورة الملف الشخصي' },
+  socialSync: { en: 'Social Sync', ar: 'مزامنة التواصل' },
+  avatarLib: { en: 'Avatars', ar: 'صور تعبيرية' },
+  directLink: { en: 'Direct Link', ar: 'رابط مباشر' },
+  customLink: { en: 'Personal Link Name', ar: 'اسم الرابط الشخصي' },
+  linkHint: { en: 'Your link will be: ', ar: 'سيكون رابطك: ' }
 };
 
 export const SOCIAL_PLATFORMS = [
@@ -53,6 +49,15 @@ export const THEME_COLORS = [
   '#059669', // Emerald
   '#d97706', // Amber
   '#0f172a', // Slate
+  '#C5A059'  // Luxury Gold
+];
+
+export const AVATAR_STYLES = [
+  { id: 'avataaars', name: 'Casual' },
+  { id: 'bottts', name: 'Robots' },
+  { id: 'adventurer', name: 'Adventurer' },
+  { id: 'micah', name: 'Professional' },
+  { id: 'lorelei', name: 'Stylized' }
 ];
 
 export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
@@ -60,40 +65,26 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     name: 'أحمد بن محمد',
     title: 'مستشار تطوير أعمال',
     company: 'هويتي الرقمية',
-    bio: 'خبير في التحول الرقمي وبناء الهويات المؤسسية. أساعد الشركات في الانتقال إلى العالم الرقمي بأحدث التقنيات.',
+    bio: 'خبير في التحول الرقمي وبناء الهويات المؤسسية.',
     email: 'contact@digital-id.sa',
     phone: '+966500000000',
     whatsapp: '+966500000000',
-    website: 'https://digital-id.sa',
-    location: 'الرياض، المملكة العربية السعودية',
-    locationUrl: 'https://maps.google.com',
-    profileImage: '', 
     themeColor: '#2563eb',
     isDark: false,
-    socialLinks: [
-      { platform: 'LinkedIn', url: '#', platformId: 'linkedin' },
-      { platform: 'X', url: '#', platformId: 'x' },
-      { platform: 'Instagram', url: '#', platformId: 'instagram' }
-    ]
+    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed',
+    socialLinks: []
   },
   en: {
     name: 'John Doe',
-    title: 'Senior Business Consultant',
+    title: 'Senior Consultant',
     company: 'My Digital Identity',
-    bio: 'Digital transformation expert helping businesses thrive in the modern era with innovative solutions and smart networking.',
+    bio: 'Digital transformation expert.',
     email: 'hello@digital-id.io',
     phone: '+1234567890',
     whatsapp: '+1234567890',
-    website: 'https://digital-id.io',
-    location: 'London, UK',
-    locationUrl: 'https://maps.google.com',
-    profileImage: '', 
     themeColor: '#7c3aed',
     isDark: false,
-    socialLinks: [
-      { platform: 'LinkedIn', url: '#', platformId: 'linkedin' },
-      { platform: 'X', url: '#', platformId: 'x' },
-      { platform: 'GitHub', url: '#', platformId: 'github' }
-    ]
+    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+    socialLinks: []
   }
 };
