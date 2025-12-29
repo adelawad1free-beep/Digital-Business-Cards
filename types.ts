@@ -4,7 +4,7 @@ export type Language = 'en' | 'ar';
 export interface SocialLink {
   platform: string;
   url: string;
-  icon: string;
+  platformId: string; // Used to identify the correct SVG icon
 }
 
 export interface CardData {
@@ -15,11 +15,13 @@ export interface CardData {
   bio: string;
   email: string;
   phone: string;
+  whatsapp: string;
   website: string;
   location: string;
+  locationUrl: string;
   profileImage: string;
   themeColor: string;
-  isDark: boolean; // Independent card theme
+  isDark: boolean;
   socialLinks: SocialLink[];
 }
 

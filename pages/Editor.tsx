@@ -1,239 +1,249 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CardData, Language, SocialLink } from '../types';
-import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS } from '../constants';
+import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import CardPreview from '../components/CardPreview';
-import { Wand2, Save, Plus, X, Sun, Moon } from 'lucide-react';
+import SocialIcon from '../components/SocialIcon';
+import { Wand2, Save, Plus, X, Sun, Moon, Pipette } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
   onSave: (data: CardData) => void;
-  onBack: () => void;
   initialData?: CardData;
-  isStandalone?: boolean;
 }
 
-const Editor: React.FC<EditorProps> = ({ lang, onSave, onBack, initialData, isStandalone }) => {
+const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
   const t = (key: string) => TRANSLATIONS[key][lang];
   const isRtl = lang === 'ar';
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
-  const [formData, setFormData] = useState<CardData>(initialData || {
+  const getDefaults = (l: Language): CardData => ({
     id: Math.random().toString(36).substr(2, 9),
-    name: '',
-    title: '',
-    company: '',
-    bio: '',
-    email: '',
-    phone: '',
-    website: '',
-    location: '',
-    profileImage: '',
-    themeColor: THEME_COLORS[0],
-    isDark: false, // ثيم البطاقة يبدأ نهاري بشكل افتراضي
-    socialLinks: []
+    name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
+    themeColor: THEME_COLORS[0], isDark: false, socialLinks: [],
+    ...SAMPLE_DATA[l]
   });
 
-  const [aiLoading, setAiLoading] = useState(false);
-  const [socialInput, setSocialInput] = useState({ platform: SOCIAL_PLATFORMS[0].id, url: '' });
+  const [formData, setFormData] = useState<CardData>(initialData || getDefaults(lang));
+  const [isDirty, setIsDirty] = useState(!!initialData);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleMagicBio = async () => {
-    if (!formData.name || !formData.title) {
-      alert(lang === 'en' ? 'Fill info first' : 'عبئ البيانات أولاً');
-      return;
+  useEffect(() => {
+    if (!isDirty && !initialData) {
+      setFormData(getDefaults(lang));
     }
-    setAiLoading(true);
-    const keywords = prompt(lang === 'en' ? 'Add keywords' : 'أضف كلمات دلالية');
-    const bio = await generateProfessionalBio(formData.name, formData.title, formData.company, keywords || '', lang);
-    if (bio) setFormData(prev => ({ ...prev, bio }));
-    setAiLoading(false);
+  }, [lang, isDirty, initialData]);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
+
+  const inputClasses = "w-full px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300";
+  const labelClasses = "block text-sm font-bold text-gray-700 dark:text-gray-400 mb-2 px-1";
+
+  const handleChange = (field: keyof CardData, value: any) => {
+    setIsDirty(true);
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const addSocialLink = () => {
     if (!socialInput.url) return;
-    const platform = SOCIAL_PLATFORMS.find(p => p.id === socialInput.platform);
+    const platform = SOCIAL_PLATFORMS.find(p => p.id === socialInput.platformId);
     if (!platform) return;
-
-    const newLink: SocialLink = {
-      platform: platform.name,
-      url: socialInput.url,
-      icon: platform.icon
+    const newLink: SocialLink = { 
+      platform: platform.name, 
+      url: socialInput.url, 
+      platformId: platform.id 
     };
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: [...prev.socialLinks, newLink]
-    }));
+    setIsDirty(true);
+    setFormData(prev => ({ ...prev, socialLinks: [...prev.socialLinks, newLink] }));
     setSocialInput({ ...socialInput, url: '' });
   };
 
-  const removeSocialLink = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-    }));
-  };
-
-  // كلاسات الحقول: تأكيد bg-white في الوضع النهاري
-  const inputClasses = "w-full px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 transition-all shadow-sm";
-  const labelClasses = "block text-sm font-bold text-gray-600 dark:text-gray-400 mb-2.5 px-1";
-
   return (
-    <div className={`px-4 transition-all duration-500 ${isRtl ? 'rtl' : 'ltr'}`}>
-      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-10 items-start">
-        
-        {/* لوحة التحكم الرئيسية - الفورم */}
-        <div className="flex-1 w-full space-y-8">
-          <div className="mb-2">
-            <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">{t('createBtn')}</h1>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">{lang === 'en' ? 'Design your identity.' : 'صمم هويتك الرقمية.'}</p>
-          </div>
+    <div className="flex flex-col lg:flex-row gap-12">
+      <div className="flex-1 space-y-8">
+        <div className="mb-2">
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">{t('createBtn')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">{lang === 'en' ? 'Build your professional presence.' : 'ابنِ حضورك الرقمي الاحترافي.'}</p>
+        </div>
 
-          {/* خلفية الفورم: بيضاء ناصعة في النهار */}
-          <div className="bg-white dark:bg-[#15171c] p-8 md:p-12 rounded-[3rem] shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 space-y-8 transition-colors duration-500">
+        <div className="bg-white dark:bg-[#121215] p-8 md:p-12 rounded-[3rem] shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 space-y-8 transition-colors duration-300">
+          
+          {/* 1. البيانات الأساسية (Personal Info) */}
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelClasses}>{t('fullName')}</label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} className={inputClasses} placeholder={t('placeholderName')} />
+                <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClasses} placeholder={t('placeholderName')} />
               </div>
               <div>
                 <label className={labelClasses}>{t('jobTitle')}</label>
-                <input type="text" name="title" value={formData.title} onChange={handleInputChange} className={inputClasses} placeholder={t('placeholderTitle')} />
+                <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className={inputClasses} placeholder={t('placeholderTitle')} />
               </div>
             </div>
 
             <div>
-              <label className={labelClasses}>{t('company')}</label>
-              <input type="text" name="company" value={formData.company} onChange={handleInputChange} className={inputClasses} />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2.5">
+              <div className="flex justify-between items-center mb-2">
                 <label className={labelClasses}>{t('bio')}</label>
-                <button 
-                  onClick={handleMagicBio} 
-                  disabled={aiLoading}
-                  className="text-xs flex items-center bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full font-bold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all shadow-sm"
-                >
-                  <Wand2 size={14} className={isRtl ? 'ml-2' : 'mr-2'} />
-                  {aiLoading ? t('aiLoading') : t('magicBio')}
+                <button onClick={async () => {
+                  setAiLoading(true);
+                  const bio = await generateProfessionalBio(formData.name, formData.title, formData.company, '', lang);
+                  handleChange('bio', bio);
+                  setAiLoading(false);
+                }} className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full flex items-center gap-2 hover:bg-blue-100 transition-all">
+                  <Wand2 size={14}/> {aiLoading ? t('aiLoading') : t('magicBio')}
                 </button>
               </div>
-              <textarea name="bio" value={formData.bio} onChange={handleInputChange} rows={3} className={`${inputClasses} resize-none`} />
+              <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} rows={3} className={`${inputClasses} resize-none`} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className={labelClasses}>{t('phone')}</label>
+                <input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={inputClasses} placeholder="+966..." />
+              </div>
+              <div>
+                <label className={labelClasses}>{t('whatsapp')}</label>
+                <input type="tel" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={inputClasses} placeholder="+966..." />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className={labelClasses}>{t('email')}</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} className={inputClasses} />
+                <input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={inputClasses} />
               </div>
               <div>
-                <label className={labelClasses}>{t('phone')}</label>
-                <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className={inputClasses} />
+                <label className={labelClasses}>{t('website')}</label>
+                <input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={inputClasses} />
               </div>
             </div>
 
-            {/* تخصيص الثيم والألوان */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-8 border-t border-gray-50 dark:border-gray-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className={labelClasses}>{t('theme')}</label>
-                <div className="flex flex-wrap gap-3">
-                  {THEME_COLORS.map(color => (
-                    <button 
-                      key={color} 
-                      onClick={() => setFormData(prev => ({ ...prev, themeColor: color }))}
-                      className={`w-11 h-11 rounded-2xl border-4 transition-all hover:scale-110 ${formData.themeColor === color ? 'border-blue-500 shadow-lg' : 'border-transparent shadow-sm'}`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
+                <label className={labelClasses}>{t('location')}</label>
+                <input type="text" value={formData.location} onChange={e => handleChange('location', e.target.value)} className={inputClasses} />
+              </div>
+              <div>
+                <label className={labelClasses}>{t('locationUrl')}</label>
+                <input type="url" value={formData.locationUrl} onChange={e => handleChange('locationUrl', e.target.value)} className={inputClasses} placeholder="https://maps.google.com/..." />
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-100 dark:border-gray-800" />
+
+          {/* 2. روابط التواصل (Social Links) */}
+          <div className="space-y-4">
+            <label className={labelClasses}>{t('socials')}</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <select 
+                  value={socialInput.platformId} 
+                  onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} 
+                  className="w-full sm:w-40 appearance-none px-4 py-3.5 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1f] dark:text-white font-bold text-sm outline-none cursor-pointer"
+                >
+                  {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <div className={`absolute pointer-events-none top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} text-gray-400`}>
+                  ▼
                 </div>
               </div>
-              
-              <div>
-                <label className={labelClasses}>{t('cardTheme')}</label>
-                <div className="flex bg-gray-50 dark:bg-gray-800 p-1.5 rounded-[1.25rem] w-fit shadow-inner">
-                  <button 
-                    onClick={() => setFormData(prev => ({ ...prev, isDark: false }))}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-bold text-sm ${!formData.isDark ? 'bg-white text-blue-600 shadow-md' : 'text-gray-400'}`}
-                  >
-                    <Sun size={18} /> {t('lightMode')}
+              <input type="text" value={socialInput.url} onChange={e => setSocialInput({...socialInput, url: e.target.value})} className={`${inputClasses} flex-1`} placeholder="URL..." />
+              <button onClick={addSocialLink} className="p-4 bg-gray-900 dark:bg-blue-600 text-white rounded-2xl hover:scale-105 transition-all active:scale-95 shadow-lg flex items-center justify-center">
+                <Plus size={20}/>
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {formData.socialLinks.map((link, i) => (
+                <div key={i} className="flex items-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-2xl text-xs font-bold border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
+                  <span className={isRtl ? 'ml-2' : 'mr-2'}>
+                    <SocialIcon platformId={link.platformId} size={16} color="currentColor" />
+                  </span>
+                  <span>{link.platform}</span>
+                  <button onClick={() => {
+                    setIsDirty(true);
+                    setFormData({...formData, socialLinks: formData.socialLinks.filter((_, idx) => idx !== i)});
+                  }} className={`${isRtl ? 'mr-3' : 'ml-3'} text-red-500 opacity-60 hover:opacity-100 transition-opacity`}>
+                    <X size={16}/>
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <hr className="border-gray-100 dark:border-gray-800" />
+
+          {/* 3. الألوان والثيم (Theme & Colors) */}
+          <div className="space-y-8">
+            <div>
+              <label className={labelClasses}>{t('theme')}</label>
+              <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-1 no-scrollbar">
+                {THEME_COLORS.map(c => (
                   <button 
-                    onClick={() => setFormData(prev => ({ ...prev, isDark: true }))}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-bold text-sm ${formData.isDark ? 'bg-gray-900 text-blue-400 shadow-md' : 'text-gray-400'}`}
+                    key={c} 
+                    onClick={() => handleChange('themeColor', c)} 
+                    className={`flex-shrink-0 w-12 h-12 rounded-full border-4 transition-all hover:scale-110 shadow-sm ${formData.themeColor.toLowerCase() === c.toLowerCase() ? 'border-blue-500 scale-110 shadow-lg ring-2 ring-blue-100' : 'border-white dark:border-gray-800'}`} 
+                    style={{backgroundColor: c}} 
+                  />
+                ))}
+                
+                {/* خيار اختيار لون مخصص */}
+                <div className="flex-shrink-0 relative group">
+                  <button 
+                    onClick={() => colorInputRef.current?.click()}
+                    className={`w-12 h-12 rounded-full border-4 flex items-center justify-center transition-all hover:scale-110 shadow-sm ${!THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? 'border-blue-500 scale-110 shadow-lg ring-2 ring-blue-100' : 'border-white dark:border-gray-800 bg-gray-100 dark:bg-gray-800'}`}
+                    style={{ backgroundColor: !THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? formData.themeColor : undefined }}
                   >
-                    <Moon size={18} /> {t('darkMode')}
+                    <Pipette size={20} className={!THEME_COLORS.map(tc => tc.toLowerCase()).includes(formData.themeColor.toLowerCase()) ? 'text-white drop-shadow-md' : 'text-gray-500 dark:text-gray-400'} />
                   </button>
+                  <input 
+                    ref={colorInputRef}
+                    type="color" 
+                    value={formData.themeColor} 
+                    onChange={(e) => handleChange('themeColor', e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className={labelClasses}>{t('socials')}</label>
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <select 
-                  value={socialInput.platform}
-                  onChange={(e) => setSocialInput({ ...socialInput, platform: e.target.value })}
-                  className="px-4 py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-bold shadow-sm"
-                >
-                  {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <input 
-                  type="text"
-                  value={socialInput.url}
-                  onChange={(e) => setSocialInput({ ...socialInput, url: e.target.value })}
-                  className={`${inputClasses} flex-1`}
-                  placeholder="https://..."
-                />
+              <label className={labelClasses}>{t('cardTheme')}</label>
+              <div className="flex bg-gray-100 dark:bg-[#1a1a1f] p-1.5 rounded-2xl w-full sm:w-fit shadow-inner">
                 <button 
-                  onClick={addSocialLink}
-                  className="p-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 flex items-center justify-center min-w-[56px]"
-                >
-                  <Plus size={24} />
+                  onClick={() => handleChange('isDark', false)} 
+                  className={`flex-1 sm:flex-none px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${!formData.isDark ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}
+                > 
+                  <Sun size={18}/> {t('lightMode')} 
+                </button>
+                <button 
+                  onClick={() => handleChange('isDark', true)} 
+                  className={`flex-1 sm:flex-none px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${formData.isDark ? 'bg-gray-800 shadow-md text-blue-400' : 'text-gray-400'}`}
+                > 
+                  <Moon size={18}/> {t('darkMode')} 
                 </button>
               </div>
-              <div className="flex flex-wrap gap-3">
-                {formData.socialLinks.map((link, idx) => (
-                  <div key={idx} className="flex items-center bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-5 py-2.5 rounded-2xl text-sm font-bold border border-gray-100 dark:border-gray-700 group hover:border-blue-400 transition-all">
-                    <span className={isRtl ? 'ml-3' : 'mr-3'}>{link.icon}</span>
-                    <span>{link.platform}</span>
-                    <button onClick={() => removeSocialLink(idx)} className={`${isRtl ? 'mr-4' : 'ml-4'} text-gray-400 hover:text-red-500 transition-colors`}>
-                      <X size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button 
-              onClick={() => onSave(formData)}
-              className="w-full py-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2rem] font-black text-xl hover:shadow-2xl hover:shadow-blue-500/40 transition-all active:scale-[0.98] flex items-center justify-center space-x-3"
-            >
-              <Save size={28} className={isRtl ? 'ml-3' : 'mr-3'} />
-              <span>{t('save')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* لوحة المعاينة اليمنى */}
-        <div className="w-full lg:w-[440px] lg:sticky lg:top-32">
-          <div className="space-y-8">
-            <div className="text-center">
-              <span className="px-6 py-2.5 bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-gray-100 dark:border-gray-700 shadow-sm">
-                {t('preview')}
-              </span>
-            </div>
-            {/* حاوية المعاينة: بيضاء ناصعة في النهار لتعزيز التباين */}
-            <div className="bg-white dark:bg-gray-950 p-10 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-2xl transition-all duration-500">
-              <CardPreview data={formData} lang={lang} />
             </div>
           </div>
-        </div>
 
+          <button onClick={() => onSave(formData)} className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2rem] font-black text-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+            <Save size={24}/> <span>{t('save')}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="w-full lg:w-[420px] lg:sticky lg:top-12 self-start">
+        <div className="space-y-6">
+          <div className="text-center">
+            <span className="px-5 py-2 bg-white dark:bg-[#121215] text-gray-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-gray-50 dark:border-gray-800 shadow-sm">
+              {t('preview')}
+            </span>
+          </div>
+          <div className="bg-white dark:bg-[#121215] p-8 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl">
+            <CardPreview data={formData} lang={lang} />
+          </div>
+        </div>
       </div>
     </div>
   );
