@@ -51,13 +51,14 @@ const App: React.FC = () => {
             setUserCard(card as CardData);
             setIsDarkMode(card.isDark);
           }
+          // Only auto-switch to editor from home if they just logged in and we're on home
           if (activeTab === 'home') setActiveTab('editor');
         } catch (e) {
           console.error("Fetch card error:", e);
         }
       } else {
         setUserCard(null);
-        setActiveTab('home');
+        // Don't force redirect to home if they are in the middle of editing
       }
       setLoading(false);
     });
@@ -107,6 +108,7 @@ const App: React.FC = () => {
 
   const handleSave = async (data: CardData) => {
     if (!currentUser) {
+      // Logic for "Login before publish"
       setShowAuthModal(true);
       return;
     }
@@ -266,7 +268,7 @@ const App: React.FC = () => {
       <main className={`flex-1 transition-all duration-300 ${isRtl ? 'md:mr-72' : 'md:ml-72'} pb-24 md:pb-0`}>
         <div className="max-w-[1440px] mx-auto p-4 md:p-12">
            {activeTab === 'home' && (
-             <Home lang={lang} onStart={() => currentUser ? setActiveTab('editor') : setShowAuthModal(true)} />
+             <Home lang={lang} onStart={() => setActiveTab('editor')} />
            )}
            {activeTab === 'editor' && (
              <Editor 
