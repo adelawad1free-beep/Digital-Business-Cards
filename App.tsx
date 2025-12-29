@@ -10,10 +10,11 @@ const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
   const [userCard, setUserCard] = useState<CardData | null>(null);
   
-  // الحالة الافتراضية للثيم
+  // التحكم في ثيم الموقع (ليلي/نهاري)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme === 'dark';
+    if (savedTheme) return savedTheme === 'dark';
+    return false; // الافتراضي نهاري
   });
 
   useEffect(() => {
@@ -27,7 +28,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // تطبيق الثيم على مستوى المستند
+  // إدارة كلاس الـ Dark على مستوى الـ HTML
   useEffect(() => {
     const root = window.document.documentElement;
     if (isDarkMode) {
@@ -48,25 +49,23 @@ const App: React.FC = () => {
   const isRtl = lang === 'ar';
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-950' : 'bg-gray-50'} ${isRtl ? 'rtl' : 'ltr'}`}>
-      {/* الهيدر - تم تعديل الألوان لضمان الشفافية والوضوح في الوضعين */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+    <div className={`min-h-screen transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0f1115]' : 'bg-[#fcfcfd]'} ${isRtl ? 'rtl' : 'ltr'}`}>
+      {/* هيدر الموقع - أبيض ناصع في النهار */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-4 shadow-sm transition-colors">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* الشعار واسم الموقع */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg transform hover:scale-105 transition-transform">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
               C
             </div>
-            <span className={`text-xl font-bold text-gray-900 dark:text-white ${isRtl ? 'mr-3' : 'ml-3'}`}>
+            <span className={`text-xl font-black text-gray-900 dark:text-white ${isRtl ? 'mr-3' : 'ml-3'}`}>
               {TRANSLATIONS.appName[lang]}
             </span>
           </div>
           
-          {/* التحكم في اللغة والثيم */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
               title={isDarkMode ? 'الوضع النهاري' : 'الوضع الليلي'}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -76,8 +75,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* محتوى المحرر */}
-      <main className="pt-24 pb-12">
+      <main className="pt-28 pb-16">
         <div className="max-w-7xl mx-auto">
           <Editor 
             lang={lang} 
@@ -89,16 +87,14 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* الفوتر */}
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-10 px-6 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-gray-400 dark:text-gray-500 text-sm font-medium">
-            © {new Date().getFullYear()} {TRANSLATIONS.appName[lang]}. {lang === 'en' ? 'Digital Identity Platform' : 'منصة الهوية الرقمية'}
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="text-gray-400 dark:text-gray-500 text-sm font-bold uppercase tracking-widest">
+            {TRANSLATIONS.appName[lang]} © {new Date().getFullYear()}
           </div>
-          <div className="flex gap-6">
-            <span className="text-gray-400 dark:text-gray-500 text-sm hover:text-blue-500 transition-colors cursor-pointer">Privacy</span>
-            <span className="text-gray-400 dark:text-gray-500 text-sm hover:text-blue-500 transition-colors cursor-pointer">Terms</span>
-            <span className="text-gray-400 dark:text-gray-500 text-sm hover:text-blue-500 transition-colors cursor-pointer">Support</span>
+          <div className="flex gap-8">
+            <span className="text-gray-400 dark:text-gray-500 text-sm hover:text-blue-600 cursor-pointer transition-colors">Privacy</span>
+            <span className="text-gray-400 dark:text-gray-500 text-sm hover:text-blue-600 cursor-pointer transition-colors">Terms</span>
           </div>
         </div>
       </footer>
