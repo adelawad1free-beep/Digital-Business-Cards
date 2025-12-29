@@ -9,9 +9,9 @@ import CardPreview from './components/CardPreview';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
-import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserPrimaryCard } from './services/firebase';
+import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserPrimaryCard, deleteUserAccountAndData } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, LayoutDashboard, Eye, Settings, Share2, AlertCircle, Loader2, ShieldAlert, LogIn, LogOut, User as UserIcon, CheckCircle2 } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Eye, Settings, Share2, AlertCircle, Loader2, ShieldAlert, LogIn, LogOut, User as UserIcon, CheckCircle2, Trash2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
@@ -24,11 +24,22 @@ const App: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [adminEditingCard, setAdminEditingCard] = useState<CardData | null>(null);
 
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
   const isRtl = lang === 'ar';
 
-  // 1. مراقبة حالة تسجيل الدخول وجلب بطاقة المستخدم
+  // دالة آمنة لتنظيف الرابط وتجنب أخطاء SecurityError في بعض البيئات
+  const safeResetUrl = () => {
+    try {
+      if (window.location.protocol !== 'blob:') {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (e) {
+      console.warn("History API not accessible", e);
+    }
+  };
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -50,22 +61,15 @@ const App: React.FC = () => {
     return () => unsub();
   }, []);
 
-  // 2. التعامل مع الروابط المباشرة (domain.com/username)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const querySlug = params.get('u');
-    
     const pathParts = window.location.pathname.split('/').filter(p => p);
     const pathSlug = pathParts[0];
-    
     const isFile = pathSlug?.includes('.');
     const slug = querySlug || (isFile ? null : pathSlug);
 
-    const reserved = [
-      'editor', 'admin', 'preview', 'home', 'settings', 
-      'login', 'signup', 'auth', 'api', 'assets', 'static',
-      'favicon.ico', 'index.html', 'manifest.json', 'robots.txt'
-    ];
+    const reserved = ['editor', 'admin', 'preview', 'home', 'settings', 'login', 'signup', 'auth', 'favicon.ico'];
 
     if (slug && !reserved.includes(slug.toLowerCase())) {
       const fetchPublic = async () => {
@@ -76,12 +80,11 @@ const App: React.FC = () => {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
           } else {
-            // إذا لم توجد بطاقة، نعود للرئيسية وننظف المسار
-            window.history.replaceState({}, '', '/');
+            safeResetUrl();
             setPublicCard(null);
           }
         } catch (e) {
-          window.history.replaceState({}, '', '/');
+          safeResetUrl();
           setPublicCard(null);
         } finally {
           setLoading(false);
@@ -105,33 +108,62 @@ const App: React.FC = () => {
 
     setSaveLoading(true);
     try {
-      await saveCardToDB(currentUser.uid, data);
-      setUserCard(data);
-      setShowShareModal(true);
+      const targetUserId = adminEditingCard ? adminEditingCard.ownerId || currentUser.uid : currentUser.uid;
+      await saveCardToDB(targetUserId, data);
+      
+      if (!adminEditingCard) {
+        setUserCard(data);
+        setShowShareModal(true);
+      } else {
+        alert(lang === 'ar' ? "تم تحديث بطاقة المستخدم بنجاح" : "User card updated successfully");
+        setAdminEditingCard(null);
+        setActiveTab('admin');
+      }
     } catch (e) {
       console.error("Save Error:", e);
-      alert(lang === 'ar' ? "فشل الحفظ. تأكد من اتصالك." : "Save failed. Check connection.");
+      alert(lang === 'ar' ? "فشل الحفظ." : "Save failed.");
     } finally {
       setSaveLoading(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!currentUser) return;
+    const confirmMsg = lang === 'ar' 
+      ? "هل أنت متأكد من حذف حسابك وبطاقتك نهائياً؟ لا يمكن التراجع عن هذا الإجراء." 
+      : "Are you sure you want to delete your account and card permanently? This action cannot be undone.";
+    
+    if (window.confirm(confirmMsg)) {
+      setSaveLoading(true);
+      try {
+        await deleteUserAccountAndData(currentUser.uid, userCard?.id);
+        window.location.reload();
+      } catch (e: any) {
+        alert(lang === 'ar' ? "فشل الحذف. يرجى تسجيل الخروج ثم الدخول مجدداً والمحاولة فوراً لضمان الأمان." : "Delete failed. Please logout and login again to confirm your identity for safety.");
+      } finally {
+        setSaveLoading(false);
+      }
+    }
+  };
+
+  const handleAdminEdit = (card: CardData) => {
+    setAdminEditingCard(card);
+    setActiveTab('editor');
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0a0a0c]">
         <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-        <p className="font-black text-gray-400 text-sm uppercase tracking-widest">
-          {lang === 'ar' ? 'جاري التحقق من البيانات...' : 'Checking Data...'}
-        </p>
+        <p className="font-black text-gray-400 text-sm uppercase tracking-widest">{lang === 'ar' ? 'جاري التحقق...' : 'Checking...'}</p>
       </div>
     );
   }
 
-  // تم إزالة شرط (decodeError) ليتم التوجيه للرئيسية تلقائياً بدلاً من إظهار الخطأ
   if (publicCard) return <PublicProfile data={publicCard} lang={lang} />;
 
   const NavItem = ({ id, icon: Icon, label }: { id: any, icon: any, label: string }) => (
-    <button onClick={() => setActiveTab(id)} className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${activeTab === id ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400'}`}>
+    <button onClick={() => { setActiveTab(id); setAdminEditingCard(null); }} className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${activeTab === id ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400'}`}>
       <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 2} />
       <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{label}</span>
     </button>
@@ -147,7 +179,7 @@ const App: React.FC = () => {
           </div>
           
           <nav className="space-y-2">
-            <button onClick={() => setActiveTab('editor')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'editor' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+            <button onClick={() => { setActiveTab('editor'); setAdminEditingCard(null); }} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'editor' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
               <LayoutDashboard size={20} /> <span>{lang === 'en' ? 'My Card' : 'بطاقتي'}</span>
             </button>
             <button onClick={() => setActiveTab('preview')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'preview' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
@@ -173,9 +205,14 @@ const App: React.FC = () => {
                     <p className="text-[11px] font-bold text-gray-700 dark:text-white truncate">{currentUser.email}</p>
                   </div>
                </div>
-               <button onClick={() => signOut(auth).then(() => window.location.reload())} className="w-full py-2 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl text-[10px] font-black uppercase hover:bg-red-100 transition-all flex items-center justify-center gap-2">
-                 <LogOut size={12} /> {lang === 'ar' ? 'تسجيل خروج' : 'Logout'}
-               </button>
+               <div className="flex flex-col gap-2">
+                 <button onClick={() => signOut(auth).then(() => window.location.reload())} className="w-full py-2 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl text-[10px] font-black uppercase border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-2">
+                   <LogOut size={12} /> {lang === 'ar' ? 'خروج' : 'Logout'}
+                 </button>
+                 <button onClick={handleDeleteAccount} className="w-full py-2 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-red-100 transition-all">
+                   <Trash2 size={12} /> {lang === 'ar' ? 'حذف الحساب والبطاقة' : 'Delete Account'}
+                 </button>
+               </div>
             </div>
           ) : (
             <button onClick={() => setShowAuthModal(true)} className="w-full py-4 bg-blue-600 text-white rounded-2xl text-sm font-black uppercase shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
@@ -197,8 +234,9 @@ const App: React.FC = () => {
              <Editor 
                lang={lang} 
                onSave={handleSave} 
-               initialData={userCard || undefined} 
-               key={currentUser?.uid || 'guest'} 
+               initialData={adminEditingCard || userCard || undefined} 
+               key={adminEditingCard?.id || currentUser?.uid || 'guest'} 
+               isAdminEdit={!!adminEditingCard}
              />
            )}
            {activeTab === 'preview' && (
@@ -212,7 +250,12 @@ const App: React.FC = () => {
                 </button>
              </div>
            )}
-           {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} />}
+           {activeTab === 'admin' && isAdmin && (
+             <AdminDashboard 
+                lang={lang} 
+                onEditCard={handleAdminEdit} 
+             />
+           )}
         </div>
       </main>
 
@@ -229,7 +272,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
            <div className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] flex flex-col items-center gap-4 shadow-2xl border border-gray-100 dark:border-gray-800">
               <Loader2 className="animate-spin text-blue-600" size={56} />
-              <p className="font-black text-xl dark:text-white">{lang === 'ar' ? 'جاري تأمين بياناتك...' : 'Securing your data...'}</p>
+              <p className="font-black text-xl dark:text-white">{lang === 'ar' ? 'جاري المعالجة...' : 'Processing...'}</p>
            </div>
         </div>
       )}

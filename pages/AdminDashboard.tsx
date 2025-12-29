@@ -1,19 +1,20 @@
 
 import React, { useEffect, useState } from 'react';
-import { getAdminStats, ADMIN_EMAIL } from '../services/firebase';
-import { Language } from '../types';
-import { BarChart3, Users, Clock, ArrowUpRight, Loader2, RefreshCw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { getAdminStats, ADMIN_EMAIL, deleteCardByAdmin } from '../services/firebase';
+import { Language, CardData } from '../types';
+import { BarChart3, Users, Clock, ArrowUpRight, Loader2, RefreshCw, ShieldAlert, ShieldCheck, Trash2, Edit3, Eye } from 'lucide-react';
 
 interface AdminDashboardProps {
   lang: Language;
+  onEditCard: (card: CardData) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard }) => {
   const [stats, setStats] = useState<{ totalCards: number; recentCards: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch administrative statistics from Firebase
   const fetchStats = async () => {
     setLoading(true);
     setError(null);
@@ -36,6 +37,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     fetchStats();
   }, []);
 
+  const handleDelete = async (cardId: string, ownerId: string) => {
+    const confirmMsg = lang === 'ar' ? "هل أنت متأكد من حذف هذه البطاقة؟" : "Are you sure you want to delete this card?";
+    if (!window.confirm(confirmMsg)) return;
+
+    setActionLoading(cardId);
+    try {
+      await deleteCardByAdmin(cardId, ownerId);
+      await fetchStats();
+      alert(lang === 'ar' ? "تم حذف البطاقة" : "Card deleted");
+    } catch (e) {
+      alert(lang === 'ar' ? "فشل الحذف" : "Delete failed");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const t = (ar: string, en: string) => lang === 'ar' ? ar : en;
 
   if (loading && !stats) {
@@ -47,7 +64,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     );
   }
 
-  // Handle permission errors by showing required Firestore rules
   if (error === 'permissions') {
     return (
       <div className="bg-white dark:bg-gray-900 rounded-[3rem] p-12 shadow-2xl border border-amber-100 dark:border-amber-900/20 text-center space-y-6">
@@ -55,16 +71,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
           <ShieldAlert size={40} />
         </div>
         <h2 className="text-2xl font-black text-gray-900 dark:text-white">
-          {t('خطأ في الصلاحيات (Firestore Rules)', 'Firestore Permissions Error')}
+          {t('خطأ في الصلاحيات', 'Permissions Error')}
         </h2>
-        <p className="text-gray-500 font-bold max-w-md mx-auto leading-relaxed">
-          {t(
-            'يبدو أن القواعد الأمنية لـ Firestore لا تسمح للمسؤول بجلب الإحصائيات. يرجى التأكد من تحديث القواعد في لوحة تحكم Firebase.',
-            'It seems Firestore Security Rules are preventing the admin from fetching stats. Please ensure you update the rules in your Firebase Console.'
-          )}
-        </p>
         <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-2xl text-left font-mono text-xs overflow-x-auto border border-gray-100 dark:border-gray-700">
-          <p className="text-blue-600 font-bold mb-2">// Copy these rules to Firebase Console (Firestore Rules tab):</p>
+          <p className="text-blue-600 font-bold mb-2">// Updated Rules for Delete Support:</p>
           <pre className="text-gray-600 dark:text-gray-400">
 {`rules_version = '2';
 service cloud.firestore {
@@ -72,20 +82,19 @@ service cloud.firestore {
     match /public_cards/{cardId} {
       allow read: if true;
       allow create, update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.token.email == '${ADMIN_EMAIL}';
       allow list: if request.auth != null && request.auth.token.email == '${ADMIN_EMAIL}';
     }
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == '${ADMIN_EMAIL}');
     }
   }
 }`}
           </pre>
         </div>
-        <button 
-          onClick={fetchStats}
-          className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg hover:bg-blue-700 transition-all"
-        >
-          {t('إعادة المحاولة', 'Retry Connection')}
+        <button onClick={fetchStats} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg">
+          {t('إعادة المحاولة', 'Retry')}
         </button>
       </div>
     );
@@ -96,103 +105,86 @@ service cloud.firestore {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-2">
-            {t('لوحة التحكم الملكية', 'Admin Command Center')}
+            {t('لوحة التحكم الإدارية', 'Admin Dashboard')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-bold">
-            {t('مرحباً بك يا مدير، إليك نظرة على نشاط المنصة.', 'Welcome Admin, here is an overview of the platform activity.')}
-          </p>
         </div>
-        <button 
-          onClick={fetchStats}
-          className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 font-bold text-sm shadow-sm hover:bg-gray-50 transition-all"
-        >
+        <button onClick={fetchStats} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 font-bold text-sm shadow-sm">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-          {t('تحديث البيانات', 'Refresh Data')}
+          {t('تحديث', 'Refresh')}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Total Cards Metric */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 flex items-center gap-6">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600">
-            <Users size={32} />
-          </div>
-          <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('إجمالي البطاقات', 'Total Cards')}</p>
-            <p className="text-3xl font-black dark:text-white">{stats?.totalCards || 0}</p>
-          </div>
+          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600"><Users size={32} /></div>
+          <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('إجمالي البطاقات', 'Total Cards')}</p><p className="text-3xl font-black dark:text-white">{stats?.totalCards || 0}</p></div>
         </div>
-
-        {/* Activity Analytics Metric */}
         <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 flex items-center gap-6">
-          <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-2xl flex items-center justify-center text-violet-600">
-            <BarChart3 size={32} />
-          </div>
-          <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('تحليلات النشاط', 'Activity Analytics')}</p>
-            <p className="text-3xl font-black dark:text-white">{t('مفعلة', 'Active')}</p>
-          </div>
+          <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-2xl flex items-center justify-center text-violet-600"><BarChart3 size={32} /></div>
+          <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('نشاط النظام', 'System Activity')}</p><p className="text-3xl font-black dark:text-white">{t('نشط', 'Active')}</p></div>
         </div>
-
-        {/* System Status Metric */}
         <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 flex items-center gap-6">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600">
-            <ShieldCheck size={32} />
-          </div>
-          <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{t('حالة النظام', 'System Status')}</p>
-            <p className="text-3xl font-black dark:text-white">{t('مستقر', 'Stable')}</p>
-          </div>
+          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600"><ShieldCheck size={32} /></div>
+          <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('الأمان', 'Security')}</p><p className="text-3xl font-black dark:text-white">{t('محمي', 'Secure')}</p></div>
         </div>
       </div>
 
-      {/* Recent Cards List */}
       <div className="bg-white dark:bg-gray-900 rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-xl font-black dark:text-white flex items-center gap-3">
             <Clock className="text-blue-600" />
-            {t('أحدث البطاقات المنشأة', 'Recently Created Cards')}
+            {t('إدارة البطاقات', 'Card Management')}
           </h2>
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {stats?.recentCards.map((card: any, idx: number) => (
-            <div key={idx} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <div key={idx} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   {card.profileImage ? (
                     <img src={card.profileImage} className="w-full h-full object-cover" alt={card.name} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <Users size={20} />
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-gray-400"><Users size={20} /></div>
                   )}
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900 dark:text-white">{card.name || 'N/A'}</p>
-                  <p className="text-xs text-gray-500 font-medium">
-                    {card.title} {card.company ? `@ ${card.company}` : ''}
-                  </p>
+                  <p className="font-bold text-gray-900 dark:text-white">{card.name || 'No Name'}</p>
+                  <p className="text-xs text-gray-500 font-medium">ID: {card.id}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="hidden sm:inline-block text-[10px] font-black px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full uppercase tracking-tighter">
-                  ID: {card.id}
-                </span>
+              
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <a 
-                  href={`?u=${card.id}`} 
+                  href={`/${card.id}`} 
                   target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-100 transition-all"
+                  className="flex-1 sm:flex-none p-3 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                  title={t('معاينة', 'Preview')}
                 >
-                  <ArrowUpRight size={18} />
+                  <Eye size={18} />
+                  <span className="sm:hidden text-xs font-bold">{t('عرض', 'View')}</span>
                 </a>
+                <button 
+                  onClick={() => onEditCard(card)}
+                  className="flex-1 sm:flex-none p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
+                  title={t('تحرير', 'Edit')}
+                >
+                  <Edit3 size={18} />
+                  <span className="sm:hidden text-xs font-bold">{t('تعديل', 'Edit')}</span>
+                </button>
+                <button 
+                  onClick={() => handleDelete(card.id, card.ownerId)}
+                  disabled={actionLoading === card.id}
+                  className="flex-1 sm:flex-none p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  title={t('حذف', 'Delete')}
+                >
+                  {actionLoading === card.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                  <span className="sm:hidden text-xs font-bold">{t('حذف', 'Delete')}</span>
+                </button>
               </div>
             </div>
           ))}
           {stats?.recentCards.length === 0 && (
-            <div className="p-12 text-center text-gray-400 font-bold">
-              {t('لا توجد بطاقات منشأة بعد.', 'No cards have been created yet.')}
-            </div>
+            <div className="p-12 text-center text-gray-400 font-bold">{t('لا توجد بطاقات.', 'No cards.')}</div>
           )}
         </div>
       </div>

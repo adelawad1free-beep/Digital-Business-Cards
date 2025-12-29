@@ -23,6 +23,9 @@ export interface CardData {
   themeColor: string;
   isDark: boolean;
   socialLinks: SocialLink[];
+  // Added ownerId and updatedAt to resolve property access errors and support administrative features
+  ownerId?: string;
+  updatedAt?: string;
 }
 
 export interface TranslationStrings {
