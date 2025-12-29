@@ -4,10 +4,10 @@ import { CardData, Language, SocialLink } from '../types';
 import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA, AVATAR_STYLES } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
-import { isSlugAvailable, auth } from '../services/firebase';
+import { isSlugAvailable, auth, uploadProfileImage } from '../services/firebase';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -20,6 +20,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const t = (key: string) => TRANSLATIONS[key][lang];
   const isRtl = lang === 'ar';
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const getDefaults = (l: Language): CardData => ({
     id: generateSerialId(),
@@ -29,13 +30,12 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   });
 
   const [formData, setFormData] = useState<CardData>(initialData || getDefaults(lang));
-  const [activeImgTab, setActiveImgTab] = useState<'social' | 'avatar' | 'link'>('social');
+  const [activeImgTab, setActiveImgTab] = useState<'upload' | 'social' | 'avatar' | 'link'>('upload');
   const [socialHandle, setSocialHandle] = useState('');
   const [socialProvider, setSocialProvider] = useState('twitter');
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
-  
-  // حالات التحقق من الرابط
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   useEffect(() => {
@@ -47,9 +47,35 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') {
       value = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-      setSlugStatus('idle'); // إعادة تعيين الحالة عند التغيير
+      setSlugStatus('idle');
     }
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!auth.currentUser) {
+      alert(lang === 'ar' ? 'يجب تسجيل الدخول لرفع الصور' : 'Please login to upload images');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert(lang === 'ar' ? 'حجم الصورة كبير جداً (الأقصى 2 ميجا)' : 'File too large (Max 2MB)');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const downloadUrl = await uploadProfileImage(auth.currentUser.uid, file);
+      handleChange('profileImage', downloadUrl);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert(lang === 'ar' ? 'فشل رفع الصورة' : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const checkAvailability = async () => {
@@ -93,13 +119,12 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   };
 
   const handleFinalSave = async () => {
-    // التأكد من التحقق من الرابط قبل الحفظ النهائي
     if (slugStatus !== 'available' && !isAdminEdit) {
       setSlugStatus('checking');
       const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
       if (!available) {
         setSlugStatus('taken');
-        alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل، يرجى اختيار اسم آخر" : "This link is already taken, please choose another name");
+        alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل" : "This link is already taken");
         return;
       }
       setSlugStatus('available');
@@ -117,14 +142,13 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
           <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-3xl border border-amber-200 dark:border-amber-800/20 flex items-center gap-4 animate-pulse">
             <ShieldCheck className="text-amber-600" />
             <p className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest">
-              {lang === 'ar' ? 'أنت في وضع تعديل المسؤول للمستخدم' : 'Admin Edit Mode: Editing User Card'}
+              {lang === 'ar' ? 'وضع تعديل المسؤول' : 'Admin Edit Mode'}
             </p>
           </div>
         )}
 
         <div className="bg-white dark:bg-[#121215] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 space-y-10">
           
-          {/* قسم الرابط الشخصي - مع ميزة التحقق */}
           <div className="bg-blue-50 dark:bg-blue-900/10 p-8 rounded-[2.5rem] border-2 border-dashed border-blue-200 dark:border-blue-800 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                <div>
@@ -151,37 +175,51 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                 disabled={isAdminEdit}
               />
               <Hash className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-400`} size={20} />
-              
               <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2`}>
                 {slugStatus === 'available' && <CheckCircle2 className="text-emerald-500" size={24} />}
                 {slugStatus === 'taken' && <AlertCircle className="text-red-500" size={24} />}
               </div>
             </div>
-
-            {slugStatus === 'available' && (
-              <p className="text-[11px] font-black text-emerald-600 px-2 flex items-center gap-1">
-                <CheckCircle2 size={14} /> {lang === 'ar' ? 'هذا الرابط متاح للاستخدام!' : 'This link is available!'}
-              </p>
-            )}
-            {slugStatus === 'taken' && (
-              <p className="text-[11px] font-black text-red-600 px-2 flex items-center gap-1">
-                <AlertCircle size={14} /> {lang === 'ar' ? 'عذراً، هذا الاسم محجوز بالفعل' : 'Sorry, this name is already taken'}
-              </p>
-            )}
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-6">
             <label className={labelClasses}>{t('imageSource')}</label>
             <div className="flex flex-col md:flex-row items-center gap-8">
-               <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200">
-                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><UserCircle2 size={40} /></div>}
+               <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 relative group">
+                 {formData.profileImage ? (
+                   <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" />
+                 ) : (
+                   <div className="w-full h-full flex items-center justify-center text-gray-400"><UserCircle2 size={40} /></div>
+                 )}
+                 {isUploading && (
+                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                     <Loader2 className="animate-spin text-white" />
+                   </div>
+                 )}
                </div>
                <div className="flex-1 w-full space-y-4">
-                  <div className="flex gap-2 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <button onClick={() => setActiveImgTab('social')} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeImgTab === 'social' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('socialSync')}</button>
-                    <button onClick={() => setActiveImgTab('avatar')} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeImgTab === 'avatar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('avatarLib')}</button>
-                    <button onClick={() => setActiveImgTab('link')} className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeImgTab === 'link' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('directLink')}</button>
+                  <div className="flex gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
+                    <button onClick={() => setActiveImgTab('upload')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+                      {lang === 'ar' ? 'رفع ملف' : 'Upload File'}
+                    </button>
+                    <button onClick={() => setActiveImgTab('social')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'social' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('socialSync')}</button>
+                    <button onClick={() => setActiveImgTab('avatar')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'avatar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('avatarLib')}</button>
+                    <button onClick={() => setActiveImgTab('link')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'link' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('directLink')}</button>
                   </div>
+                  
+                  {activeImgTab === 'upload' && (
+                    <div className="space-y-2">
+                       <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                       <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+                       >
+                         <UploadCloud className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                         <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري الرفع...' : 'Uploading...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
+                       </button>
+                    </div>
+                  )}
                   {activeImgTab === 'social' && (
                     <div className="flex gap-2">
                        <select value={socialProvider} onChange={e => setSocialProvider(e.target.value)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-blue-500">
@@ -196,7 +234,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                   {activeImgTab === 'avatar' && (
                     <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                        {AVATAR_STYLES.map(s => (
-                         <button key={s.id} onClick={() => handleChange('profileImage', `https://api.dicebear.com/7.x/${s.id}/svg?seed=${formData.name || 'User'}`)} className="shrink-0 w-12 h-12 rounded-lg bg-white border border-gray-100 overflow-hidden"><img src={`https://api.dicebear.com/7.x/${s.id}/svg?seed=preview`} /></button>
+                         <button key={s.id} onClick={() => handleChange('profileImage', `https://api.dicebear.com/7.x/${s.id}/svg?seed=${formData.name || 'User'}`)} className="shrink-0 w-12 h-12 rounded-lg bg-white border border-gray-100 overflow-hidden"><img src={`https://api.dicebear.com/7.x/${s.id}/svg?seed=preview`} alt="Avatar" /></button>
                        ))}
                     </div>
                   )}

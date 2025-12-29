@@ -15,6 +15,7 @@ import {
   orderBy,
   getCountFromServer 
 } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
@@ -29,8 +30,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
+
+/**
+ * رفع صورة إلى Firebase Storage
+ */
+export const uploadProfileImage = async (userId: string, file: File): Promise<string> => {
+  const fileExtension = file.name.split('.').pop();
+  const storageRef = ref(storage, `users/${userId}/profile_${Date.now()}.${fileExtension}`);
+  
+  await uploadBytes(storageRef, file);
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
+};
 
 /**
  * التحقق من توفر اسم الرابط
@@ -44,7 +58,6 @@ export const isSlugAvailable = async (slug: string, currentUserId?: string): Pro
     
     if (!snap.exists()) return true;
     
-    // إذا كانت البطاقة موجودة، نتحقق مما إذا كان المستخدم الحالي هو صاحبها
     const data = snap.data();
     return data.ownerId === currentUserId;
   } catch (error) {
@@ -64,11 +77,9 @@ export const saveCardToDB = async (userId: string, cardData: any) => {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. تحديث النسخة العامة
     const cardRef = doc(db, "public_cards", cardData.id.toLowerCase());
     await setDoc(cardRef, dataToSave);
     
-    // 2. تحديث نسخة المستخدم الخاصة
     const userCardRef = doc(db, "users", userId, "cards", "primary");
     await setDoc(userCardRef, dataToSave);
     
@@ -79,9 +90,6 @@ export const saveCardToDB = async (userId: string, cardData: any) => {
   }
 };
 
-/**
- * جلب البطاقة عبر الرقم التسلسلي
- */
 export const getCardBySerial = async (serialId: string) => {
   try {
     const cardRef = doc(db, "public_cards", serialId.toLowerCase());
@@ -93,9 +101,6 @@ export const getCardBySerial = async (serialId: string) => {
   }
 };
 
-/**
- * جلب بطاقة المستخدم المسجل
- */
 export const getUserPrimaryCard = async (userId: string) => {
   try {
     const userCardRef = doc(db, "users", userId, "cards", "primary");
@@ -107,25 +112,16 @@ export const getUserPrimaryCard = async (userId: string) => {
   }
 };
 
-/**
- * حذف بطاقة مستخدم وحسابه بالكامل
- */
 export const deleteUserAccountAndData = async (userId: string, cardId?: string) => {
   try {
     const user = auth.currentUser;
     if (!user || user.uid !== userId) throw new Error("Unauthorized");
 
-    // 1. حذف البطاقة العامة إذا وجدت
     if (cardId) {
       await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
     }
-
-    // 2. حذف بيانات المستخدم من Firestore
     await deleteDoc(doc(db, "users", userId, "cards", "primary"));
-    
-    // 3. حذف الحساب من Firebase Auth
     await deleteUser(user);
-    
     return true;
   } catch (error: any) {
     console.error("Delete Account Error:", error);
@@ -133,18 +129,12 @@ export const deleteUserAccountAndData = async (userId: string, cardId?: string) 
   }
 };
 
-/**
- * حذف بطاقة بواسطة المسؤول
- */
 export const deleteCardByAdmin = async (cardId: string, ownerId: string) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
     throw new Error("Unauthorized");
   }
-
   try {
-    // حذف النسخة العامة
     await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
-    // حذف نسخة المستخدم
     await deleteDoc(doc(db, "users", ownerId, "cards", "primary"));
     return true;
   } catch (error) {
@@ -153,17 +143,12 @@ export const deleteCardByAdmin = async (cardId: string, ownerId: string) => {
   }
 };
 
-/**
- * إحصائيات المسؤول
- */
 export const getAdminStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
     throw new Error("Unauthorized");
   }
-
   const coll = collection(db, "public_cards");
   const snapshot = await getCountFromServer(coll);
-  
   const q = query(coll, orderBy("updatedAt", "desc"), limit(50));
   const querySnapshot = await getDocs(q);
   const recentCards = querySnapshot.docs.map(doc => doc.data());
