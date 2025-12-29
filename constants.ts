@@ -65,7 +65,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     website: 'https://ahmed-creative.me',
     location: 'الرياض، المملكة العربية السعودية',
     locationUrl: 'https://maps.google.com',
-    profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+    profileImage: '', // تم حذف صورة العينة
     themeColor: '#2563eb',
     isDark: false,
     socialLinks: [
@@ -85,7 +85,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     website: 'https://johndoe.design',
     location: 'Silicon Valley, California',
     locationUrl: 'https://maps.google.com',
-    profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+    profileImage: '', // تم حذف صورة العينة
     themeColor: '#7c3aed',
     isDark: false,
     socialLinks: [

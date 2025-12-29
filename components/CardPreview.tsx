@@ -15,33 +15,29 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
   const isDark = data.isDark;
   const t = (key: string) => TRANSLATIONS[key][lang];
 
-  // الصورة الافتراضية
+  // الصورة الافتراضية بشكل محسن
   const defaultImage = (
     <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}>
-      <User size={56} />
+      <User size={64} />
     </div>
   );
 
   return (
-    <div className={`w-full max-w-sm mx-auto rounded-[2.5rem] shadow-2xl overflow-hidden border transition-all duration-300 ${isDark ? 'bg-gray-950 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'} ${isRtl ? 'rtl' : 'ltr'}`}>
+    <div className={`w-full max-w-sm mx-auto rounded-[3rem] shadow-2xl overflow-hidden border transition-all duration-300 ${isDark ? 'bg-gray-950 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'} ${isRtl ? 'rtl' : 'ltr'}`}>
       
-      {/* 1. Header with Name & Title (Top Banner style) */}
+      {/* 1. خلفية السمة (Banner Only) */}
       <div 
-        className="pt-10 pb-12 px-6 text-center transition-colors duration-500" 
-        style={{ backgroundColor: data.themeColor }}
-      >
-        <h2 className="text-2xl font-black text-white truncate drop-shadow-md">
-          {data.name || (lang === 'en' ? 'Your Name' : 'اسمك هنا')}
-        </h2>
-        <p className="text-white/90 font-bold text-sm tracking-wide uppercase mt-1 drop-shadow-sm">
-          {data.title || (lang === 'en' ? 'Professional Title' : 'المسمى الوظيفي')}
-        </p>
-      </div>
+        className="h-36 w-full relative transition-colors duration-500" 
+        style={{ 
+          backgroundColor: data.themeColor,
+          backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.1), transparent)'
+        }}
+      />
 
-      {/* 2. Logo / Profile Image (Overlapping) */}
-      <div className="relative px-6 -mt-10 text-center">
+      {/* 2. الصورة الشخصية (تكبير وتحسين) */}
+      <div className="relative px-6 -mt-20 text-center z-10">
         <div className="inline-block relative">
-          <div className={`w-28 h-28 rounded-3xl overflow-hidden border-8 shadow-xl transition-all duration-300 hover:scale-105 ${isDark ? 'border-gray-950 bg-gray-800' : 'border-white bg-gray-100'}`}>
+          <div className={`w-40 h-40 rounded-[2.5rem] overflow-hidden border-[10px] shadow-2xl transition-all duration-300 hover:scale-105 ${isDark ? 'border-gray-950 bg-gray-800' : 'border-white bg-gray-100'}`}>
             {data.profileImage ? (
               <img 
                 src={data.profileImage} 
@@ -53,24 +49,34 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         </div>
       </div>
 
-      {/* 3. Bio Section */}
-      <div className="px-6 mt-6 text-center">
+      {/* 3. الاسم والمسمى الوظيفي أسفل الصورة */}
+      <div className="px-6 mt-6 text-center space-y-1">
+        <h2 className="text-2xl md:text-3xl font-black truncate leading-tight">
+          {data.name || (lang === 'en' ? 'Your Name' : 'اسمك هنا')}
+        </h2>
+        <p className={`font-bold text-sm tracking-wide uppercase ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {data.title || (lang === 'en' ? 'Professional Title' : 'المسمى الوظيفي')}
+        </p>
+      </div>
+
+      {/* 4. النبذة التعريفية */}
+      <div className="px-8 mt-4 text-center">
         {data.bio && (
-          <p className={`text-sm leading-relaxed px-2 italic font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+          <p className={`text-sm leading-relaxed italic font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
             "{data.bio}"
           </p>
         )}
       </div>
 
-      {/* 4. Action Buttons (Direct Call & Direct WhatsApp) */}
+      {/* 5. أزرار التواصل السريع */}
       <div className="px-6 mt-8 grid grid-cols-2 gap-3">
         {data.phone && (
           <a 
             href={`tel:${data.phone}`}
-            className="flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs"
+            className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
             style={{ backgroundColor: data.themeColor }}
           >
-            <Phone size={16} />
+            <Phone size={18} />
             <span>{t('call')}</span>
           </a>
         )}
@@ -79,19 +85,19 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
             href={`https://wa.me/${data.whatsapp.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-emerald-500 text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs"
+            className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] bg-emerald-500 text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
           >
-            <MessageCircle size={16} />
+            <MessageCircle size={18} />
             <span>{t('whatsappBtn')}</span>
           </a>
         )}
       </div>
 
-      {/* 5. Contact List (Email, Website, Location) */}
-      <div className="px-6 space-y-3.5 mt-8 pb-4">
+      {/* 6. معلومات التواصل الأخرى */}
+      <div className="px-6 space-y-3 mt-8 pb-4">
         {data.email && (
-          <div className={`flex items-center p-3.5 rounded-2xl border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}>
-            <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600'}`}>
+          <div className={`flex items-center p-4 rounded-[1.5rem] border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}>
+            <div className={`p-2.5 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600 shadow-sm'}`}>
               <Mail size={16} />
             </div>
             <span className={`text-xs font-bold truncate ${isRtl ? 'mr-3' : 'ml-3'} ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -102,9 +108,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         {data.website && (
           <a 
             href={data.website} target="_blank" rel="noopener noreferrer"
-            className={`flex items-center p-3.5 rounded-2xl border transition-all hover:bg-opacity-80 ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}
+            className={`flex items-center p-4 rounded-[1.5rem] border transition-all hover:bg-opacity-80 ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}
           >
-            <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600'}`}>
+            <div className={`p-2.5 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600 shadow-sm'}`}>
               <Globe size={16} />
             </div>
             <span className={`text-xs font-bold truncate ${isRtl ? 'mr-3' : 'ml-3'} ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -115,9 +121,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         {data.location && (
           <a 
             href={data.locationUrl || '#'} target="_blank" rel="noopener noreferrer"
-            className={`flex items-center p-3.5 rounded-2xl border transition-all hover:bg-opacity-80 ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}
+            className={`flex items-center p-4 rounded-[1.5rem] border transition-all hover:bg-opacity-80 ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}
           >
-            <div className={`p-2 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600'}`}>
+            <div className={`p-2.5 rounded-xl ${isDark ? 'bg-gray-950 text-blue-400' : 'bg-white text-blue-600 shadow-sm'}`}>
               <MapPin size={16} />
             </div>
             <div className={`flex flex-col ${isRtl ? 'mr-3' : 'ml-3'}`}>
@@ -128,20 +134,20 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         )}
       </div>
 
-      {/* 6. Social Links Bar (Bottom) */}
-      <div className={`flex flex-wrap justify-center gap-4 py-6 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+      {/* 7. روابط التواصل الاجتماعي */}
+      <div className={`flex flex-wrap justify-center gap-4 py-8 mt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
         {data.socialLinks.map((link, idx) => (
           <a 
             key={idx}
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`w-11 h-11 flex items-center justify-center rounded-xl hover:scale-110 hover:shadow-lg transition-all border ${isDark ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'}`}
+            className={`w-12 h-12 flex items-center justify-center rounded-2xl hover:scale-110 hover:shadow-xl transition-all border ${isDark ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'}`}
             title={link.platform}
           >
             <SocialIcon 
               platformId={link.platformId} 
-              size={22} 
+              size={24} 
               color={isDark ? "white" : "#1f2937"} 
             />
           </a>
