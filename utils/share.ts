@@ -8,10 +8,11 @@ export const generateSerialId = (): string => {
 };
 
 /**
- * توليد الرابط ليكون مباشراً بعد الدومين: domain.com/username
+ * توليد الرابط باستخدام معلمة u لضمان عمل الرابط على جميع أنواع الاستضافة
+ * وتجنب أخطاء 404 في تطبيقات الصفحة الواحدة (SPA)
  */
 export const generateShareUrl = (data: CardData): string => {
-  const baseUrl = window.location.origin;
-  // نستخدم المعرف المخصص (slug) مباشرة بعد الدومين
-  return `${baseUrl}/${data.id}`;
+  const baseUrl = window.location.origin + window.location.pathname;
+  // نستخدم ?u= لضمان التوافق البرمجي وتجنب مشاكل التوجيه في الخادم
+  return `${baseUrl}?u=${data.id}`;
 };

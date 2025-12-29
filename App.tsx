@@ -5,36 +5,37 @@ import { TRANSLATIONS, SAMPLE_DATA } from './constants';
 import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import Home from './pages/Home';
 import CardPreview from './components/CardPreview';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserPrimaryCard, deleteUserAccountAndData } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, LayoutDashboard, Eye, Settings, Share2, AlertCircle, Loader2, ShieldAlert, LogIn, LogOut, User as UserIcon, CheckCircle2, Trash2 } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Eye, Settings, Share2, AlertCircle, Loader2, ShieldAlert, LogIn, LogOut, User as UserIcon, CheckCircle2, Trash2, Home as HomeIcon, SearchX, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCard, setUserCard] = useState<CardData | null>(null);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [adminEditingCard, setAdminEditingCard] = useState<CardData | null>(null);
+  const [notFoundSlug, setNotFoundSlug] = useState<string | null>(null);
 
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
   const isRtl = lang === 'ar';
 
-  // دالة آمنة لتنظيف الرابط وتجنب أخطاء SecurityError في بعض البيئات
   const safeResetUrl = () => {
     try {
-      if (window.location.protocol !== 'blob:') {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
+      const url = new URL(window.location.href);
+      url.searchParams.delete('u');
+      window.history.replaceState({}, '', url.toString());
     } catch (e) {
       console.warn("History API not accessible", e);
     }
@@ -50,11 +51,13 @@ const App: React.FC = () => {
             setUserCard(card as CardData);
             setIsDarkMode(card.isDark);
           }
+          if (activeTab === 'home') setActiveTab('editor');
         } catch (e) {
           console.error("Fetch card error:", e);
         }
       } else {
         setUserCard(null);
+        setActiveTab('home');
       }
       setLoading(false);
     });
@@ -64,28 +67,30 @@ const App: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const querySlug = params.get('u');
+    
+    // دعم المسارات المباشرة كخيار ثانوي
     const pathParts = window.location.pathname.split('/').filter(p => p);
     const pathSlug = pathParts[0];
     const isFile = pathSlug?.includes('.');
-    const slug = querySlug || (isFile ? null : pathSlug);
-
+    
     const reserved = ['editor', 'admin', 'preview', 'home', 'settings', 'login', 'signup', 'auth', 'favicon.ico'];
+    const slug = querySlug || (isFile ? null : (!reserved.includes(pathSlug?.toLowerCase()) ? pathSlug : null));
 
-    if (slug && !reserved.includes(slug.toLowerCase())) {
+    if (slug) {
       const fetchPublic = async () => {
         setLoading(true);
+        setNotFoundSlug(null);
         try {
           const card = await getCardBySerial(slug);
           if (card) {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
           } else {
-            safeResetUrl();
-            setPublicCard(null);
+            setNotFoundSlug(slug);
           }
         } catch (e) {
-          safeResetUrl();
-          setPublicCard(null);
+          console.error("Fetch Public Card Error:", e);
+          setNotFoundSlug(slug);
         } finally {
           setLoading(false);
         }
@@ -160,7 +165,34 @@ const App: React.FC = () => {
     );
   }
 
+  // عرض الملف الشخصي إذا تم العثور على بطاقة بالرابط
   if (publicCard) return <PublicProfile data={publicCard} lang={lang} />;
+
+  // عرض شاشة "غير موجود" إذا تم إدخال رابط خاطئ
+  if (notFoundSlug) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-[#050507] text-center">
+        <div className="w-24 h-24 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center mb-6">
+          <SearchX size={48} />
+        </div>
+        <h2 className="text-2xl font-black mb-2 dark:text-white">
+          {lang === 'ar' ? 'البطاقة غير موجودة' : 'Card Not Found'}
+        </h2>
+        <p className="text-gray-500 mb-8 max-w-sm font-medium">
+          {lang === 'ar' 
+            ? `عذراً، الرابط "${notFoundSlug}" لا ينتمي لأي بطاقة أعمال رقمية في منصتنا.` 
+            : `Sorry, the link "${notFoundSlug}" does not belong to any digital business card on our platform.`}
+        </p>
+        <button 
+          onClick={() => { setNotFoundSlug(null); safeResetUrl(); setActiveTab('home'); }}
+          className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+        >
+          <Plus size={20} />
+          {lang === 'ar' ? 'أنشئ بطاقتك الآن' : 'Create Your Card Now'}
+        </button>
+      </div>
+    );
+  }
 
   const NavItem = ({ id, icon: Icon, label }: { id: any, icon: any, label: string }) => (
     <button onClick={() => { setActiveTab(id); setAdminEditingCard(null); }} className={`flex flex-col items-center justify-center flex-1 py-3 transition-all ${activeTab === id ? 'text-blue-600 dark:text-blue-400 scale-110' : 'text-gray-400'}`}>
@@ -173,12 +205,15 @@ const App: React.FC = () => {
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
       <aside className={`hidden md:flex w-72 h-screen fixed top-0 bottom-0 z-50 flex-col bg-white dark:bg-[#121215] border-x border-gray-100 dark:border-gray-800 shadow-xl transition-colors ${isRtl ? 'right-0' : 'left-0'}`}>
         <div className="p-8">
-          <div className="flex items-center gap-3 mb-10">
+          <div className="flex items-center gap-3 mb-10 cursor-pointer" onClick={() => setActiveTab('home')}>
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">هـ</div>
             <span className="text-xl font-black text-gray-900 dark:text-white">{TRANSLATIONS.appName[lang]}</span>
           </div>
           
           <nav className="space-y-2">
+            <button onClick={() => { setActiveTab('home'); setAdminEditingCard(null); }} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'home' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              <HomeIcon size={20} /> <span>{lang === 'en' ? 'Home' : 'الرئيسية'}</span>
+            </button>
             <button onClick={() => { setActiveTab('editor'); setAdminEditingCard(null); }} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'editor' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
               <LayoutDashboard size={20} /> <span>{lang === 'en' ? 'My Card' : 'بطاقتي'}</span>
             </button>
@@ -230,6 +265,9 @@ const App: React.FC = () => {
 
       <main className={`flex-1 transition-all duration-300 ${isRtl ? 'md:mr-72' : 'md:ml-72'} pb-24 md:pb-0`}>
         <div className="max-w-[1440px] mx-auto p-4 md:p-12">
+           {activeTab === 'home' && (
+             <Home lang={lang} onStart={() => currentUser ? setActiveTab('editor') : setShowAuthModal(true)} />
+           )}
            {activeTab === 'editor' && (
              <Editor 
                lang={lang} 
@@ -260,6 +298,7 @@ const App: React.FC = () => {
       </main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 flex px-4 z-[100] h-20">
+        <NavItem id="home" icon={HomeIcon} label={lang === 'ar' ? 'الرئيسية' : 'Home'} />
         <NavItem id="editor" icon={LayoutDashboard} label={lang === 'ar' ? 'بطاقتي' : 'Card'} />
         <NavItem id="preview" icon={Eye} label={lang === 'ar' ? 'معاينة' : 'Preview'} />
         <button onClick={() => currentUser ? signOut(auth).then(() => window.location.reload()) : setShowAuthModal(true)} className="flex flex-col items-center justify-center flex-1 py-3 text-gray-400">
