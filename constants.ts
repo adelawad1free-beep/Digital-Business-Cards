@@ -27,12 +27,10 @@ export const TRANSLATIONS: TranslationStrings = {
   cardTheme: { en: 'Display Theme', ar: 'نمط العرض' },
   lightMode: { en: 'Light Mode', ar: 'وضع نهاري' },
   darkMode: { en: 'Dark Mode', ar: 'وضع ليلي' },
-  magicBio: { en: 'AI Writing Assistant', ar: 'مساعد الكتابة بالذكاء الاصطناعي' },
   share: { en: 'Share My Profile', ar: 'مشاركة الملف الشخصي' },
   downloadQR: { en: 'Get QR Code', ar: 'تحميل كود QR' },
   placeholderName: { en: 'John Doe', ar: 'أحمد محمد' },
   placeholderTitle: { en: 'Project Manager', ar: 'مدير مشاريع' },
-  aiLoading: { en: 'AI is thinking...', ar: 'الذكاء الاصطناعي يكتب...' },
   backToHome: { en: 'Home', ar: 'الرئيسية' },
   call: { en: 'Call Now', ar: 'اتصال هاتفي' },
   whatsappBtn: { en: 'WhatsApp', ar: 'تواصل واتساب' }
