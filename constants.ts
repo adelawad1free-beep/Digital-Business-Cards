@@ -2,36 +2,40 @@
 import { TranslationStrings, CardData } from './types';
 
 export const TRANSLATIONS: TranslationStrings = {
-  appName: { en: 'ConnectFlow', ar: 'كونكت فلو' },
-  tagline: { en: 'Share your professional identity instantly.', ar: 'شارك هويتك المهنية بلحظة.' },
-  createBtn: { en: 'Create Card', ar: 'إنشاء بطاقة' },
-  preview: { en: 'Preview', ar: 'معاينة' },
-  edit: { en: 'Edit Card', ar: 'تعديل البطاقة' },
-  save: { en: 'Save & Publish', ar: 'حفظ ونشر' },
-  fullName: { en: 'Full Name', ar: 'الاسم الكامل' },
+  appName: { en: 'My Digital Identity', ar: 'هويتي الرقمية' },
+  tagline: { en: 'Your professional profile, smarter and faster.', ar: 'هويتك المهنية، بذكاء وسرعة.' },
+  seoTagline: { 
+    en: 'The #1 Digital Business Card platform. Create, share, and connect instantly with QR technology.', 
+    ar: 'المنصة الأولى لإنشاء بطاقات الأعمال الرقمية. أنشئ، شارك، وتواصل فوراً بتقنية QR.' 
+  },
+  createBtn: { en: 'Create My Card', ar: 'ابدأ بإنشاء بطاقتي' },
+  preview: { en: 'Live Preview', ar: 'معاينة مباشرة' },
+  edit: { en: 'Edit Card', ar: 'تعديل البيانات' },
+  save: { en: 'Save & Generate Link', ar: 'حفظ واستخراج الرابط' },
+  fullName: { en: 'Full Name', ar: 'الاسم بالكامل' },
   jobTitle: { en: 'Job Title', ar: 'المسمى الوظيفي' },
-  company: { en: 'Company', ar: 'الشركة' },
-  bio: { en: 'Short Bio', ar: 'نبذة قصيرة' },
+  company: { en: 'Company', ar: 'جهة العمل / الشركة' },
+  bio: { en: 'About Me / Bio', ar: 'نبذة تعريفية' },
   email: { en: 'Email Address', ar: 'البريد الإلكتروني' },
-  phone: { en: 'Phone Number', ar: 'رقم الهاتف' },
-  whatsapp: { en: 'WhatsApp', ar: 'واتساب' },
-  website: { en: 'Website', ar: 'الموقع الإلكتروني' },
-  location: { en: 'Address', ar: 'العنوان' },
-  locationUrl: { en: 'Google Maps Link', ar: 'رابط خرائط Google' },
-  socials: { en: 'Social Links', ar: 'روابط التواصل' },
-  theme: { en: 'Theme Color', ar: 'لون السمة' },
-  cardTheme: { en: 'Card Theme', ar: 'ثيم البطاقة' },
-  lightMode: { en: 'Light', ar: 'نهاري' },
-  darkMode: { en: 'Dark', ar: 'ليلي' },
-  magicBio: { en: 'Magic Bio (AI)', ar: 'النبذة الذكية (ذكاء اصطناعي)' },
-  share: { en: 'Share Profile', ar: 'مشاركة الملف' },
-  downloadQR: { en: 'Download QR Code', ar: 'تحميل رمز QR' },
+  phone: { en: 'Phone Number', ar: 'رقم الجوال' },
+  whatsapp: { en: 'WhatsApp Number', ar: 'رقم الواتساب' },
+  website: { en: 'Website / Portfolio', ar: 'الموقع الإلكتروني' },
+  location: { en: 'Office Location', ar: 'عنوان المكتب' },
+  locationUrl: { en: 'Google Maps Link', ar: 'رابط خرائط جوجل' },
+  socials: { en: 'Professional Links', ar: 'روابط التواصل الاجتماعي' },
+  theme: { en: 'Brand Color', ar: 'لون الهوية' },
+  cardTheme: { en: 'Display Theme', ar: 'نمط العرض' },
+  lightMode: { en: 'Light Mode', ar: 'وضع نهاري' },
+  darkMode: { en: 'Dark Mode', ar: 'وضع ليلي' },
+  magicBio: { en: 'AI Writing Assistant', ar: 'مساعد الكتابة بالذكاء الاصطناعي' },
+  share: { en: 'Share My Profile', ar: 'مشاركة الملف الشخصي' },
+  downloadQR: { en: 'Get QR Code', ar: 'تحميل كود QR' },
   placeholderName: { en: 'John Doe', ar: 'أحمد محمد' },
-  placeholderTitle: { en: 'Software Engineer', ar: 'مهندس برمجيات' },
-  aiLoading: { en: 'Crafting...', ar: 'جاري الكتابة...' },
-  backToHome: { en: 'Back to Home', ar: 'العودة للرئيسية' },
-  call: { en: 'Call Now', ar: 'اتصال مباشر' },
-  whatsappBtn: { en: 'WhatsApp', ar: 'واتساب مباشر' }
+  placeholderTitle: { en: 'Project Manager', ar: 'مدير مشاريع' },
+  aiLoading: { en: 'AI is thinking...', ar: 'الذكاء الاصطناعي يكتب...' },
+  backToHome: { en: 'Home', ar: 'الرئيسية' },
+  call: { en: 'Call Now', ar: 'اتصال هاتفي' },
+  whatsappBtn: { en: 'WhatsApp', ar: 'تواصل واتساب' }
 };
 
 export const SOCIAL_PLATFORMS = [
@@ -50,22 +54,22 @@ export const THEME_COLORS = [
   '#db2777', // Pink
   '#059669', // Emerald
   '#d97706', // Amber
-  '#1f2937', // Gray
+  '#0f172a', // Slate
 ];
 
 export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
   ar: {
-    name: 'أحمد العتيبي',
-    title: 'مدير إبداعي أول',
-    company: 'شركة حلول التقنية',
-    bio: 'شغوف ببناء تجارب رقمية تربط الناس ببعضهم البعض. خبرة أكثر من 10 سنوات في تصميم واجهات المستخدم والهوية البصرية.',
-    email: 'ahmed@example.com',
+    name: 'أحمد بن محمد',
+    title: 'مستشار تطوير أعمال',
+    company: 'هويتي الرقمية',
+    bio: 'خبير في التحول الرقمي وبناء الهويات المؤسسية. أساعد الشركات في الانتقال إلى العالم الرقمي بأحدث التقنيات.',
+    email: 'contact@digital-id.sa',
     phone: '+966500000000',
     whatsapp: '+966500000000',
-    website: 'https://ahmed-creative.me',
+    website: 'https://digital-id.sa',
     location: 'الرياض، المملكة العربية السعودية',
     locationUrl: 'https://maps.google.com',
-    profileImage: '', // تم حذف صورة العينة
+    profileImage: '', 
     themeColor: '#2563eb',
     isDark: false,
     socialLinks: [
@@ -76,16 +80,16 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
   },
   en: {
     name: 'John Doe',
-    title: 'Senior Creative Director',
-    company: 'Tech Solutions Inc.',
-    bio: 'Passionate about building digital experiences that connect people. 10+ years of experience in UI/UX and Brand Identity.',
-    email: 'john@example.com',
+    title: 'Senior Business Consultant',
+    company: 'My Digital Identity',
+    bio: 'Digital transformation expert helping businesses thrive in the modern era with innovative solutions and smart networking.',
+    email: 'hello@digital-id.io',
     phone: '+1234567890',
     whatsapp: '+1234567890',
-    website: 'https://johndoe.design',
-    location: 'Silicon Valley, California',
+    website: 'https://digital-id.io',
+    location: 'London, UK',
     locationUrl: 'https://maps.google.com',
-    profileImage: '', // تم حذف صورة العينة
+    profileImage: '', 
     themeColor: '#7c3aed',
     isDark: false,
     socialLinks: [

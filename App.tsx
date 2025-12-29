@@ -75,7 +75,9 @@ const App: React.FC = () => {
       <aside className={`w-full md:w-72 md:h-screen md:fixed top-0 bottom-0 z-50 flex flex-col bg-white dark:bg-[#121215] border-x border-gray-100 dark:border-gray-800 shadow-xl transition-colors ${isRtl ? 'right-0' : 'left-0'}`}>
         <div className="p-8">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">C</div>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+              {lang === 'ar' ? 'هـ' : 'D'}
+            </div>
             <span className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
               {TRANSLATIONS.appName[lang]}
             </span>

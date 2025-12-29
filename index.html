@@ -1,10 +1,23 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ConnectFlow - Digital Business Cards</title>
+    <title>هويتي الرقمية | أنشئ بطاقة أعمالك الرقمية الاحترافية مجاناً</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="هويتي الرقمية هي المنصة الرائدة لإنشاء بطاقات الأعمال الرقمية والذكية. شارك هويتك المهنية عبر رمز QR، وحسن حضورك الرقمي بسهولة واحترافية.">
+    <meta name="keywords" content="بطاقة أعمال رقمية, هويتي الرقمية, كرت عمل إلكتروني, إنشاء بطاقة شخصية, QR code business card, بطاقة أعمال ذكية, هوية رقمية, تواصل مهني">
+    <meta name="author" content="هويتي الرقمية">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="هويتي الرقمية - بطاقتك المهنية في جيبك">
+    <meta property="og:description" content="حول بطاقتك الورقية إلى بطاقة رقمية تفاعلية تدعم الذكاء الاصطناعي ورمز QR.">
+    <meta property="og:image" content="https://picsum.photos/seed/digital-identity/1200/630">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,6 +27,20 @@
                     fontFamily: {
                         sans: ['Inter', 'Noto Kufi Arabic', 'sans-serif'],
                     },
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                        'mesh': 'mesh 20s linear infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                            '50%': { 'background-size': '200% 200%', 'background-position': 'right center' },
+                        },
+                        'mesh': {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        }
+                    }
                 },
             },
         }
@@ -22,14 +49,34 @@
     <style>
         body {
             font-family: 'Inter', 'Noto Kufi Arabic', sans-serif;
-            transition: background-color 0.3s ease;
+            overflow-x: hidden;
         }
         .rtl { direction: rtl; }
         .ltr { direction: ltr; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* تأثيرات حركية للمشاركة */
+        /* Premium Mesh Background */
+        .mesh-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        .dark .mesh-bg { background: #050507; }
+        
+        .mesh-circle {
+            position: absolute;
+            width: 800px; height: 800px;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: mesh 25s linear infinite;
+        }
+        .mesh-1 { top: -200px; right: -200px; background: #3b82f6; }
+        .mesh-2 { bottom: -200px; left: -200px; background: #8b5cf6; animation-duration: 30s; opacity: 0.3; }
+        
         @keyframes fade-in-up {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -49,7 +96,12 @@
 }
 </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+<body class="bg-transparent text-gray-900 dark:text-gray-100">
+    <!-- Animated Mesh Background -->
+    <div class="mesh-bg">
+        <div class="mesh-circle mesh-1"></div>
+        <div class="mesh-circle mesh-2"></div>
+    </div>
     <div id="root"></div>
 </body>
 </html>
