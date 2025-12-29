@@ -5,7 +5,7 @@ import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../co
 import { generateProfessionalBio } from '../services/geminiService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Wand2, Save, Plus, X, Sun, Moon, Pipette } from 'lucide-react';
+import { Wand2, Save, Plus, X, Sun, Moon, Pipette, Camera, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -17,6 +17,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
   const t = (key: string) => TRANSLATIONS[key][lang];
   const isRtl = lang === 'ar';
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getDefaults = (l: Language): CardData => ({
     id: Math.random().toString(36).substr(2, 9),
@@ -45,6 +46,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // نستخدم Base64 ونقلل الجودة قليلاً لتقليل حجم الرابط لاحقاً
+        handleChange('profileImage', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const addSocialLink = () => {
     if (!socialInput.url) return;
     const platform = SOCIAL_PLATFORMS.find(p => p.id === socialInput.platformId);
@@ -69,6 +82,61 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData }) => {
 
         <div className="bg-white dark:bg-[#121215] p-8 md:p-12 rounded-[3rem] shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 space-y-8 transition-colors duration-300">
           
+          {/* 0. الصورة الشخصية (Profile Image Section) */}
+          <div className="flex flex-col md:flex-row items-center gap-8 bg-gray-50 dark:bg-gray-900/40 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 dark:bg-gray-700">
+                {formData.profileImage ? (
+                  <img src={formData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Camera size={40} />
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 p-3 bg-blue-600 text-white rounded-2xl shadow-lg hover:scale-110 transition-all active:scale-95"
+              >
+                <Plus size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+            
+            <div className="flex-1 space-y-4 w-full">
+              <div>
+                <label className={labelClasses}>{lang === 'ar' ? 'رابط الصورة (اختياري)' : 'Image URL (Optional)'}</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="url" 
+                    value={formData.profileImage.startsWith('data:') ? '' : formData.profileImage} 
+                    onChange={e => handleChange('profileImage', e.target.value)} 
+                    className={inputClasses} 
+                    placeholder="https://..." 
+                  />
+                  {formData.profileImage && (
+                    <button 
+                      onClick={() => handleChange('profileImage', '')}
+                      className="p-4 bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400 rounded-2xl hover:bg-red-100 transition-colors"
+                      title={lang === 'ar' ? 'إزالة الصورة' : 'Remove Image'}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 px-1 uppercase tracking-widest">
+                {lang === 'ar' ? 'ينصح بصورة مربعة (1:1)' : 'Recommended square image (1:1)'}
+              </p>
+            </div>
+          </div>
+
           {/* 1. البيانات الأساسية (Personal Info) */}
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

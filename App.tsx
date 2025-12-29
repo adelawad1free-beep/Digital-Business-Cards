@@ -3,16 +3,35 @@ import React, { useState, useEffect } from 'react';
 import { Language, CardData } from './types';
 import { TRANSLATIONS } from './constants';
 import Editor from './pages/Editor';
+import PublicProfile from './pages/PublicProfile';
 import LanguageToggle from './components/LanguageToggle';
-import { Sun, Moon, LayoutDashboard, Mail } from 'lucide-react';
+import ShareModal from './components/ShareModal';
+import { decodeCardData } from './utils/share';
+import { Sun, Moon, LayoutDashboard, Mail, Share2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
   const [userCard, setUserCard] = useState<CardData | null>(null);
+  const [publicCard, setPublicCard] = useState<CardData | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
     return saved === 'dark';
   });
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // 1. التحقق من وجود بيانات في الرابط (وضع المشاهدة)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('c');
+    if (code) {
+      const decoded = decodeCardData(code);
+      if (decoded) {
+        setPublicCard(decoded);
+        // تحديث المظهر ليتناسب مع البطاقة العامة
+        setIsDarkMode(decoded.isDark);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -39,10 +58,15 @@ const App: React.FC = () => {
   const handleSaveCard = (data: CardData) => {
     setUserCard(data);
     localStorage.setItem('connectflow_card', JSON.stringify(data));
-    alert(lang === 'en' ? 'Saved!' : 'تم الحفظ!');
+    setShowShareModal(true);
   };
 
   const isRtl = lang === 'ar';
+
+  // إذا كانت هناك بطاقة في الرابط، نعرض وضع المشاهدة فقط
+  if (publicCard) {
+    return <PublicProfile data={publicCard} lang={lang} />;
+  }
 
   return (
     <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
@@ -62,6 +86,15 @@ const App: React.FC = () => {
               <LayoutDashboard size={20} />
               <span>{lang === 'en' ? 'Editor' : 'المحرر'}</span>
             </div>
+            {userCard && (
+               <button 
+                onClick={() => setShowShareModal(true)}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold transition-all"
+               >
+                <Share2 size={20} />
+                <span>{lang === 'en' ? 'Share My Card' : 'مشاركة بطاقتي'}</span>
+               </button>
+            )}
           </nav>
         </div>
 
@@ -100,19 +133,27 @@ const App: React.FC = () => {
             />
           </div>
           
-          {/* التذييل في سطر واحد بسيط */}
           <footer className="mt-16 py-8 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm font-medium">
             <span className="text-gray-500 dark:text-gray-400">
               {lang === 'ar' ? 'جميع الحقوق محفوظة 2025 ©' : 'All Rights Reserved 2025 ©'}
             </span>
             <span className="hidden sm:inline text-gray-300 dark:text-gray-700">|</span>
-            <a href="mailto:adelawad1@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2">
+            <a href="mailto:info@ai-guid.com" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2">
               <Mail size={14} />
-              adelawad1@gmail.com
+              info@ai-guid.com
             </a>
           </footer>
         </div>
       </main>
+
+      {/* مودال المشاركة */}
+      {showShareModal && userCard && (
+        <ShareModal 
+          data={userCard} 
+          lang={lang} 
+          onClose={() => setShowShareModal(false)} 
+        />
+      )}
     </div>
   );
 };
