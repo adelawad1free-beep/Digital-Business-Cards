@@ -30,6 +30,7 @@ const App: React.FC = () => {
     siteNameAr: 'هويتي الرقمية', 
     siteNameEn: 'My Digital Identity', 
     siteLogo: '',
+    siteIcon: '',
     maintenanceMode: false 
   });
   const [isInitializing, setIsInitializing] = useState(true);
@@ -40,6 +41,16 @@ const App: React.FC = () => {
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
   const isRtl = lang === 'ar';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
+
+  // تحديث أيقونة الموقع (Favicon) ديناميكياً
+  useEffect(() => {
+    if (siteConfig.siteIcon) {
+      const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+      if (favicon) {
+        favicon.href = siteConfig.siteIcon;
+      }
+    }
+  }, [siteConfig.siteIcon]);
 
   const refreshUserCards = async (userId: string) => {
     const cards = await getUserCards(userId);

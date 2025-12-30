@@ -9,7 +9,7 @@ import {
   ShieldCheck, Trash2, Edit3, Eye, Settings, 
   Globe, Power, Save, Search, LayoutGrid,
   Lock, Mail, UserCog, Key, Shield, ShieldAlert,
-  AlertTriangle, CheckCircle2, Image as ImageIcon, UploadCloud, X
+  AlertTriangle, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -21,12 +21,20 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDeleteRequest }) => {
   const isRtl = lang === 'ar';
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings' | 'security'>('stats');
   const [stats, setStats] = useState<{ totalCards: number; recentCards: any[] } | null>(null);
-  const [settings, setSettings] = useState({ siteNameAr: '', siteNameEn: '', siteLogo: '', maintenanceMode: false });
+  const [settings, setSettings] = useState({ 
+    siteNameAr: '', 
+    siteNameEn: '', 
+    siteLogo: '', 
+    siteIcon: '',
+    maintenanceMode: false 
+  });
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -71,12 +79,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     }
   };
 
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingIcon(true);
+    try {
+      // للأيقونات نستخدم ضغط أعلى وأبعاد أصغر (favicon)
+      const base64 = await uploadImageToCloud(file);
+      if (base64) setSettings({ ...settings, siteIcon: base64 });
+    } catch (err) {
+      alert(isRtl ? "فشل رفع الأيقونة" : "Icon upload failed");
+    } finally {
+      setUploadingIcon(false);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
       await updateSiteSettings(settings);
       alert(isRtl ? "تم حفظ إعدادات الموقع بنجاح" : "Site settings saved successfully");
-      window.location.reload(); // تحديث الموقع بالكامل لتطبيق الشعار الجديد
+      window.location.reload(); 
     } catch (e) {
       alert(isRtl ? "فشل الحفظ: تأكد من صلاحيات المسؤول" : "Save failed: Check admin permissions");
     } finally {
@@ -259,36 +282,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                       <h2 className="text-2xl font-black dark:text-white">{t('الهوية البصرية للموقع', 'Visual Identity')}</h2>
                    </div>
                    
-                   <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-6">
-                      <div className="w-32 h-32 rounded-3xl bg-white dark:bg-gray-900 shadow-xl border-4 border-white dark:border-gray-800 overflow-hidden flex items-center justify-center relative">
-                         {settings.siteLogo ? (
-                           <img src={settings.siteLogo} className="w-full h-full object-contain p-2" alt="Site Logo" />
-                         ) : (
-                           <div className="text-gray-300 flex flex-col items-center gap-1">
-                              <ImageIcon size={40} />
-                              <span className="text-[10px] font-black uppercase">{t('لا يوجد شعار', 'No Logo')}</span>
-                           </div>
-                         )}
-                         {uploadingLogo && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
-                         {settings.siteLogo && (
-                           <button 
-                             onClick={() => setSettings({...settings, siteLogo: ''})}
-                             className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-lg shadow-lg hover:scale-110 transition-all"
-                           >
-                             <X size={12} />
-                           </button>
-                         )}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Logo Upload */}
+                      <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4">
+                        <label className={labelClasses}>{t('شعار الموقع الرئيسي', 'Main Site Logo')}</label>
+                        <div className="w-full h-32 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex items-center justify-center relative">
+                           {settings.siteLogo ? (
+                             <img src={settings.siteLogo} className="w-full h-full object-contain p-2" alt="Logo" />
+                           ) : (
+                             <ImageIcon size={32} className="text-gray-200" />
+                           )}
+                           {uploadingLogo && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                           {settings.siteLogo && (
+                             <button onClick={() => setSettings({...settings, siteLogo: ''})} className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-lg"><X size={12} /></button>
+                           )}
+                        </div>
+                        <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
+                        <button onClick={() => logoInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-2">
+                           <UploadCloud size={14} className="text-blue-500" /> {t('تغيير الشعار', 'Change Logo')}
+                        </button>
                       </div>
-                      
-                      <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
-                      <button 
-                        onClick={() => logoInputRef.current?.click()}
-                        className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm hover:shadow-md transition-all active:scale-95"
-                      >
-                         <UploadCloud size={16} className="text-blue-500" />
-                         {t('تغيير شعار الموقع', 'Change Site Logo')}
-                      </button>
-                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{t('يفضل شعار شفاف بصيغة PNG أو SVG وبحجم صغير', 'Preferred: PNG/SVG with transparent background')}</p>
+
+                      {/* Icon Upload (Favicon) */}
+                      <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-4">
+                        <label className={labelClasses}>{t('أيقونة المتصفح (Favicon)', 'Site Icon')}</label>
+                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden flex items-center justify-center relative mx-auto">
+                           {settings.siteIcon ? (
+                             <img src={settings.siteIcon} className="w-full h-full object-contain p-1" alt="Icon" />
+                           ) : (
+                             <Layout size={24} className="text-gray-200" />
+                           )}
+                           {uploadingIcon && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                           {settings.siteIcon && (
+                             <button onClick={() => setSettings({...settings, siteIcon: ''})} className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded"><X size={10} /></button>
+                           )}
+                        </div>
+                        <input type="file" ref={iconInputRef} onChange={handleIconUpload} accept="image/*" className="hidden" />
+                        <button onClick={() => iconInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-sm flex items-center justify-center gap-2">
+                           <UploadCloud size={14} className="text-blue-500" /> {t('تغيير الأيقونة', 'Change Icon')}
+                        </button>
+                      </div>
                    </div>
                 </div>
 
