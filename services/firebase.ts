@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail
 } from "firebase/auth";
 import { 
-  getFirestore, 
+  initializeFirestore,
   doc, 
   setDoc, 
   getDoc, 
@@ -37,17 +37,20 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// حل مشكلة الاتصال عبر تفعيل Long Polling لضمان الوصول للخادم في جميع الظروف
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
 export const googleProvider = new GoogleAuthProvider();
 
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
-// وظيفة استعادة كلمة السر
 export const sendPasswordReset = async (email: string) => {
   return sendPasswordResetEmail(auth, email);
 };
 
-// وظيفة الدخول عبر جوجل
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -65,13 +68,17 @@ export const getSiteSettings = async () => {
     return { 
       siteNameAr: "هويتي الرقمية", 
       siteNameEn: "My Digital ID", 
-      maintenanceMode: false 
+      maintenanceMode: false,
+      siteIcon: "",
+      siteLogo: ""
     };
   } catch (error) {
     return { 
       siteNameAr: "هويتي الرقمية", 
       siteNameEn: "My Digital ID", 
-      maintenanceMode: false 
+      maintenanceMode: false,
+      siteIcon: "",
+      siteLogo: ""
     };
   }
 };
@@ -126,28 +133,13 @@ export const saveCardToDB = async (userId: string, cardData: any, oldId?: string
 
 export const deleteUserCard = async (ownerId: string, cardId: string) => {
   const cleanId = cardId.toLowerCase();
-  let publicDeleted = false;
-  let userDeleted = false;
-
   try {
     await deleteDoc(doc(db, "public_cards", cleanId));
-    publicDeleted = true;
-  } catch (error: any) {
-    console.warn("Could not delete from public index:", error.message);
-  }
-
-  try {
     await deleteDoc(doc(db, "users", ownerId, "cards", cleanId));
-    userDeleted = true;
+    return true;
   } catch (error: any) {
-    console.warn("Could not delete from user collection:", error.message);
+    throw error;
   }
-
-  if (!publicDeleted && !userDeleted) {
-    throw new Error("Missing or insufficient permissions.");
-  }
-  
-  return true;
 };
 
 export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {

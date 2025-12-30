@@ -168,7 +168,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
 
         <div className="bg-white dark:bg-[#121215] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 space-y-10">
           
-          {/* Custom Link Section */}
+          {/* 1. Custom Link Section */}
           <div className="bg-blue-50 dark:bg-blue-900/10 p-8 rounded-[2.5rem] border-2 border-dashed border-blue-200 dark:border-blue-800 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                <div>
@@ -190,7 +190,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             </div>
           </div>
 
-          {/* Profile Image Section */}
+          {/* 2. Profile Image Section */}
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-6">
             <label className={labelClasses}>{t('imageSource')}</label>
             <div className="flex flex-col md:flex-row items-center gap-8">
@@ -216,6 +216,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             </div>
           </div>
 
+          {/* 3. Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
                <div><label className={labelClasses}>{t('fullName')}</label><input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClasses} placeholder={t('placeholderName')} /></div>
@@ -228,6 +229,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             </div>
           </div>
 
+          {/* 4. Contact Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div><label className={labelClasses}>{t('email')}</label><div className="relative"><Mail className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} /><input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} /></div></div>
              <div><label className={labelClasses}>{t('phone')}</label><div className="relative"><Phone className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} /><input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} /></div></div>
@@ -235,6 +237,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
              <div><label className={labelClasses}>{t('website')}</label><div className="relative"><Globe className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} /><input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} /></div></div>
           </div>
 
+          {/* 5. Social Links */}
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-4">
              <label className={labelClasses}>{t('socials')}</label>
              <div className="flex gap-2">
@@ -255,7 +258,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
              </div>
           </div>
 
-          {/* Theme & Background Section - Moved to bottom */}
+          {/* 6. Theme & Background Section (Moved to Bottom) */}
           <div className="bg-gray-50 dark:bg-gray-900/40 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-8">
              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
                 <div>

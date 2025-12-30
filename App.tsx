@@ -67,6 +67,14 @@ const App: React.FC = () => {
     root.lang = lang;
   }, [isDarkMode, lang]);
 
+  // تحديث أيقونة الموقع (Favicon) ديناميكياً
+  useEffect(() => {
+    const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+    if (favicon && siteConfig.siteIcon) {
+      favicon.href = siteConfig.siteIcon;
+    }
+  }, [siteConfig.siteIcon]);
+
   const refreshUserCards = async (userId: string) => {
     const cards = await getUserCards(userId);
     setUserCards(cards as CardData[]);
@@ -75,7 +83,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       const settings = await getSiteSettings();
-      setSiteConfig(settings as any);
+      if (settings) {
+        setSiteConfig(settings as any);
+        // تحديث الأيقونة فورياً
+        const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+        if (favicon && (settings as any).siteIcon) {
+          favicon.href = (settings as any).siteIcon;
+        }
+      }
 
       const params = new URLSearchParams(window.location.search);
       const querySlug = params.get('u');
@@ -106,8 +121,6 @@ const App: React.FC = () => {
   }, []);
 
   const handleCreateNew = () => {
-    // Fix: Added missing required properties (themeType, themeGradient, backgroundImage) 
-    // to satisfy the CardData interface requirements when creating a new card object.
     const newCard: CardData = {
       id: generateSerialId(),
       name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
@@ -191,7 +204,7 @@ const App: React.FC = () => {
           
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setActiveTab('home')}>
-              <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform">
+              <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform overflow-hidden">
                 {siteConfig.siteLogo ? <img src={siteConfig.siteLogo} className="w-full h-full object-contain p-1" /> : "ID"}
               </div>
               <span className="text-xl font-black dark:text-white tracking-tight">{displaySiteName}</span>
@@ -287,17 +300,14 @@ const App: React.FC = () => {
       <footer className="mt-12 py-12 px-6 border-t border-gray-100 dark:border-gray-800 text-center animate-fade-in">
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 text-[10px] font-black italic">ID</div>
+            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 text-[10px] font-black italic overflow-hidden">
+              {siteConfig.siteLogo ? <img src={siteConfig.siteLogo} className="w-full h-full object-contain" /> : "ID"}
+            </div>
             <span className="text-sm font-black dark:text-white opacity-40">{displaySiteName}</span>
           </div>
           <p className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] leading-loose">
             {isRtl ? 'كافة الحقوق محفوظة 2025 | info@nextid.my' : 'All Rights Reserved 2025 | info@nextid.my'}
           </p>
-          <div className="flex gap-6 mt-4 opacity-30 grayscale hover:grayscale-0 transition-all">
-             <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
-             <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
-             <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
-          </div>
         </div>
       </footer>
 

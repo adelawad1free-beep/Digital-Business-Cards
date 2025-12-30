@@ -14,70 +14,58 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
   const isRtl = lang === 'ar';
 
   useEffect(() => {
-    // 1. تحديث لون المتصفح
-    const metaThemeColor = document.getElementById('meta-theme-color');
-    if (metaThemeColor) {
-      const color = data.themeType === 'color' ? data.themeColor : '#3b82f6';
-      metaThemeColor.setAttribute('content', color);
-    }
+    // 1. إعداد البيانات للحقن الديناميكي
+    const cardName = data.name || (lang === 'ar' ? 'صاحب البطاقة' : 'Card Owner');
+    const cardTitle = data.name ? `${data.name} | ${data.title}` : (lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID');
+    const cardDesc = data.bio || (lang === 'ar' ? `تفضل بزيارة بطاقة أعمالي الرقمية وتواصل معي.` : `Connect with me via my Digital ID.`);
+    const cardImg = data.profileImage || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
 
-    // 2. تحديث معلومات المعاينة (SEO & Open Graph)
-    const cardTitle = `${data.name} | ${data.title}`;
-    const cardDesc = data.bio || (lang === 'ar' ? `تواصل مع ${data.name} عبر هويته الرقمية.` : `Connect with ${data.name} via their Digital ID.`);
-    const cardImg = data.profileImage || 'https://picsum.photos/seed/digital-id/1200/630';
-
+    // 2. تحديث عنوان الصفحة
     document.title = cardTitle;
-    document.getElementById('og-title')?.setAttribute('content', cardTitle);
-    document.getElementById('twitter-title')?.setAttribute('content', cardTitle);
-    
-    document.getElementById('meta-description')?.setAttribute('content', cardDesc);
-    document.getElementById('og-description')?.setAttribute('content', cardDesc);
-    document.getElementById('twitter-description')?.setAttribute('content', cardDesc);
-    
-    document.getElementById('og-image')?.setAttribute('content', cardImg);
-    document.getElementById('twitter-image')?.setAttribute('content', cardImg);
-    document.getElementById('og-url')?.setAttribute('content', window.location.href);
 
-    // 3. Schema.org
-    const schemaData = {
-      "@context": "https://schema.org",
-      "@type": "Person",
-      "name": data.name,
-      "jobTitle": data.title,
-      "worksFor": {
-        "@type": "Organization",
-        "name": data.company
-      },
-      "url": window.location.href,
-      "image": cardImg,
-      "description": data.bio,
-      "sameAs": data.socialLinks.map(link => link.url)
+    // وظيفة مساعدة لتحديث أو إنشاء وسوم Meta بدقة عالية
+    const updateOrCreateMeta = (attribute: string, attrValue: string, content: string) => {
+      let el = document.querySelector(`meta[${attribute}="${attrValue}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attribute, attrValue);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
     };
 
-    const scriptId = 'json-ld-schema';
-    let scriptQuery = document.getElementById(scriptId);
-    if (scriptQuery) {
-      scriptQuery.innerText = JSON.stringify(schemaData);
-    } else {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.type = 'application/ld+json';
-      script.innerText = JSON.stringify(schemaData);
-      document.head.appendChild(script);
+    // تحديث الوسوم الأساسية (Open Graph للفيسبوك وواتساب)
+    updateOrCreateMeta('property', 'og:title', cardTitle);
+    updateOrCreateMeta('property', 'og:description', cardDesc);
+    updateOrCreateMeta('property', 'og:image', cardImg);
+    updateOrCreateMeta('property', 'og:image:secure_url', cardImg);
+    updateOrCreateMeta('property', 'og:url', window.location.href);
+    updateOrCreateMeta('property', 'og:type', 'profile');
+    updateOrCreateMeta('property', 'og:site_name', isRtl ? 'هويتي الرقمية' : 'My Digital Identity');
+
+    // تحديث وسوم تويتر
+    updateOrCreateMeta('name', 'twitter:card', 'summary_large_image');
+    updateOrCreateMeta('name', 'twitter:title', cardTitle);
+    updateOrCreateMeta('name', 'twitter:description', cardDesc);
+    updateOrCreateMeta('name', 'twitter:image', cardImg);
+
+    // تحديث الوصف العام
+    updateOrCreateMeta('name', 'description', cardDesc);
+
+    // تحديث الأيقونة لتكون صورة الشخص فوراً
+    const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+    if (favicon && data.profileImage) {
+      favicon.href = data.profileImage;
     }
 
-    return () => {
-      const script = document.getElementById(scriptId);
-      if (script) script.remove();
-    };
   }, [data, lang]);
 
   const getPageBackgroundStyle = () => {
     if (data.themeType === 'gradient') {
-      return { background: `${data.themeGradient}22` }; // Very light version of the gradient
+      return { background: `${data.themeGradient}15` }; 
     }
     if (data.themeType === 'color') {
-      return { backgroundColor: `${data.themeColor}11` }; // Very light version of the color
+      return { backgroundColor: `${data.themeColor}08` }; 
     }
     return {};
   };
@@ -85,7 +73,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`} style={getPageBackgroundStyle()}>
       
-      {/* Dynamic Background Elements */}
+      {/* عناصر خلفية ديناميكية */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div 
           className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-20 animate-pulse"
