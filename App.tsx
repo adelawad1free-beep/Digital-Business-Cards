@@ -16,7 +16,16 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus, Settings, CreditCard, ExternalLink, Edit2, AlertTriangle, X, User as UserIcon, ChevronDown } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>('ar');
+  // التعرف التلقائي على اللغة وحفظ الخيار
+  const [lang, setLang] = useState<Language>(() => {
+    const savedLang = localStorage.getItem('preferred_lang');
+    if (savedLang === 'ar' || savedLang === 'en') return savedLang as Language;
+    
+    // اكتشاف لغة المتصفح
+    const browserLang = navigator.language.toLowerCase();
+    return browserLang.startsWith('ar') ? 'ar' : 'en';
+  });
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
@@ -41,6 +50,12 @@ const App: React.FC = () => {
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
   const isRtl = lang === 'ar';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
+
+  // حفظ اللغة عند تغييرها
+  const handleLanguageToggle = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('preferred_lang', newLang);
+  };
 
   // تحديث أيقونة الموقع (Favicon) ديناميكياً
   useEffect(() => {
@@ -104,7 +119,10 @@ const App: React.FC = () => {
     const root = window.document.documentElement;
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+    // تحديث اتجاه الصفحة ولغتها بناءً على الاختيار
+    root.dir = isRtl ? 'rtl' : 'ltr';
+    root.lang = lang;
+  }, [isDarkMode, lang, isRtl]);
 
   const handleCreateNew = () => {
     const newCard: CardData = {
@@ -264,7 +282,7 @@ const App: React.FC = () => {
 
           {/* Controls Section */}
           <div className="flex items-center gap-4 shrink-0">
-            <LanguageToggle currentLang={lang} onToggle={setLang} />
+            <LanguageToggle currentLang={lang} onToggle={handleLanguageToggle} />
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)} 
               className="p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"

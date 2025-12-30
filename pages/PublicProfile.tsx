@@ -20,30 +20,56 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
       metaThemeColor.setAttribute('content', data.themeColor);
     }
 
-    // 2. تحديث معلومات المعاينة (SEO & Open Graph) لروابط التواصل
+    // 2. تحديث معلومات المعاينة (SEO & Open Graph)
     const cardTitle = `${data.name} | ${data.title}`;
     const cardDesc = data.bio || (lang === 'ar' ? `تواصل مع ${data.name} عبر هويته الرقمية.` : `Connect with ${data.name} via their Digital ID.`);
     const cardImg = data.profileImage || 'https://picsum.photos/seed/digital-id/1200/630';
 
-    // تحديث العناوين
     document.title = cardTitle;
     document.getElementById('og-title')?.setAttribute('content', cardTitle);
     document.getElementById('twitter-title')?.setAttribute('content', cardTitle);
     
-    // تحديث الوصف
     document.getElementById('meta-description')?.setAttribute('content', cardDesc);
     document.getElementById('og-description')?.setAttribute('content', cardDesc);
     document.getElementById('twitter-description')?.setAttribute('content', cardDesc);
     
-    // تحديث الصورة (مهمة جداً للمعاينة في واتساب)
     document.getElementById('og-image')?.setAttribute('content', cardImg);
     document.getElementById('twitter-image')?.setAttribute('content', cardImg);
-
-    // تحديث الرابط الحالي
     document.getElementById('og-url')?.setAttribute('content', window.location.href);
 
-    // ملاحظة: بعض التطبيقات مثل واتساب قد تأخذ وقتاً لتحديث الكاش، 
-    // ولكن هذه الطريقة هي الأفضل لضمان ظهور البيانات الصحيحة عند المشاركة لأول مرة.
+    // 3. إضافة بيانات Schema.org (JSON-LD) لتعزيز السيو
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": data.name,
+      "jobTitle": data.title,
+      "worksFor": {
+        "@type": "Organization",
+        "name": data.company
+      },
+      "url": window.location.href,
+      "image": cardImg,
+      "description": data.bio,
+      "sameAs": data.socialLinks.map(link => link.url)
+    };
+
+    const scriptId = 'json-ld-schema';
+    let scriptQuery = document.getElementById(scriptId);
+    if (scriptQuery) {
+      scriptQuery.innerText = JSON.stringify(schemaData);
+    } else {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      script.innerText = JSON.stringify(schemaData);
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      // تنظيف عند الخروج
+      const script = document.getElementById(scriptId);
+      if (script) script.remove();
+    };
   }, [data, lang]);
   
   return (
@@ -64,7 +90,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
       <div className="w-full max-w-sm z-10 animate-fade-in-up">
         {/* Semantic Header for SEO */}
         <header className="sr-only">
-          <h1>{data.name} - {data.title}</h1>
+          <h1>{data.name}</h1>
+          <h2>{data.title} في {data.company}</h2>
           <p>{data.bio}</p>
         </header>
 
@@ -95,13 +122,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
             </div>
             {lang === 'ar' ? 'أنشئ بطاقتك الرقمية الآن' : 'Create Your Digital Card Now'}
           </a>
-
-          {/* SEO Optimized Footer Text */}
-          <div className="mt-12 max-w-xs mx-auto text-[9px] text-gray-400 leading-loose opacity-50">
-            {lang === 'ar' 
-              ? 'هويتي الرقمية هي وسيلتك العصرية لتبادل جهات الاتصال وبناء شبكة علاقات مهنية قوية. بطاقات أعمال ذكية تدعم كود QR وتقنيات المشاركة الفورية.' 
-              : 'My Digital Identity is your modern way to exchange contacts and build a strong professional network. Smart business cards supporting QR codes and instant sharing.'}
-          </div>
         </div>
       </div>
     </div>
