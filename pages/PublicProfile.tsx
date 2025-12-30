@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CardData, Language } from '../types';
 import CardPreview from '../components/CardPreview';
 import { TRANSLATIONS } from '../constants';
@@ -12,6 +12,23 @@ interface PublicProfileProps {
 
 const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
   const isRtl = lang === 'ar';
+
+  useEffect(() => {
+    // تحديث لون المتصفح ليتناسب مع لون البطاقة
+    const metaThemeColor = document.getElementById('meta-theme-color');
+    const originalColor = metaThemeColor?.getAttribute('content') || '#3b82f6';
+
+    if (metaThemeColor && data.themeColor) {
+      metaThemeColor.setAttribute('content', data.themeColor);
+    }
+
+    // إعادة اللون الأصلي عند الخروج من الصفحة
+    return () => {
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute('content', originalColor);
+      }
+    };
+  }, [data.themeColor]);
   
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`}>

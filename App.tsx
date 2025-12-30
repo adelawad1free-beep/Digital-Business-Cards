@@ -6,13 +6,12 @@ import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import Home from './pages/Home';
-import CardPreview from './components/CardPreview';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserPrimaryCard, deleteUserAccountAndData } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, LayoutDashboard, Eye, Settings, Share2, AlertCircle, Loader2, ShieldAlert, LogIn, LogOut, User as UserIcon, CheckCircle2, Trash2, Home as HomeIcon, SearchX, Plus } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
@@ -23,7 +22,9 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  
+  // حالات تحميل دقيقة لمنع الوميض
+  const [isInitializing, setIsInitializing] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [adminEditingCard, setAdminEditingCard] = useState<CardData | null>(null);
   const [notFoundSlug, setNotFoundSlug] = useState<string | null>(null);
@@ -41,63 +42,59 @@ const App: React.FC = () => {
     }
   };
 
+  // وظيفة موحدة للتحقق من الحالة الابتدائية (رابط عام + مصادقة)
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        try {
-          const card = await getUserPrimaryCard(user.uid);
-          if (card) {
-            setUserCard(card as CardData);
-            setIsDarkMode(card.isDark);
-          }
-          // Only auto-switch to editor from home if they just logged in and we're on home
-          if (activeTab === 'home') setActiveTab('editor');
-        } catch (e) {
-          console.error("Fetch card error:", e);
-        }
-      } else {
-        setUserCard(null);
-        // Don't force redirect to home if they are in the middle of editing
-      }
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
+    const initializeApp = async () => {
+      // 1. استخراج الرابط من العنوان (query param or path)
+      const params = new URLSearchParams(window.location.search);
+      const querySlug = params.get('u');
+      const pathParts = window.location.pathname.split('/').filter(p => p);
+      const pathSlug = pathParts[0];
+      const isFile = pathSlug?.includes('.');
+      const reserved = ['editor', 'admin', 'preview', 'home', 'settings', 'login', 'signup', 'auth', 'favicon.ico'];
+      const slug = querySlug || (isFile ? null : (!reserved.includes(pathSlug?.toLowerCase()) ? pathSlug : null));
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const querySlug = params.get('u');
-    
-    // دعم المسارات المباشرة كخيار ثانوي
-    const pathParts = window.location.pathname.split('/').filter(p => p);
-    const pathSlug = pathParts[0];
-    const isFile = pathSlug?.includes('.');
-    
-    const reserved = ['editor', 'admin', 'preview', 'home', 'settings', 'login', 'signup', 'auth', 'favicon.ico'];
-    const slug = querySlug || (isFile ? null : (!reserved.includes(pathSlug?.toLowerCase()) ? pathSlug : null));
-
-    if (slug) {
-      const fetchPublic = async () => {
-        setLoading(true);
-        setNotFoundSlug(null);
+      // 2. إذا كان هناك رابط، ابحث عن البطاقة أولاً وقبل كل شيء
+      if (slug) {
         try {
           const card = await getCardBySerial(slug);
           if (card) {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
+            setIsInitializing(false);
+            return; // توقف هنا، سنعرض الملف الشخصي العام
           } else {
             setNotFoundSlug(slug);
           }
         } catch (e) {
-          console.error("Fetch Public Card Error:", e);
+          console.error("Public Card Fetch Error:", e);
           setNotFoundSlug(slug);
-        } finally {
-          setLoading(false);
         }
-      };
-      fetchPublic();
-    }
+      }
+
+      // 3. التحقق من المصادقة إذا لم نكن في وضع "ملف شخصي عام"
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        setCurrentUser(user);
+        if (user) {
+          try {
+            const card = await getUserPrimaryCard(user.uid);
+            if (card) {
+              setUserCard(card as CardData);
+              // مزامنة المظهر مع البطاقة إذا لم يكن هناك slug عام
+              if (!slug) setIsDarkMode(card.isDark);
+            }
+            if (activeTab === 'home') setActiveTab('editor');
+          } catch (e) {
+            console.error("User Card Fetch Error:", e);
+          }
+        }
+        setIsInitializing(false);
+      });
+
+      return unsubscribe;
+    };
+
+    initializeApp();
   }, []);
 
   useEffect(() => {
@@ -108,7 +105,6 @@ const App: React.FC = () => {
 
   const handleSave = async (data: CardData) => {
     if (!currentUser) {
-      // Logic for "Login before publish"
       setShowAuthModal(true);
       return;
     }
@@ -146,7 +142,7 @@ const App: React.FC = () => {
         await deleteUserAccountAndData(currentUser.uid, userCard?.id);
         window.location.reload();
       } catch (e: any) {
-        alert(lang === 'ar' ? "فشل الحذف. يرجى تسجيل الخروج ثم الدخول مجدداً والمحاولة فوراً لضمان الأمان." : "Delete failed. Please logout and login again to confirm your identity for safety.");
+        alert(lang === 'ar' ? "فشل الحذف. يرجى تسجيل الخروج ثم الدخول مجدداً والمحاولة فوراً." : "Delete failed. Please re-login and try again.");
       } finally {
         setSaveLoading(false);
       }
@@ -158,19 +154,26 @@ const App: React.FC = () => {
     setActiveTab('editor');
   };
 
-  if (loading) {
+  // شاشة تحميل احترافية وموحدة تمنع رؤية أي شيء خلفها
+  if (isInitializing) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#0a0a0c]">
-        <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-        <p className="font-black text-gray-400 text-sm uppercase tracking-widest">{lang === 'ar' ? 'جاري التحقق...' : 'Checking...'}</p>
+      <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center bg-white dark:bg-[#050507]">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center text-blue-600 font-black text-xl">
+             هـ
+          </div>
+        </div>
+        <p className="mt-6 font-black text-gray-400 text-xs uppercase tracking-[0.3em] animate-pulse">
+          {lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID'}
+        </p>
       </div>
     );
   }
 
-  // عرض الملف الشخصي إذا تم العثور على بطاقة بالرابط
+  // ترتيب العرض: الملف الشخصي أولاً، ثم خطأ الرابط، ثم لوحة التحكم
   if (publicCard) return <PublicProfile data={publicCard} lang={lang} />;
 
-  // عرض شاشة "غير موجود" إذا تم إدخال رابط خاطئ
   if (notFoundSlug) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-[#050507] text-center">
@@ -182,8 +185,8 @@ const App: React.FC = () => {
         </h2>
         <p className="text-gray-500 mb-8 max-w-sm font-medium">
           {lang === 'ar' 
-            ? `عذراً، الرابط "${notFoundSlug}" لا ينتمي لأي بطاقة أعمال رقمية في منصتنا.` 
-            : `Sorry, the link "${notFoundSlug}" does not belong to any digital business card on our platform.`}
+            ? `عذراً، الرابط "${notFoundSlug}" لا ينتمي لأي بطاقة أعمال في منصتنا.` 
+            : `Sorry, the link "${notFoundSlug}" doesn't belong to any card on our platform.`}
         </p>
         <button 
           onClick={() => { setNotFoundSlug(null); safeResetUrl(); setActiveTab('home'); }}
@@ -247,7 +250,7 @@ const App: React.FC = () => {
                    <LogOut size={12} /> {lang === 'ar' ? 'خروج' : 'Logout'}
                  </button>
                  <button onClick={handleDeleteAccount} className="w-full py-2 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-red-100 transition-all">
-                   <Trash2 size={12} /> {lang === 'ar' ? 'حذف الحساب والبطاقة' : 'Delete Account'}
+                   <Trash2 size={12} /> {lang === 'ar' ? 'حذف الحساب' : 'Delete'}
                  </button>
                </div>
             </div>
@@ -281,13 +284,7 @@ const App: React.FC = () => {
            )}
            {activeTab === 'preview' && (
              <div className="flex flex-col items-center">
-                <CardPreview data={userCard || (SAMPLE_DATA[lang] as CardData)} lang={lang} />
-                <button 
-                  onClick={() => userCard ? setShowShareModal(true) : setActiveTab('editor')} 
-                  className="w-full max-w-sm mt-8 py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 hover:scale-105 transition-all"
-                >
-                   <Share2 size={20} /> {lang === 'ar' ? 'نشر ومشاركة البطاقة' : 'Publish & Share'}
-                </button>
+                <PublicProfile data={userCard || (SAMPLE_DATA[lang] as CardData)} lang={lang} />
              </div>
            )}
            {activeTab === 'admin' && isAdmin && (
@@ -311,9 +308,9 @@ const App: React.FC = () => {
 
       {saveLoading && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-           <div className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] flex flex-col items-center gap-4 shadow-2xl border border-gray-100 dark:border-gray-800">
+           <div className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] flex flex-col items-center gap-4 shadow-2xl">
               <Loader2 className="animate-spin text-blue-600" size={56} />
-              <p className="font-black text-xl dark:text-white">{lang === 'ar' ? 'جاري المعالجة...' : 'Processing...'}</p>
+              <p className="font-black text-xl dark:text-white">{lang === 'ar' ? 'جاري الحفظ...' : 'Saving...'}</p>
            </div>
         </div>
       )}

@@ -4,7 +4,8 @@ import { CardData, Language, SocialLink } from '../types';
 import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA, AVATAR_STYLES } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
-import { isSlugAvailable, auth, uploadProfileImage } from '../services/firebase';
+import { isSlugAvailable, auth } from '../services/firebase';
+import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
 import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud } from 'lucide-react';
@@ -56,25 +57,22 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!auth.currentUser) {
-      alert(lang === 'ar' ? 'يجب تسجيل الدخول لرفع الصور' : 'Please login to upload images');
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert(lang === 'ar' ? 'حجم الصورة كبير جداً (الأقصى 2 ميجا)' : 'File too large (Max 2MB)');
-      return;
-    }
-
     setIsUploading(true);
     try {
-      const downloadUrl = await uploadProfileImage(auth.currentUser.uid, file);
-      handleChange('profileImage', downloadUrl);
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert(lang === 'ar' ? 'فشل رفع الصورة' : 'Upload failed');
+      // الخدمة الآن تقوم بمعالجة الصورة محلياً وتحويلها لنص Base64
+      const base64Image = await uploadImageToCloud(file);
+      
+      if (base64Image) {
+        handleChange('profileImage', base64Image);
+      } else {
+        throw new Error("Local processing failed.");
+      }
+    } catch (error: any) {
+      console.error("Image Processing Failed:", error);
+      alert(lang === 'ar' ? 'فشلت معالجة الصورة، يرجى تجربة ملف آخر' : 'Image processing failed, please try another file');
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -216,7 +214,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                         className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
                        >
                          <UploadCloud className="text-gray-400 group-hover:text-blue-500 transition-colors" />
-                         <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري الرفع...' : 'Uploading...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
+                         <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري المعالجة...' : 'Processing...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
                        </button>
                     </div>
                   )}

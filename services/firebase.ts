@@ -15,7 +15,6 @@ import {
   orderBy,
   getCountFromServer 
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
@@ -30,21 +29,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+
+// تم إزالة Firebase Storage لأنه غير مفعل لدى المستخدم
 
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
-
-/**
- * رفع صورة إلى Firebase Storage
- */
-export const uploadProfileImage = async (userId: string, file: File): Promise<string> => {
-  const fileExtension = file.name.split('.').pop();
-  const storageRef = ref(storage, `users/${userId}/profile_${Date.now()}.${fileExtension}`);
-  
-  await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(storageRef);
-  return downloadURL;
-};
 
 /**
  * التحقق من توفر اسم الرابط
