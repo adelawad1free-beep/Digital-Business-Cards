@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { auth, signInWithGoogle, sendPasswordReset } from '../services/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { Language } from '../types';
-import { X, Mail, Lock, Loader2, UserPlus, LogIn, Key, ArrowLeft, Info, CheckCircle2 } from 'lucide-react';
+import { X, Mail, Lock, Loader2, UserPlus, LogIn, Key, ArrowLeft, Info, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface AuthModalProps {
   lang: Language;
@@ -18,11 +18,39 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<React.ReactNode>('');
   const [resetSent, setResetSent] = useState(false);
 
   const isRtl = lang === 'ar';
   const t = (ar: string, en: string) => isRtl ? ar : en;
+
+  const getErrorMessage = (errorCode: string): React.ReactNode => {
+    const currentDomain = window.location.hostname;
+    
+    switch (errorCode) {
+      case 'auth/user-not-found': return t('هذا الحساب غير مسجل لدينا', 'User not found');
+      case 'auth/wrong-password': return t('كلمة المرور غير صحيحة', 'Incorrect password');
+      case 'auth/email-already-in-use': return t('هذا البريد مستخدم بالفعل', 'Email already in use');
+      case 'auth/weak-password': return t('كلمة المرور ضعيفة جداً', 'Password is too weak');
+      case 'auth/popup-closed-by-user': return t('تم إغلاق نافذة تسجيل الدخول قبل الإكمال', 'Sign-in popup closed before completion');
+      case 'auth/operation-not-allowed': return t('تسجيل الدخول عبر جوجل غير مفعل في إعدادات Firebase', 'Google sign-in is not enabled in Firebase Console');
+      case 'auth/unauthorized-domain': 
+        return (
+          <div className="space-y-2">
+            <p className="font-black">{t('هذا النطاق غير مصرح له', 'Unauthorized Domain')}</p>
+            <p className="opacity-80">{t(`يجب إضافة النطاق (${currentDomain}) في إعدادات Firebase (Authorized Domains).`, `You must add (${currentDomain}) to Authorized Domains in Firebase Console.`)}</p>
+            <a 
+              href="https://console.firebase.google.com/" 
+              target="_blank" 
+              className="flex items-center gap-1 text-blue-500 underline mt-1"
+            >
+              {t('افتح Firebase Console', 'Open Firebase Console')} <ExternalLink size={12} />
+            </a>
+          </div>
+        );
+      default: return t(`حدث خطأ: ${errorCode}`, `Error: ${errorCode}`);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +69,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
         setResetSent(true);
       }
     } catch (err: any) {
-      console.error("Auth Error:", err);
-      if (err.code === 'auth/user-not-found') {
-        setError(t('هذا الحساب غير مسجل لدينا', 'User not found'));
-      } else if (err.code === 'auth/wrong-password') {
-        setError(t('كلمة المرور غير صحيحة', 'Incorrect password'));
-      } else {
-        setError(t('حدث خطأ في البيانات، يرجى التأكد', 'Authentication failed. Please check details.'));
-      }
+      setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
     }
@@ -61,8 +82,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
       const user = await signInWithGoogle();
       if (user) onSuccess(user.uid);
     } catch (err: any) {
+      console.error("Google Auth Error:", err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        setError(t('فشل تسجيل الدخول عبر جوجل', 'Google sign-in failed'));
+        setError(getErrorMessage(err.code));
       }
     } finally {
       setLoading(false);
@@ -174,9 +196,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
               )}
 
               {error && (
-                <div className="flex gap-2 items-center p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl">
-                   <Info className="text-red-500 shrink-0" size={14} />
-                   <p className="text-red-600 dark:text-red-400 text-[10px] font-bold leading-tight">{error}</p>
+                <div className="flex gap-2 items-start p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-2xl animate-shake">
+                   <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={16} />
+                   <div className="text-red-600 dark:text-red-400 text-xs font-bold leading-tight">{error}</div>
                 </div>
               )}
 

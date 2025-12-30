@@ -1,6 +1,7 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { getAdminStats, ADMIN_EMAIL, deleteUserCard, getSiteSettings, updateSiteSettings, updateAdminSecurity } from '../services/firebase';
+import { uploadImageToCloud } from '../services/uploadService';
 import { Language, CardData } from '../types';
 import { generateShareUrl } from '../utils/share';
 import { 
@@ -8,7 +9,7 @@ import {
   ShieldCheck, Trash2, Edit3, Eye, Settings, 
   Globe, Power, Save, Search, LayoutGrid,
   Lock, Mail, UserCog, Key, Shield, ShieldAlert,
-  AlertTriangle, CheckCircle2
+  AlertTriangle, CheckCircle2, Image as ImageIcon, UploadCloud, X
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -19,11 +20,13 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDeleteRequest }) => {
   const isRtl = lang === 'ar';
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings' | 'security'>('stats');
   const [stats, setStats] = useState<{ totalCards: number; recentCards: any[] } | null>(null);
-  const [settings, setSettings] = useState({ siteNameAr: '', siteNameEn: '', maintenanceMode: false });
+  const [settings, setSettings] = useState({ siteNameAr: '', siteNameEn: '', siteLogo: '', maintenanceMode: false });
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -54,11 +57,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     fetchData();
   }, []);
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const base64 = await uploadImageToCloud(file);
+      if (base64) setSettings({ ...settings, siteLogo: base64 });
+    } catch (err) {
+      alert(isRtl ? "فشل رفع الشعار" : "Logo upload failed");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
       await updateSiteSettings(settings);
       alert(isRtl ? "تم حفظ إعدادات الموقع بنجاح" : "Site settings saved successfully");
+      window.location.reload(); // تحديث الموقع بالكامل لتطبيق الشعار الجديد
     } catch (e) {
       alert(isRtl ? "فشل الحفظ: تأكد من صلاحيات المسؤول" : "Save failed: Check admin permissions");
     } finally {
@@ -233,49 +251,92 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
         {activeTab === 'settings' && (
           <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
              <div className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
-                <div className="flex items-center gap-4">
-                   <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-2xl"><Globe size={24} /></div>
-                   <h2 className="text-2xl font-black dark:text-white">{t('إعدادات الموقع العامة', 'Global Site Settings')}</h2>
-                </div>
-
+                
+                {/* Visual Identity Section */}
                 <div className="space-y-6">
-                   <div>
-                      <label className={labelClasses}>{t('اسم الموقع (عربي)', 'Site Name (Arabic)')}</label>
-                      <input 
-                        type="text" 
-                        value={settings.siteNameAr} 
-                        onChange={(e) => setSettings({...settings, siteNameAr: e.target.value})}
-                        className={inputClasses}
-                        placeholder="هويتي الرقمية"
-                      />
-                   </div>
-                   <div>
-                      <label className={labelClasses}>{t('اسم الموقع (إنجليزي)', 'Site Name (English)')}</label>
-                      <input 
-                        type="text" 
-                        value={settings.siteNameEn} 
-                        onChange={(e) => setSettings({...settings, siteNameEn: e.target.value})}
-                        className={inputClasses}
-                        placeholder="My Digital Identity"
-                      />
+                   <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><ImageIcon size={24} /></div>
+                      <h2 className="text-2xl font-black dark:text-white">{t('الهوية البصرية للموقع', 'Visual Identity')}</h2>
                    </div>
                    
-                   <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-4 rounded-2xl transition-all ${settings.maintenanceMode ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}`}>
-                           {settings.maintenanceMode ? <Power size={24} /> : <CheckCircle2 size={24} />}
-                        </div>
-                        <div>
-                           <p className="font-black dark:text-white text-lg">{t('وضع الصيانة', 'Maintenance Mode')}</p>
-                           <p className="text-[10px] font-bold text-gray-400 uppercase">{settings.maintenanceMode ? t('الموقع غير متاح حالياً للزوار', 'Site is currently offline for visitors') : t('الموقع متاح للجميع حالياً', 'Site is currently live and public')}</p>
-                        </div>
+                   <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-6">
+                      <div className="w-32 h-32 rounded-3xl bg-white dark:bg-gray-900 shadow-xl border-4 border-white dark:border-gray-800 overflow-hidden flex items-center justify-center relative">
+                         {settings.siteLogo ? (
+                           <img src={settings.siteLogo} className="w-full h-full object-contain p-2" alt="Site Logo" />
+                         ) : (
+                           <div className="text-gray-300 flex flex-col items-center gap-1">
+                              <ImageIcon size={40} />
+                              <span className="text-[10px] font-black uppercase">{t('لا يوجد شعار', 'No Logo')}</span>
+                           </div>
+                         )}
+                         {uploadingLogo && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                         {settings.siteLogo && (
+                           <button 
+                             onClick={() => setSettings({...settings, siteLogo: ''})}
+                             className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-lg shadow-lg hover:scale-110 transition-all"
+                           >
+                             <X size={12} />
+                           </button>
+                         )}
                       </div>
+                      
+                      <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
                       <button 
-                        onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})}
-                        className={`w-16 h-8 rounded-full relative transition-all shadow-inner ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        onClick={() => logoInputRef.current?.click()}
+                        className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm hover:shadow-md transition-all active:scale-95"
                       >
-                         <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${isRtl ? (settings.maintenanceMode ? 'right-9' : 'right-1') : (settings.maintenanceMode ? 'left-9' : 'left-1')}`} />
+                         <UploadCloud size={16} className="text-blue-500" />
+                         {t('تغيير شعار الموقع', 'Change Site Logo')}
                       </button>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{t('يفضل شعار شفاف بصيغة PNG أو SVG وبحجم صغير', 'Preferred: PNG/SVG with transparent background')}</p>
+                   </div>
+                </div>
+
+                <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
+                   <div className="flex items-center gap-4">
+                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-2xl"><Globe size={24} /></div>
+                      <h2 className="text-2xl font-black dark:text-white">{t('إعدادات الموقع العامة', 'Global Site Settings')}</h2>
+                   </div>
+
+                   <div className="space-y-6">
+                      <div>
+                         <label className={labelClasses}>{t('اسم الموقع (عربي)', 'Site Name (Arabic)')}</label>
+                         <input 
+                           type="text" 
+                           value={settings.siteNameAr} 
+                           onChange={(e) => setSettings({...settings, siteNameAr: e.target.value})}
+                           className={inputClasses}
+                           placeholder="هويتي الرقمية"
+                         />
+                      </div>
+                      <div>
+                         <label className={labelClasses}>{t('اسم الموقع (إنجليزي)', 'Site Name (English)')}</label>
+                         <input 
+                           type="text" 
+                           value={settings.siteNameEn} 
+                           onChange={(e) => setSettings({...settings, siteNameEn: e.target.value})}
+                           className={inputClasses}
+                           placeholder="My Digital Identity"
+                         />
+                      </div>
+                      
+                      <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                           <div className={`p-4 rounded-2xl transition-all ${settings.maintenanceMode ? 'bg-red-50 text-red-600 dark:bg-red-900/20' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'}`}>
+                              {settings.maintenanceMode ? <Power size={24} /> : <CheckCircle2 size={24} />}
+                           </div>
+                           <div>
+                              <p className="font-black dark:text-white text-lg">{t('وضع الصيانة', 'Maintenance Mode')}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase">{settings.maintenanceMode ? t('الموقع غير متاح حالياً للزوار', 'Site is currently offline for visitors') : t('الموقع متاح للجميع حالياً', 'Site is currently live and public')}</p>
+                           </div>
+                         </div>
+                         <button 
+                           onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})}
+                           className={`w-16 h-8 rounded-full relative transition-all shadow-inner ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                         >
+                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${isRtl ? (settings.maintenanceMode ? 'right-9' : 'right-1') : (settings.maintenanceMode ? 'left-9' : 'left-1')}`} />
+                         </button>
+                      </div>
                    </div>
                 </div>
 
@@ -345,7 +406,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                             />
                          </div>
                          <div>
-                            <label className={labelClasses}>{t('تأكيد كلمة السر', 'Confirm New Password')}</label>
+                            <label className={labelClasses}>{t('تأكيد كلمة سر', 'Confirm New Password')}</label>
                             <input 
                               type="password"
                               value={securityData.confirmPassword} 
@@ -372,7 +433,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
 
       {/* Footer Branding for Admin */}
       <div className="text-center pt-10 opacity-30">
-         <p className="text-[10px] font-black uppercase tracking-[0.5em] dark:text-white">Admin Core System v2.0</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.5em] dark:text-white">Admin Core System v2.1</p>
       </div>
     </div>
   );
