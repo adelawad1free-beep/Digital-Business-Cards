@@ -5,6 +5,7 @@ import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS } from './constants';
 import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import UserAccount from './pages/UserAccount';
 import Home from './pages/Home';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
@@ -12,14 +13,14 @@ import AuthModal from './components/AuthModal';
 import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus, Settings, CreditCard, ExternalLink, Edit2, AlertTriangle, X } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus, Settings, CreditCard, ExternalLink, Edit2, AlertTriangle, X, User as UserIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager'>('home');
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -54,7 +55,7 @@ const App: React.FC = () => {
       const pathParts = window.location.pathname.split('/').filter(p => p);
       const pathSlug = pathParts[0];
       const isFile = pathSlug?.includes('.');
-      const reserved = ['editor', 'admin', 'preview', 'home', 'manager', 'auth'];
+      const reserved = ['editor', 'admin', 'preview', 'home', 'manager', 'auth', 'account'];
       const slug = querySlug || (isFile ? null : (!reserved.includes(pathSlug?.toLowerCase()) ? pathSlug : null));
 
       if (slug) {
@@ -73,7 +74,6 @@ const App: React.FC = () => {
         setCurrentUser(user);
         if (user) {
           await refreshUserCards(user.uid);
-          // إذا كان هناك حفظ معلق بعد تسجيل الدخول مباشرة
           if (pendingSaveData) {
             handleSave({ ...pendingSaveData.data, ownerId: user.uid }, pendingSaveData.oldId);
             setPendingSaveData(null);
@@ -136,7 +136,6 @@ const App: React.FC = () => {
   };
 
   const handleSave = async (data: CardData, oldId?: string) => {
-    // إذا لم يكن المستخدم مسجلاً، نحفظ البيانات في "المعلق" ونطلب منه التسجيل
     if (!auth.currentUser) { 
       setPendingSaveData({ data, oldId });
       setShowAuthModal(true); 
@@ -199,9 +198,14 @@ const App: React.FC = () => {
               <HomeIcon size={20} /> <span>{isRtl ? 'الرئيسية' : 'Home'}</span>
             </button>
             {currentUser && (
-              <button onClick={() => setActiveTab('manager')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'manager' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                <CreditCard size={20} /> <span>{isRtl ? 'بطاقاتي' : 'My Cards'}</span>
-              </button>
+              <>
+                <button onClick={() => setActiveTab('manager')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'manager' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <CreditCard size={20} /> <span>{isRtl ? 'بطاقاتي' : 'My Cards'}</span>
+                </button>
+                <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'account' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                  <UserIcon size={20} /> <span>{isRtl ? 'إعدادات الحساب' : 'Account'}</span>
+                </button>
+              </>
             )}
             {isAdmin && (
               <button onClick={() => setActiveTab('admin')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'admin' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
@@ -271,12 +275,14 @@ const App: React.FC = () => {
 
            {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} />}
            {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={handleEditCard} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
+           {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
         </div>
       </main>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 flex px-4 z-[100] h-20">
         <NavItem id="home" icon={HomeIcon} label={isRtl ? 'الرئيسية' : 'Home'} />
         {currentUser && <NavItem id="manager" icon={CreditCard} label={isRtl ? 'بطاقاتي' : 'Cards'} />}
+        {currentUser && <NavItem id="account" icon={UserIcon} label={isRtl ? 'حسابي' : 'Account'} />}
         {isAdmin && <NavItem id="admin" icon={ShieldAlert} label={isRtl ? 'إدارة' : 'Admin'} />}
       </nav>
 
@@ -320,7 +326,7 @@ const App: React.FC = () => {
       )}
 
       {showShareModal && editingCard && <ShareModal data={editingCard} lang={lang} onClose={() => setShowShareModal(false)} />}
-      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={(uid) => { setShowAuthModal(false); /* يتم التعامل مع الحفظ المعلق في useEffect */ }} />}
+      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={(uid) => { setShowAuthModal(false); }} />}
     </div>
   );
 };

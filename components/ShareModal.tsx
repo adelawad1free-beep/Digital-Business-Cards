@@ -19,12 +19,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
   }, [data]);
 
   const copyToClipboard = () => {
-    // نص مشاركة احترافي يتم نسخه مع الرابط
-    const shareText = lang === 'ar' 
-      ? `بطاقة أعمال رقمية: ${data.name}\n${data.title}\nشاهد بطاقتي الرقمية هنا: ${url}`
-      : `Digital Business Card: ${data.name}\n${data.title}\nView my digital profile here: ${url}`;
-    
-    navigator.clipboard.writeText(shareText);
+    // تم التعديل لنسخ الرابط فقط بناءً على طلب المستخدم
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -5,7 +5,10 @@ import {
   updateEmail, 
   updatePassword, 
   reauthenticateWithCredential, 
-  EmailAuthProvider 
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -35,8 +38,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const googleProvider = new GoogleAuthProvider();
 
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
+
+// وظيفة استعادة كلمة السر
+export const sendPasswordReset = async (email: string) => {
+  return sendPasswordResetEmail(auth, email);
+};
+
+// وظيفة الدخول عبر جوجل
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (error) {
+    throw error;
+  }
+};
 
 export const getSiteSettings = async () => {
   try {
@@ -68,15 +87,11 @@ export const updateSiteSettings = async (settings: any) => {
   }
 };
 
-/**
- * وظيفة الحفظ المحسنة: تضمن وجود ownerId في كلا المكانين
- */
 export const saveCardToDB = async (userId: string, cardData: any, oldId?: string) => {
   try {
     const currentUid = auth.currentUser?.uid;
     if (!currentUid) throw new Error("Authentication required");
 
-    // نضمن دائماً وجود معرف المالك
     const finalOwnerId = cardData.ownerId || userId || currentUid;
     
     const dataToSave = { 
@@ -88,7 +103,6 @@ export const saveCardToDB = async (userId: string, cardData: any, oldId?: string
     const newId = cardData.id.toLowerCase();
     const cleanOldId = oldId?.toLowerCase();
 
-    // حذف القديم إذا تغير الرابط
     if (cleanOldId && cleanOldId !== newId) {
       try {
         await deleteDoc(doc(db, "public_cards", cleanOldId));
@@ -98,7 +112,6 @@ export const saveCardToDB = async (userId: string, cardData: any, oldId?: string
       }
     }
 
-    // الحفظ في الفهرس العام ومجموعة المستخدم
     await Promise.all([
       setDoc(doc(db, "public_cards", newId), dataToSave),
       setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
@@ -111,23 +124,18 @@ export const saveCardToDB = async (userId: string, cardData: any, oldId?: string
   }
 };
 
-/**
- * وظيفة الحذف الذكية: تعالج أخطاء الصلاحيات بمرونة
- */
 export const deleteUserCard = async (ownerId: string, cardId: string) => {
   const cleanId = cardId.toLowerCase();
   let publicDeleted = false;
   let userDeleted = false;
 
-  // 1. محاولة الحذف من الفهرس العام
   try {
     await deleteDoc(doc(db, "public_cards", cleanId));
     publicDeleted = true;
   } catch (error: any) {
-    console.warn("Could not delete from public index (Permission or Missing):", error.message);
+    console.warn("Could not delete from public index:", error.message);
   }
 
-  // 2. محاولة الحذف من مجموعة المستخدم (المسار الخاص)
   try {
     await deleteDoc(doc(db, "users", ownerId, "cards", cleanId));
     userDeleted = true;
@@ -135,7 +143,6 @@ export const deleteUserCard = async (ownerId: string, cardId: string) => {
     console.warn("Could not delete from user collection:", error.message);
   }
 
-  // إذا نجح حذف أي نسخة، نعتبر العملية ناجحة للمستخدم
   if (!publicDeleted && !userDeleted) {
     throw new Error("Missing or insufficient permissions.");
   }
@@ -194,9 +201,9 @@ export const getAdminStats = async () => {
   }
 };
 
-export const updateAdminSecurity = async (currentPassword: string, newEmail: string, newPassword?: string) => {
+export const updateUserSecurity = async (currentPassword: string, newEmail: string, newPassword?: string) => {
   const user = auth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+  if (!user) throw new Error("Authentication required");
 
   try {
     const credential = EmailAuthProvider.credential(user.email!, currentPassword);
@@ -212,7 +219,9 @@ export const updateAdminSecurity = async (currentPassword: string, newEmail: str
     
     return true;
   } catch (error: any) {
-    console.error("Security Update Error:", error);
+    console.error("User Security Update Error:", error);
     throw error;
   }
 };
+
+export const updateAdminSecurity = updateUserSecurity;
