@@ -22,6 +22,20 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
     return entry[lang] || entry['en'] || key;
   };
 
+  const getHeaderBackground = () => {
+    if (data.themeType === 'image' && data.backgroundImage) {
+      return {
+        backgroundImage: `url(${data.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      };
+    }
+    if (data.themeType === 'gradient') {
+      return { background: data.themeGradient };
+    }
+    return { backgroundColor: data.themeColor };
+  };
+
   const defaultImage = (
     <div className={`w-full h-full flex flex-col items-center justify-end ${isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400'}`}>
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-80 translate-y-2">
@@ -35,15 +49,18 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
       
       {/* 1. خلفية السمة */}
       <div 
-        className="h-36 w-full relative transition-colors duration-500" 
-        style={{ 
-          backgroundColor: data.themeColor,
-          backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.1), transparent)'
-        }}
-      />
+        className="h-44 w-full relative transition-all duration-500" 
+        style={getHeaderBackground()}
+      >
+        {/* Overlay for better readability if background is image */}
+        {data.themeType === 'image' && (
+          <div className="absolute inset-0 bg-black/20" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent" />
+      </div>
 
       {/* 2. الصورة الشخصية */}
-      <div className="relative px-6 -mt-20 text-center z-10">
+      <div className="relative px-6 -mt-24 text-center z-10">
         <div className="inline-block relative">
           <div className={`w-40 h-40 rounded-[2.5rem] overflow-hidden border-[10px] shadow-2xl transition-all duration-300 hover:scale-105 ${isDark ? 'border-gray-950 bg-gray-800' : 'border-white bg-gray-100'}`}>
             {data.profileImage ? (
@@ -67,7 +84,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         </p>
       </div>
 
-      {/* 4. النبذة التعريفية */}
+      {/* 4. الشركة */}
+      <div className="px-6 mt-2 text-center">
+        <p className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-blue-400/80' : 'text-blue-600/80'}`}>
+          {data.company}
+        </p>
+      </div>
+
+      {/* 5. النبذة التعريفية */}
       <div className="px-8 mt-4 text-center">
         {data.bio && (
           <p className={`text-sm leading-relaxed italic font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -76,14 +100,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         )}
       </div>
 
-      {/* 5. أزرار التواصل السريع */}
+      {/* 6. أزرار التواصل السريع */}
       <div className="px-6 mt-8 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           {data.phone && (
             <a 
               href={`tel:${data.phone}`}
               className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
-              style={{ backgroundColor: data.themeColor }}
+              style={data.themeType === 'gradient' ? { background: data.themeGradient } : { backgroundColor: data.themeColor }}
             >
               <Phone size={18} />
               <span>{t('call')}</span>
@@ -111,7 +135,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         </button>
       </div>
 
-      {/* 6. معلومات التواصل الأخرى */}
+      {/* 7. معلومات التواصل الأخرى */}
       <div className="px-6 space-y-3 mt-8 pb-4">
         {data.email && (
           <div className={`flex items-center p-4 rounded-[1.5rem] border ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-transparent'}`}>
@@ -152,7 +176,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         )}
       </div>
 
-      {/* 7. روابط التواصل الاجتماعي */}
+      {/* 8. روابط التواصل الاجتماعي */}
       <div className={`flex flex-wrap justify-center gap-4 py-8 mt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
         {data.socialLinks.map((link, idx) => (
           <a 

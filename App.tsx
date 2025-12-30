@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Language, CardData } from './types';
-import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, LANGUAGES_CONFIG } from './constants';
+import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, LANGUAGES_CONFIG } from './constants';
 import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -106,13 +106,20 @@ const App: React.FC = () => {
   }, []);
 
   const handleCreateNew = () => {
+    // Fix: Added missing required properties (themeType, themeGradient, backgroundImage) 
+    // to satisfy the CardData interface requirements when creating a new card object.
     const newCard: CardData = {
       id: generateSerialId(),
       name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
-      themeColor: THEME_COLORS[0], isDark: false, socialLinks: [],
+      themeType: 'color',
+      themeColor: THEME_COLORS[0],
+      themeGradient: THEME_GRADIENTS[0],
+      backgroundImage: '',
+      isDark: false,
+      socialLinks: [],
       ownerId: currentUser?.uid || undefined,
       ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en'])
-    };
+    } as CardData;
     setEditingCard(null); 
     setTimeout(() => {
       setEditingCard(newCard);

@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { CardData, Language, SocialLink } from '../types';
-import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
+import { CardData, Language, SocialLink, ThemeType } from '../types';
+import { TRANSLATIONS, THEME_COLORS, THEME_GRADIENTS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
 import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud, User, Link as LinkIconLucide } from 'lucide-react';
+import { Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud, Image as ImageIcon, Palette, Layout } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -18,7 +18,6 @@ interface EditorProps {
 }
 
 const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit }) => {
-  // Safe translation helper
   const t = (key: string) => {
     const entry = TRANSLATIONS[key];
     if (!entry) return key;
@@ -28,13 +27,15 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const isRtl = lang === 'ar';
   const colorInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
   
   const originalIdRef = useRef<string | null>(initialData?.id || null);
 
   const getDefaults = (l: Language): CardData => ({
     id: generateSerialId(),
     name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
-    themeColor: THEME_COLORS[0], isDark: false, socialLinks: [],
+    themeType: 'color', themeColor: THEME_COLORS[0], themeGradient: THEME_GRADIENTS[0], backgroundImage: '',
+    isDark: false, socialLinks: [],
     ...(SAMPLE_DATA[l] || SAMPLE_DATA['en'] || {})
   });
 
@@ -42,6 +43,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const [activeImgTab, setActiveImgTab] = useState<'upload' | 'link'>('upload');
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
@@ -68,15 +70,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsUploading(true);
     try {
       const base64Image = await uploadImageToCloud(file);
-      if (base64Image) {
-        handleChange('profileImage', base64Image);
-      } else {
-        throw new Error("Local processing failed.");
-      }
+      if (base64Image) handleChange('profileImage', base64Image);
     } catch (error: any) {
       alert(lang === 'ar' ? 'فشلت معالجة الصورة' : 'Image processing failed');
     } finally {
@@ -85,17 +82,30 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
     }
   };
 
+  const handleBgFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBg(true);
+    try {
+      const base64Image = await uploadImageToCloud(file);
+      if (base64Image) handleChange('backgroundImage', base64Image);
+    } catch (error: any) {
+      alert(lang === 'ar' ? 'فشلت معالجة الخلفية' : 'Background processing failed');
+    } finally {
+      setIsUploadingBg(false);
+      if (bgFileInputRef.current) bgFileInputRef.current.value = '';
+    }
+  };
+
   const checkAvailability = async () => {
     if (!formData.id || formData.id.length < 3) {
       alert(lang === 'ar' ? 'يجب أن يكون الرابط 3 أحرف على الأقل' : 'Link must be at least 3 characters');
       return;
     }
-
     if (formData.id.toLowerCase() === originalIdRef.current?.toLowerCase()) {
       setSlugStatus('available');
       return;
     }
-
     setSlugStatus('checking');
     const available = await isSlugAvailable(formData.id, formData.ownerId || auth.currentUser?.uid);
     setSlugStatus(available ? 'available' : 'taken');
@@ -111,10 +121,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   };
 
   const removeSocialLink = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => ({ ...prev, socialLinks: prev.socialLinks.filter((_, i) => i !== index) }));
   };
 
   const handleGenerateAIBio = async () => {
@@ -132,33 +139,20 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   };
 
   const handleFinalSave = async () => {
-    if (slugStatus !== 'available') {
-        if (formData.id.toLowerCase() === originalIdRef.current?.toLowerCase()) {
-            setSlugStatus('available');
-        } else {
-            setSlugStatus('checking');
-            const available = await isSlugAvailable(formData.id, formData.ownerId || auth.currentUser?.uid);
-            if (!available) {
-                setSlugStatus('taken');
-                alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل" : "Link already taken");
-                return;
-            }
-        }
+    if (slugStatus !== 'available' && formData.id.toLowerCase() !== originalIdRef.current?.toLowerCase()) {
+      setSlugStatus('checking');
+      const available = await isSlugAvailable(formData.id, formData.ownerId || auth.currentUser?.uid);
+      if (!available) {
+        setSlugStatus('taken');
+        alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل" : "Link already taken");
+        return;
+      }
     }
-    
     onSave(formData, originalIdRef.current || undefined);
   };
 
   const inputClasses = "w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-sm";
   const labelClasses = "block text-xs font-black text-gray-400 dark:text-gray-500 mb-2 px-1 uppercase tracking-widest";
-
-  const defaultSilhouette = (
-    <div className="w-full h-full flex flex-col items-center justify-end bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600">
-      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-60 translate-y-2">
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-      </svg>
-    </div>
-  );
 
   return (
     <div className="flex flex-col lg:flex-row gap-12 pb-20">
@@ -174,6 +168,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
 
         <div className="bg-white dark:bg-[#121215] p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 space-y-10">
           
+          {/* Custom Link Section */}
           <div className="bg-blue-50 dark:bg-blue-900/10 p-8 rounded-[2.5rem] border-2 border-dashed border-blue-200 dark:border-blue-800 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                <div>
@@ -195,43 +190,27 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             </div>
           </div>
 
+          {/* Profile Image Section */}
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-6">
             <label className={labelClasses}>{t('imageSource')}</label>
             <div className="flex flex-col md:flex-row items-center gap-8">
                <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 relative group shrink-0">
-                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : defaultSilhouette}
+                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-300"><Sparkles size={32}/></div>}
                  {isUploading && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
                </div>
-               <div className="flex-1 w-full space-y-4 overflow-hidden">
+               <div className="flex-1 w-full space-y-4">
                   <div className="flex gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-fit">
                     <button onClick={() => setActiveImgTab('upload')} className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-2 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}>
                       <UploadCloud size={14} /> {lang === 'ar' ? 'رفع صورة' : 'Upload Image'}
                     </button>
                     <button onClick={() => setActiveImgTab('link')} className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-2 ${activeImgTab === 'link' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}>
-                      <LinkIconLucide size={14} /> {t('directLink')}
+                      <LinkIcon size={14} /> {t('directLink')}
                     </button>
                   </div>
-                  
-                  {activeImgTab === 'upload' && (
-                    <div className="space-y-2 animate-fade-in">
-                       <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                       <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full py-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group">
-                         <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 group-hover:text-blue-500 group-hover:scale-110 transition-all">
-                           <UploadCloud size={24} />
-                         </div>
-                         <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري المعالجة...' : 'Processing...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
-                       </button>
-                    </div>
-                  )}
-                  
-                  {activeImgTab === 'link' && (
-                    <div className="space-y-4 animate-fade-in">
-                      <div className="relative">
-                        <LinkIconLucide className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
-                        <input type="url" value={formData.profileImage} onChange={e => handleChange('profileImage', e.target.value)} placeholder="https://example.com/image.jpg" className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} />
-                      </div>
-                      <p className="text-[10px] font-bold text-gray-400 px-1">{lang === 'ar' ? 'الصق رابط الصورة المباشر هنا.' : 'Paste direct image URL here.'}</p>
-                    </div>
+                  {activeImgTab === 'upload' ? (
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                  ) : (
+                    <input type="url" value={formData.profileImage} onChange={e => handleChange('profileImage', e.target.value)} placeholder="https://..." className={inputClasses} />
                   )}
                </div>
             </div>
@@ -276,37 +255,88 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
              </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800">
-              <div className="flex items-center justify-between mb-4 px-1">
-                <label className={labelClasses}>{t('theme')}</label>
-                <div className="flex items-center gap-2">
-                   <input type="color" ref={colorInputRef} value={formData.themeColor} onChange={(e) => handleChange('themeColor', e.target.value)} className="sr-only" />
-                   <button onClick={() => colorInputRef.current?.click()} className="text-[10px] font-black text-blue-600 flex items-center gap-1 uppercase hover:underline"><Pipette size={14} />{lang === 'ar' ? 'لون مخصص' : 'Custom'}</button>
+          {/* Theme & Background Section - Moved to bottom */}
+          <div className="bg-gray-50 dark:bg-gray-900/40 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-8">
+             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
+                <div>
+                  <h3 className="text-lg font-black dark:text-white">{t('theme')}</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{lang === 'ar' ? 'اختر النمط البصري لبطاقتك' : 'Choose visual style'}</p>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {THEME_COLORS.map(color => (
-                  <button key={color} onClick={() => handleChange('themeColor', color)} className={`w-10 h-10 rounded-full transition-all hover:scale-110 shadow-lg relative ${formData.themeColor === color ? 'ring-4 ring-blue-500 ring-offset-4 dark:ring-offset-gray-900 scale-110' : ''}`} style={{ backgroundColor: color }}>
-                    {color === '#C5A059' && <span className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm"><Star size={8} className="text-[#C5A059] fill-[#C5A059]" /></span>}
+                <div className="flex bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                  <button onClick={() => handleChange('themeType', 'color')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'color' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+                    <Palette size={16} className="mb-1 mx-auto" />
+                    {lang === 'ar' ? 'ألوان' : 'Color'}
                   </button>
-                ))}
-                {!THEME_COLORS.includes(formData.themeColor) && (
-                   <button onClick={() => colorInputRef.current?.click()} className="w-10 h-10 rounded-full transition-all scale-110 shadow-lg ring-4 ring-blue-500 ring-offset-4 dark:ring-offset-gray-900 relative" style={{ backgroundColor: formData.themeColor }}>
-                    <span className="absolute inset-0 flex items-center justify-center text-white mix-blend-difference"><Pipette size={12} /></span>
+                  <button onClick={() => handleChange('themeType', 'gradient')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'gradient' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+                    <Sparkles size={16} className="mb-1 mx-auto" />
+                    {lang === 'ar' ? 'تدرج' : 'Gradient'}
                   </button>
+                  <button onClick={() => handleChange('themeType', 'image')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'image' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+                    <ImageIcon size={16} className="mb-1 mx-auto" />
+                    {lang === 'ar' ? 'صورة' : 'Image'}
+                  </button>
+                </div>
+             </div>
+
+             <div className="animate-fade-in">
+                {formData.themeType === 'color' && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-3">
+                      {THEME_COLORS.map(color => (
+                        <button key={color} onClick={() => handleChange('themeColor', color)} className={`w-10 h-10 rounded-full transition-all hover:scale-110 shadow-lg ${formData.themeColor === color ? 'ring-4 ring-blue-500 ring-offset-4 dark:ring-offset-gray-900' : ''}`} style={{ backgroundColor: color }} />
+                      ))}
+                      <button onClick={() => colorInputRef.current?.click()} className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400"><Plus size={16}/></button>
+                      <input type="color" ref={colorInputRef} className="sr-only" onChange={e => handleChange('themeColor', e.target.value)} />
+                    </div>
+                  </div>
                 )}
-              </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
-              <div>
-                 <label className={labelClasses}>{lang === 'ar' ? 'نمط البطاقة' : 'Card Theme'}</label>
-                 <p className="text-[10px] font-bold text-gray-400">{formData.isDark ? (lang === 'ar' ? 'الوضع الليلي نشط' : 'Dark Mode Active') : (lang === 'ar' ? 'الوضع الفاتح نشط' : 'Light Mode Active')}</p>
-              </div>
-              <button onClick={() => handleChange('isDark', !formData.isDark)} className={`p-4 rounded-2xl transition-all ${formData.isDark ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-400 border border-gray-100'}`}>
-                {formData.isDark ? <Sun size={24} /> : <Moon size={24} />}
-              </button>
-            </div>
+
+                {formData.themeType === 'gradient' && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {THEME_GRADIENTS.map((grad, idx) => (
+                      <button key={idx} onClick={() => handleChange('themeGradient', grad)} className={`h-16 rounded-2xl transition-all hover:scale-105 shadow-md ${formData.themeGradient === grad ? 'ring-4 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900' : ''}`} style={{ background: grad }} />
+                    ))}
+                  </div>
+                )}
+
+                {formData.themeType === 'image' && (
+                  <div className="space-y-4">
+                     <div className="relative group overflow-hidden h-32 rounded-3xl bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                        {formData.backgroundImage ? (
+                          <>
+                            <img src={formData.backgroundImage} className="w-full h-full object-cover" alt="BG" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                               <button onClick={() => handleChange('backgroundImage', '')} className="p-2 bg-red-600 text-white rounded-full"><X size={16}/></button>
+                            </div>
+                          </>
+                        ) : (
+                          <button onClick={() => bgFileInputRef.current?.click()} className="flex flex-col items-center text-gray-400">
+                             <UploadCloud size={24} className="mb-1" />
+                             <span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'رفع صورة خلفية' : 'Upload Background'}</span>
+                          </button>
+                        )}
+                        {isUploadingBg && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                     </div>
+                     <input type="file" ref={bgFileInputRef} onChange={handleBgFileUpload} accept="image/*" className="hidden" />
+                     <input type="url" value={formData.backgroundImage} onChange={e => handleChange('backgroundImage', e.target.value)} placeholder={lang === 'ar' ? 'أو ضع رابط صورة مباشر' : 'Or paste direct image URL'} className={inputClasses} />
+                  </div>
+                )}
+             </div>
+
+             <div className="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3">
+                   <div className={`p-3 rounded-xl ${formData.isDark ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-400 shadow-sm'}`}>
+                      {formData.isDark ? <Moon size={20}/> : <Sun size={20}/>}
+                   </div>
+                   <div>
+                      <span className="text-xs font-black dark:text-white block uppercase tracking-wider">{lang === 'ar' ? 'وضع البطاقة' : 'Card Theme'}</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">{formData.isDark ? (lang === 'ar' ? 'ليلي' : 'Dark') : (lang === 'ar' ? 'فاتح' : 'Light')}</span>
+                   </div>
+                </div>
+                <button onClick={() => handleChange('isDark', !formData.isDark)} className={`w-14 h-7 rounded-full relative transition-all ${formData.isDark ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                   <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all ${formData.isDark ? (isRtl ? 'right-8' : 'left-8') : (isRtl ? 'right-1' : 'left-1')}`} />
+                </button>
+             </div>
           </div>
 
           <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">

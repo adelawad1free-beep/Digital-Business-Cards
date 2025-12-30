@@ -7,6 +7,8 @@ export interface SocialLink {
   platformId: string;
 }
 
+export type ThemeType = 'color' | 'gradient' | 'image';
+
 export interface CardData {
   id: string;
   name: string;
@@ -20,7 +22,10 @@ export interface CardData {
   location: string;
   locationUrl: string;
   profileImage: string;
+  themeType: ThemeType;
   themeColor: string;
+  themeGradient: string;
+  backgroundImage: string;
   isDark: boolean;
   socialLinks: SocialLink[];
   ownerId?: string;

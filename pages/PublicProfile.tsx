@@ -16,8 +16,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
   useEffect(() => {
     // 1. تحديث لون المتصفح
     const metaThemeColor = document.getElementById('meta-theme-color');
-    if (metaThemeColor && data.themeColor) {
-      metaThemeColor.setAttribute('content', data.themeColor);
+    if (metaThemeColor) {
+      const color = data.themeType === 'color' ? data.themeColor : '#3b82f6';
+      metaThemeColor.setAttribute('content', color);
     }
 
     // 2. تحديث معلومات المعاينة (SEO & Open Graph)
@@ -37,7 +38,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
     document.getElementById('twitter-image')?.setAttribute('content', cardImg);
     document.getElementById('og-url')?.setAttribute('content', window.location.href);
 
-    // 3. إضافة بيانات Schema.org (JSON-LD) لتعزيز السيو
+    // 3. Schema.org
     const schemaData = {
       "@context": "https://schema.org",
       "@type": "Person",
@@ -66,35 +67,37 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
     }
 
     return () => {
-      // تنظيف عند الخروج
       const script = document.getElementById(scriptId);
       if (script) script.remove();
     };
   }, [data, lang]);
+
+  const getPageBackgroundStyle = () => {
+    if (data.themeType === 'gradient') {
+      return { background: `${data.themeGradient}22` }; // Very light version of the gradient
+    }
+    if (data.themeType === 'color') {
+      return { backgroundColor: `${data.themeColor}11` }; // Very light version of the color
+    }
+    return {};
+  };
   
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`}>
+    <div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`} style={getPageBackgroundStyle()}>
       
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div 
           className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-20 animate-pulse"
-          style={{ backgroundColor: data.themeColor }}
+          style={data.themeType === 'gradient' ? { background: data.themeGradient } : { backgroundColor: data.themeColor }}
         />
         <div 
           className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] rounded-full blur-[100px] opacity-10"
-          style={{ backgroundColor: data.themeColor }}
+          style={data.themeType === 'gradient' ? { background: data.themeGradient } : { backgroundColor: data.themeColor }}
         />
       </div>
 
       <div className="w-full max-w-sm z-10 animate-fade-in-up">
-        {/* Semantic Header for SEO */}
-        <header className="sr-only">
-          <h1>{data.name}</h1>
-          <h2>{data.title} في {data.company}</h2>
-          <p>{data.bio}</p>
-        </header>
-
         <CardPreview data={data} lang={lang} />
         
         <div className="mt-12 text-center pb-12">
