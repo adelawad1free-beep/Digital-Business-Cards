@@ -34,12 +34,22 @@ export const TRANSLATIONS: TranslationStrings = {
 
 export const SOCIAL_PLATFORMS = [
   { id: 'linkedin', name: 'LinkedIn' },
-  { id: 'x', name: 'X' },
+  { id: 'x', name: 'X (Twitter)' },
+  { id: 'facebook', name: 'Facebook' },
   { id: 'instagram', name: 'Instagram' },
+  { id: 'whatsapp_social', name: 'WhatsApp' },
+  { id: 'telegram', name: 'Telegram' },
   { id: 'snapchat', name: 'Snapchat' },
   { id: 'tiktok', name: 'TikTok' },
+  { id: 'threads', name: 'Threads' },
   { id: 'youtube', name: 'YouTube' },
-  { id: 'github', name: 'GitHub' }
+  { id: 'github', name: 'GitHub' },
+  { id: 'behance', name: 'Behance' },
+  { id: 'dribbble', name: 'Dribbble' },
+  { id: 'pinterest', name: 'Pinterest' },
+  { id: 'discord', name: 'Discord' },
+  { id: 'twitch', name: 'Twitch' },
+  { id: 'spotify', name: 'Spotify' }
 ];
 
 export const THEME_COLORS = [
