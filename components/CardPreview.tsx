@@ -14,7 +14,13 @@ interface CardPreviewProps {
 const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
   const isRtl = lang === 'ar';
   const isDark = data.isDark;
-  const t = (key: string) => TRANSLATIONS[key][lang];
+  
+  // Safe translation helper
+  const t = (key: string) => {
+    const entry = TRANSLATIONS[key];
+    if (!entry) return key;
+    return entry[lang] || entry['en'] || key;
+  };
 
   const defaultImage = (
     <div className={`w-full h-full flex flex-col items-center justify-end ${isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400'}`}>

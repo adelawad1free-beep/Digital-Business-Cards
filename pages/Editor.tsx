@@ -18,7 +18,13 @@ interface EditorProps {
 }
 
 const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit }) => {
-  const t = (key: string) => TRANSLATIONS[key][lang];
+  // Safe translation helper
+  const t = (key: string) => {
+    const entry = TRANSLATIONS[key];
+    if (!entry) return key;
+    return entry[lang] || entry['en'] || key;
+  };
+
   const isRtl = lang === 'ar';
   const colorInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +35,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
     id: generateSerialId(),
     name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
     themeColor: THEME_COLORS[0], isDark: false, socialLinks: [],
-    ...SAMPLE_DATA[l]
+    ...(SAMPLE_DATA[l] || SAMPLE_DATA['en'] || {})
   });
 
   const [formData, setFormData] = useState<CardData>(initialData || getDefaults(lang));
@@ -238,7 +244,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                <div><label className={labelClasses}>{t('company')}</label><input type="text" value={formData.company} onChange={e => handleChange('company', e.target.value)} className={inputClasses} placeholder="Company Co." /></div>
             </div>
             <div>
-               <div className="flex items-center justify-between mb-2 px-1"><label className={labelClasses}>{t('bio')}</label><button onClick={handleGenerateAIBio} disabled={isGeneratingBio} className="text-[10px] font-black text-blue-600 flex items-center gap-1 uppercase">{isGeneratingBio ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {lang === 'ar' ? 'توليد ذكي' : 'AI Bio'}</button></div>
+               <div className="flex items-center justify-between mb-2 px-1"><label className={labelClasses}>{t('bio')}</label><button onClick={handleGenerateAIBio} disabled={isGeneratingBio} className="text-[10px] font-black text-blue-600 flex items-center gap-1 uppercase">{isGeneratingBio ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {t('aiBio')}</button></div>
                <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} rows={7} className={`${inputClasses} resize-none`} placeholder="..." />
             </div>
           </div>
@@ -305,7 +311,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
 
           <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
             <Save size={24} />
-            {lang === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}
+            {t('saveChanges')}
           </button>
         </div>
       </div>

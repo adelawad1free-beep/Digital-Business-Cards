@@ -1,5 +1,5 @@
 
-export type Language = 'en' | 'ar';
+export type Language = 'en' | 'ar' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'ru' | 'hi';
 
 export interface SocialLink {
   platform: string;
@@ -8,7 +8,7 @@ export interface SocialLink {
 }
 
 export interface CardData {
-  id: string; // المعرف الفريد (اسم المستخدم أو الرقم التسلسلي)
+  id: string;
   name: string;
   title: string;
   company: string;
@@ -23,14 +23,12 @@ export interface CardData {
   themeColor: string;
   isDark: boolean;
   socialLinks: SocialLink[];
-  // Added ownerId and updatedAt to resolve property access errors and support administrative features
   ownerId?: string;
   updatedAt?: string;
 }
 
 export interface TranslationStrings {
   [key: string]: {
-    en: string;
-    ar: string;
+    [key in Language]?: string;
   };
 }
