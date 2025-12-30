@@ -1,6 +1,13 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth, deleteUser } from "firebase/auth";
+import { 
+  getAuth, 
+  deleteUser, 
+  updateEmail, 
+  updatePassword, 
+  reauthenticateWithCredential, 
+  EmailAuthProvider 
+} from "firebase/auth";
 import { 
   getFirestore, 
   doc, 
@@ -9,7 +16,6 @@ import {
   deleteDoc,
   collection, 
   query, 
-  where, 
   getDocs, 
   limit, 
   orderBy,
@@ -30,33 +36,91 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// تم إزالة Firebase Storage لأنه غير مفعل لدى المستخدم
-
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
 /**
- * التحقق من توفر اسم الرابط
+ * جلب إعدادات الموقع - تم تحسينها لتجنب أخطاء التصاريح
+ * نستخدم مستنداً في مجموعة "public" بدلاً من "admin" لضمان إمكانية القراءة للجميع
  */
-export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
-  if (!slug || slug.length < 3) return false;
-  
+export const getSiteSettings = async () => {
   try {
-    const cardRef = doc(db, "public_cards", slug.toLowerCase());
-    const snap = await getDoc(cardRef);
-    
-    if (!snap.exists()) return true;
-    
-    const data = snap.data();
-    return data.ownerId === currentUserId;
+    const settingsRef = doc(db, "settings", "global");
+    const snap = await getDoc(settingsRef);
+    if (snap.exists()) return snap.data();
+    return { 
+      siteNameAr: "هويتي الرقمية", 
+      siteNameEn: "My Digital ID", 
+      maintenanceMode: false 
+    };
   } catch (error) {
-    console.error("Availability Check Error:", error);
-    return false;
+    // في حالة فشل التصاريح، نرجع القيم الافتراضية بدلاً من كسر التطبيق
+    return { 
+      siteNameAr: "هويتي الرقمية", 
+      siteNameEn: "My Digital ID", 
+      maintenanceMode: false 
+    };
   }
 };
 
 /**
- * حفظ البطاقة في Firestore
+ * تحديث إعدادات الموقع (للأدمن فقط)
  */
+export const updateSiteSettings = async (settings: any) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+  try {
+    const settingsRef = doc(db, "settings", "global");
+    await setDoc(settingsRef, { ...settings, updatedAt: new Date().toISOString() }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error("Update Settings Error:", error);
+    throw error;
+  }
+};
+
+/**
+ * تحديث بيانات الأدمن مع إعادة التحقق (Best Practice)
+ */
+export const updateAdminSecurity = async (currentPassword: string, newEmail?: string, newPassword?: string) => {
+  const user = auth.currentUser;
+  if (!user || user.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+  
+  try {
+    // 1. إعادة التحقق من كلمة المرور الحالية (ممارسة أمنية عالمية)
+    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    // 2. تحديث البريد الإلكتروني إذا تم تغييره
+    if (newEmail && newEmail !== user.email) {
+      await updateEmail(user, newEmail);
+    }
+
+    // 3. تحديث كلمة المرور إذا تم إدخالها
+    if (newPassword) {
+      await updatePassword(user, newPassword);
+    }
+    
+    return true;
+  } catch (error: any) {
+    console.error("Security Update Error:", error);
+    throw error;
+  }
+};
+
+// --- وظائف إدارة البطاقات ---
+
+export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
+  if (!slug || slug.length < 3) return false;
+  try {
+    const cardRef = doc(db, "public_cards", slug.toLowerCase());
+    const snap = await getDoc(cardRef);
+    if (!snap.exists()) return true;
+    const data = snap.data();
+    return data.ownerId === currentUserId;
+  } catch (error) {
+    return false;
+  }
+};
+
 export const saveCardToDB = async (userId: string, cardData: any) => {
   try {
     const dataToSave = { 
@@ -64,16 +128,12 @@ export const saveCardToDB = async (userId: string, cardData: any) => {
       ownerId: userId,
       updatedAt: new Date().toISOString()
     };
-
     const cardRef = doc(db, "public_cards", cardData.id.toLowerCase());
     await setDoc(cardRef, dataToSave);
-    
     const userCardRef = doc(db, "users", userId, "cards", "primary");
     await setDoc(userCardRef, dataToSave);
-    
     return true;
   } catch (error: any) {
-    console.error("Firestore Save Error:", error);
     throw error;
   }
 };
@@ -84,7 +144,6 @@ export const getCardBySerial = async (serialId: string) => {
     const snap = await getDoc(cardRef);
     return snap.exists() ? snap.data() : null;
   } catch (error: any) {
-    console.error("Firestore Read Error:", error);
     return null;
   }
 };
@@ -95,54 +154,34 @@ export const getUserPrimaryCard = async (userId: string) => {
     const snap = await getDoc(userCardRef);
     return snap.exists() ? snap.data() : null;
   } catch (error: any) {
-    console.error("Firestore User Card Error:", error);
     return null;
   }
 };
 
-export const deleteUserAccountAndData = async (userId: string, cardId?: string) => {
-  try {
-    const user = auth.currentUser;
-    if (!user || user.uid !== userId) throw new Error("Unauthorized");
-
-    if (cardId) {
-      await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
-    }
-    await deleteDoc(doc(db, "users", userId, "cards", "primary"));
-    await deleteUser(user);
-    return true;
-  } catch (error: any) {
-    console.error("Delete Account Error:", error);
-    throw error;
-  }
-};
-
 export const deleteCardByAdmin = async (cardId: string, ownerId: string) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
-    throw new Error("Unauthorized");
-  }
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
   try {
     await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
     await deleteDoc(doc(db, "users", ownerId, "cards", "primary"));
     return true;
   } catch (error) {
-    console.error("Admin Delete Error:", error);
     throw error;
   }
 };
 
 export const getAdminStats = async () => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
-    throw new Error("Unauthorized");
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+  try {
+    const coll = collection(db, "public_cards");
+    const snapshot = await getCountFromServer(coll);
+    const q = query(coll, orderBy("updatedAt", "desc"), limit(100));
+    const querySnapshot = await getDocs(q);
+    const recentCards = querySnapshot.docs.map(doc => doc.data());
+    return {
+      totalCards: snapshot.data().count,
+      recentCards
+    };
+  } catch (e) {
+    return { totalCards: 0, recentCards: [] };
   }
-  const coll = collection(db, "public_cards");
-  const snapshot = await getCountFromServer(coll);
-  const q = query(coll, orderBy("updatedAt", "desc"), limit(50));
-  const querySnapshot = await getDocs(q);
-  const recentCards = querySnapshot.docs.map(doc => doc.data());
-
-  return {
-    totalCards: snapshot.data().count,
-    recentCards
-  };
 };

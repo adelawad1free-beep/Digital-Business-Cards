@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { CardData, Language } from '../types';
-import { Mail, Phone, Globe, MapPin, MessageCircle, User } from 'lucide-react';
+import { Mail, Phone, Globe, MapPin, MessageCircle, User, UserPlus } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
+import { downloadVCard } from '../utils/vcard';
 import SocialIcon from './SocialIcon';
 
 interface CardPreviewProps {
@@ -15,7 +16,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
   const isDark = data.isDark;
   const t = (key: string) => TRANSLATIONS[key][lang];
 
-  // الصورة الافتراضية بشكل محسن
   const defaultImage = (
     <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}>
       <User size={64} />
@@ -25,7 +25,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
   return (
     <div className={`w-full max-w-sm mx-auto rounded-[3rem] shadow-2xl overflow-hidden border transition-all duration-300 ${isDark ? 'bg-gray-950 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'} ${isRtl ? 'rtl' : 'ltr'}`}>
       
-      {/* 1. خلفية السمة (Banner Only) */}
+      {/* 1. خلفية السمة */}
       <div 
         className="h-36 w-full relative transition-colors duration-500" 
         style={{ 
@@ -34,7 +34,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         }}
       />
 
-      {/* 2. الصورة الشخصية (تكبير وتحسين) */}
+      {/* 2. الصورة الشخصية */}
       <div className="relative px-6 -mt-20 text-center z-10">
         <div className="inline-block relative">
           <div className={`w-40 h-40 rounded-[2.5rem] overflow-hidden border-[10px] shadow-2xl transition-all duration-300 hover:scale-105 ${isDark ? 'border-gray-950 bg-gray-800' : 'border-white bg-gray-100'}`}>
@@ -49,7 +49,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         </div>
       </div>
 
-      {/* 3. الاسم والمسمى الوظيفي أسفل الصورة */}
+      {/* 3. الاسم والمسمى الوظيفي */}
       <div className="px-6 mt-6 text-center space-y-1">
         <h2 className="text-2xl md:text-3xl font-black truncate leading-tight">
           {data.name || (lang === 'en' ? 'Your Name' : 'اسمك هنا')}
@@ -68,29 +68,40 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         )}
       </div>
 
-      {/* 5. أزرار التواصل السريع */}
-      <div className="px-6 mt-8 grid grid-cols-2 gap-3">
-        {data.phone && (
-          <a 
-            href={`tel:${data.phone}`}
-            className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
-            style={{ backgroundColor: data.themeColor }}
-          >
-            <Phone size={18} />
-            <span>{t('call')}</span>
-          </a>
-        )}
-        {data.whatsapp && (
-          <a 
-            href={`https://wa.me/${data.whatsapp.replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] bg-emerald-500 text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
-          >
-            <MessageCircle size={18} />
-            <span>{t('whatsappBtn')}</span>
-          </a>
-        )}
+      {/* 5. أزرار التواصل السريع (3 أزرار الآن) */}
+      <div className="px-6 mt-8 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          {data.phone && (
+            <a 
+              href={`tel:${data.phone}`}
+              className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
+              style={{ backgroundColor: data.themeColor }}
+            >
+              <Phone size={18} />
+              <span>{t('call')}</span>
+            </a>
+          )}
+          {data.whatsapp && (
+            <a 
+              href={`https://wa.me/${data.whatsapp.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 py-4 rounded-[1.5rem] bg-emerald-500 text-white font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-wider"
+            >
+              <MessageCircle size={18} />
+              <span>{t('whatsappBtn')}</span>
+            </a>
+          )}
+        </div>
+        
+        {/* زر vCard الجديد */}
+        <button 
+          onClick={() => downloadVCard(data)}
+          className={`w-full flex items-center justify-center gap-2 py-4 rounded-[1.5rem] font-black shadow-md transition-all hover:scale-[1.01] active:scale-95 text-xs uppercase tracking-wider border ${isDark ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : 'bg-slate-900 border-transparent text-white hover:bg-slate-800'}`}
+        >
+          <UserPlus size={18} />
+          <span>{t('saveContact')}</span>
+        </button>
       </div>
 
       {/* 6. معلومات التواصل الأخرى */}

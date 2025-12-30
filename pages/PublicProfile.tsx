@@ -14,21 +14,37 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang }) => {
   const isRtl = lang === 'ar';
 
   useEffect(() => {
-    // تحديث لون المتصفح ليتناسب مع لون البطاقة
+    // 1. تحديث لون المتصفح
     const metaThemeColor = document.getElementById('meta-theme-color');
-    const originalColor = metaThemeColor?.getAttribute('content') || '#3b82f6';
-
     if (metaThemeColor && data.themeColor) {
       metaThemeColor.setAttribute('content', data.themeColor);
     }
 
-    // إعادة اللون الأصلي عند الخروج من الصفحة
-    return () => {
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', originalColor);
-      }
-    };
-  }, [data.themeColor]);
+    // 2. تحديث معلومات المعاينة (SEO & Open Graph) لروابط التواصل
+    const cardTitle = `${data.name} | ${data.title}`;
+    const cardDesc = data.bio || (lang === 'ar' ? `تواصل مع ${data.name} عبر هويته الرقمية.` : `Connect with ${data.name} via their Digital ID.`);
+    const cardImg = data.profileImage || 'https://picsum.photos/seed/digital-id/1200/630';
+
+    // تحديث العناوين
+    document.title = cardTitle;
+    document.getElementById('og-title')?.setAttribute('content', cardTitle);
+    document.getElementById('twitter-title')?.setAttribute('content', cardTitle);
+    
+    // تحديث الوصف
+    document.getElementById('meta-description')?.setAttribute('content', cardDesc);
+    document.getElementById('og-description')?.setAttribute('content', cardDesc);
+    document.getElementById('twitter-description')?.setAttribute('content', cardDesc);
+    
+    // تحديث الصورة (مهمة جداً للمعاينة في واتساب)
+    document.getElementById('og-image')?.setAttribute('content', cardImg);
+    document.getElementById('twitter-image')?.setAttribute('content', cardImg);
+
+    // تحديث الرابط الحالي
+    document.getElementById('og-url')?.setAttribute('content', window.location.href);
+
+    // ملاحظة: بعض التطبيقات مثل واتساب قد تأخذ وقتاً لتحديث الكاش، 
+    // ولكن هذه الطريقة هي الأفضل لضمان ظهور البيانات الصحيحة عند المشاركة لأول مرة.
+  }, [data, lang]);
   
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`}>

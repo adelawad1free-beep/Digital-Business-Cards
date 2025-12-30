@@ -19,7 +19,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
   }, [data]);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(url);
+    // نص مشاركة احترافي يتم نسخه مع الرابط
+    const shareText = lang === 'ar' 
+      ? `بطاقة أعمال رقمية: ${data.name}\n${data.title}\nشاهد بطاقتي الرقمية هنا: ${url}`
+      : `Digital Business Card: ${data.name}\n${data.title}\nView my digital profile here: ${url}`;
+    
+    navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -28,8 +33,10 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: data.name,
-          text: lang === 'ar' ? `بطاقة أعمال رقمية: ${data.name} (ID: ${data.id})` : `${data.name}'s Digital ID (ID: ${data.id})`,
+          title: `${data.name} | ${data.title}`,
+          text: lang === 'ar' 
+            ? `مرحباً، إليك بطاقتي المهنية الرقمية: ${data.name}` 
+            : `Hello, here is my professional digital card: ${data.name}`,
           url: url,
         });
       } catch (err) {
@@ -111,8 +118,8 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
              <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
              <p className="text-[10px] leading-relaxed text-blue-800 dark:text-blue-300 font-bold">
                 {lang === 'ar' 
-                  ? 'تم إنشاء رابطك "داخلياً" برقم تسلسلي خاص بك. يمكنك استخدامه كبطاقة أعمال ذكية مدى الحياة.' 
-                  : 'Your link was generated "internally" with a unique serial ID. Use it as your lifelong smart business card.'}
+                  ? 'نصيحة: عند لصق الرابط في واتساب، انتظر ثانية واحدة لتظهر صورتك واسمك بشكل تلقائي قبل الإرسال.' 
+                  : 'Tip: When pasting the link in WhatsApp, wait a second for your image and name to appear automatically before sending.'}
              </p>
           </div>
         </div>

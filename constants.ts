@@ -24,6 +24,7 @@ export const TRANSLATIONS: TranslationStrings = {
   placeholderTitle: { en: 'Project Manager', ar: 'مدير مشاريع' },
   call: { en: 'Call Now', ar: 'اتصال هاتفي' },
   whatsappBtn: { en: 'WhatsApp', ar: 'تواصل واتساب' },
+  saveContact: { en: 'Save to Contacts', ar: 'حفظ جهة الاتصال' },
   imageSource: { en: 'Profile Picture', ar: 'صورة الملف الشخصي' },
   socialSync: { en: 'Social Sync', ar: 'مزامنة التواصل' },
   avatarLib: { en: 'Avatars', ar: 'صور تعبيرية' },
@@ -62,12 +63,28 @@ export const THEME_COLORS = [
   '#C5A059'  // Luxury Gold
 ];
 
-export const AVATAR_STYLES = [
-  { id: 'avataaars', name: 'Casual' },
-  { id: 'bottts', name: 'Robots' },
-  { id: 'adventurer', name: 'Adventurer' },
-  { id: 'micah', name: 'Professional' },
-  { id: 'lorelei', name: 'Stylized' }
+// مكتبة الصور التعبيرية الاحترافية المصنفة
+export const AVATAR_PRESETS = [
+  // فئة الرجال - رسمية
+  { style: 'avataaars', seed: 'Felix', gender: 'male' },
+  { style: 'avataaars', seed: 'Jack', gender: 'male' },
+  { style: 'avataaars', seed: 'Oliver', gender: 'male' },
+  { style: 'avataaars', seed: 'Leo', gender: 'male' },
+  { style: 'notionists', seed: '1', gender: 'male' },
+  { style: 'micah', seed: '2', gender: 'male' },
+  
+  // فئة النساء - رسمية
+  { style: 'avataaars', seed: 'Aneka', gender: 'female' },
+  { style: 'avataaars', seed: 'Mimi', gender: 'female' },
+  { style: 'avataaars', seed: 'Sophia', gender: 'female' },
+  { style: 'avataaars', seed: 'Maya', gender: 'female' },
+  { style: 'notionists', seed: '4', gender: 'female' },
+  { style: 'micah', seed: '1', gender: 'female' },
+  
+  // فئات فنية متنوعة
+  { style: 'bottts', seed: 'Robot1', gender: 'none' },
+  { style: 'personas', seed: 'Mason', gender: 'none' },
+  { style: 'personas', seed: 'Sasha', gender: 'none' }
 ];
 
 export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
@@ -81,7 +98,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     whatsapp: '+966500000000',
     themeColor: '#2563eb',
     isDark: false,
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed',
+    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
     socialLinks: []
   },
   en: {
@@ -94,7 +111,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     whatsapp: '+1234567890',
     themeColor: '#7c3aed',
     isDark: false,
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
     socialLinks: []
   }
 };

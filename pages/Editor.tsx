@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CardData, Language, SocialLink } from '../types';
-import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA, AVATAR_STYLES } from '../constants';
+import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA, AVATAR_PRESETS } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
 import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud } from 'lucide-react';
+import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud, User, Users } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -59,17 +59,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
 
     setIsUploading(true);
     try {
-      // الخدمة الآن تقوم بمعالجة الصورة محلياً وتحويلها لنص Base64
       const base64Image = await uploadImageToCloud(file);
-      
       if (base64Image) {
         handleChange('profileImage', base64Image);
       } else {
         throw new Error("Local processing failed.");
       }
     } catch (error: any) {
-      console.error("Image Processing Failed:", error);
-      alert(lang === 'ar' ? 'فشلت معالجة الصورة، يرجى تجربة ملف آخر' : 'Image processing failed, please try another file');
+      alert(lang === 'ar' ? 'فشلت معالجة الصورة' : 'Image processing failed');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -133,6 +130,20 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const inputClasses = "w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-sm";
   const labelClasses = "block text-xs font-black text-gray-400 dark:text-gray-500 mb-2 px-1 uppercase tracking-widest";
 
+  const renderAvatars = (gender: 'male' | 'female' | 'none') => (
+    <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+      {AVATAR_PRESETS.filter(p => p.gender === gender).map((p, idx) => (
+        <button 
+          key={idx} 
+          onClick={() => handleChange('profileImage', `https://api.dicebear.com/7.x/${p.style}/svg?seed=${p.seed}`)}
+          className={`shrink-0 w-16 h-16 rounded-2xl bg-white dark:bg-gray-800 border-2 transition-all hover:scale-110 overflow-hidden ${formData.profileImage.includes(p.seed) ? 'border-blue-500 shadow-lg' : 'border-gray-100 dark:border-gray-700'}`}
+        >
+          <img src={`https://api.dicebear.com/7.x/${p.style}/svg?seed=${p.seed}`} alt="Avatar" className="w-full h-full object-cover" />
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="flex flex-col lg:flex-row gap-12 pb-20">
       <div className="flex-1 space-y-10">
@@ -153,71 +164,60 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                   <h3 className="text-lg font-black text-blue-900 dark:text-blue-100">{t('customLink')}</h3>
                   <p className="text-xs font-bold text-blue-600/70">{t('linkHint')} <span className="underline">{window.location.host}/{formData.id || '...'}</span></p>
                </div>
-               <button 
-                onClick={checkAvailability}
-                disabled={slugStatus === 'checking'}
-                className="px-6 py-3 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl font-black text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-blue-100 dark:border-blue-900/30"
-               >
+               <button onClick={checkAvailability} disabled={slugStatus === 'checking'} className="px-6 py-3 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl font-black text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-blue-100 dark:border-blue-900/30">
                  {slugStatus === 'checking' ? <Loader2 size={16} className="animate-spin" /> : <LinkIcon size={16} />}
                  {lang === 'ar' ? 'تحقق من التوفر' : 'Check Availability'}
                </button>
             </div>
-            
             <div className="relative">
-              <input 
-                type="text" 
-                value={formData.id} 
-                onChange={e => handleChange('id', e.target.value)} 
-                className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} text-lg font-black tracking-wider border-blue-200 dark:border-blue-800 focus:ring-blue-500/10`} 
-                placeholder="username" 
-                disabled={isAdminEdit}
-              />
+              <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} text-lg font-black tracking-wider border-blue-200 dark:border-blue-800 focus:ring-blue-500/10`} placeholder="username" disabled={isAdminEdit} />
               <Hash className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-400`} size={20} />
-              <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2`}>
-                {slugStatus === 'available' && <CheckCircle2 className="text-emerald-500" size={24} />}
-                {slugStatus === 'taken' && <AlertCircle className="text-red-500" size={24} />}
-              </div>
+              <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2`}>{slugStatus === 'available' && <CheckCircle2 className="text-emerald-500" size={24} />}{slugStatus === 'taken' && <AlertCircle className="text-red-500" size={24} />}</div>
             </div>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-900/40 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 space-y-6">
             <label className={labelClasses}>{t('imageSource')}</label>
             <div className="flex flex-col md:flex-row items-center gap-8">
-               <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 relative group">
-                 {formData.profileImage ? (
-                   <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" />
-                 ) : (
-                   <div className="w-full h-full flex items-center justify-center text-gray-400"><UserCircle2 size={40} /></div>
-                 )}
-                 {isUploading && (
-                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                     <Loader2 className="animate-spin text-white" />
-                   </div>
-                 )}
+               <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 relative group shrink-0">
+                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><UserCircle2 size={40} /></div>}
+                 {isUploading && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
                </div>
-               <div className="flex-1 w-full space-y-4">
+               <div className="flex-1 w-full space-y-4 overflow-hidden">
                   <div className="flex gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
-                    <button onClick={() => setActiveImgTab('upload')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
-                      {lang === 'ar' ? 'رفع ملف' : 'Upload File'}
-                    </button>
-                    <button onClick={() => setActiveImgTab('social')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'social' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('socialSync')}</button>
+                    <button onClick={() => setActiveImgTab('upload')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{lang === 'ar' ? 'رفع ملف' : 'Upload File'}</button>
                     <button onClick={() => setActiveImgTab('avatar')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'avatar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('avatarLib')}</button>
+                    <button onClick={() => setActiveImgTab('social')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'social' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('socialSync')}</button>
                     <button onClick={() => setActiveImgTab('link')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'link' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('directLink')}</button>
                   </div>
                   
                   {activeImgTab === 'upload' && (
                     <div className="space-y-2">
                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                       <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                        className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
-                       >
+                       <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group">
                          <UploadCloud className="text-gray-400 group-hover:text-blue-500 transition-colors" />
                          <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري المعالجة...' : 'Processing...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
                        </button>
                     </div>
                   )}
+                  
+                  {activeImgTab === 'avatar' && (
+                    <div className="space-y-4 animate-fade-in">
+                       <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><User size={12} /> {lang === 'ar' ? 'شخصيات رجالية' : 'Professional Men'}</div>
+                          {renderAvatars('male')}
+                       </div>
+                       <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><User size={12} /> {lang === 'ar' ? 'شخصيات نسائية' : 'Professional Women'}</div>
+                          {renderAvatars('female')}
+                       </div>
+                       <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><Users size={12} /> {lang === 'ar' ? 'أنماط أخرى' : 'Other Styles'}</div>
+                          {renderAvatars('none')}
+                       </div>
+                    </div>
+                  )}
+
                   {activeImgTab === 'social' && (
                     <div className="flex gap-2">
                        <select value={socialProvider} onChange={e => setSocialProvider(e.target.value)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-blue-500">
@@ -227,13 +227,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                        </select>
                        <input type="text" value={socialHandle} onChange={e => setSocialHandle(e.target.value)} placeholder="Username..." className={inputClasses} />
                        <button onClick={() => handleChange('profileImage', `https://unavatar.io/${socialProvider}/${socialHandle}`)} className="px-4 bg-blue-600 text-white rounded-xl text-xs font-bold">Sync</button>
-                    </div>
-                  )}
-                  {activeImgTab === 'avatar' && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                       {AVATAR_STYLES.map(s => (
-                         <button key={s.id} onClick={() => handleChange('profileImage', `https://api.dicebear.com/7.x/${s.id}/svg?seed=${formData.name || 'User'}`)} className="shrink-0 w-12 h-12 rounded-lg bg-white border border-gray-100 overflow-hidden"><img src={`https://api.dicebear.com/7.x/${s.id}/svg?seed=preview`} alt="Avatar" /></button>
-                       ))}
                     </div>
                   )}
                   {activeImgTab === 'link' && <input type="url" value={formData.profileImage} onChange={e => handleChange('profileImage', e.target.value)} placeholder="URL..." className={inputClasses} />}
@@ -313,10 +306,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             </div>
           </div>
 
-          <button 
-            onClick={handleFinalSave}
-            className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-          >
+          <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
             <Save size={24} />
             {isAdminEdit ? (lang === 'ar' ? 'تحديث البطاقة (إدارة)' : 'Update Card (Admin)') : t('save')}
           </button>
