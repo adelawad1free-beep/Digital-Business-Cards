@@ -17,8 +17,10 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
   const t = (key: string) => TRANSLATIONS[key][lang];
 
   const defaultImage = (
-    <div className={`w-full h-full flex items-center justify-center ${isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'}`}>
-      <User size={64} />
+    <div className={`w-full h-full flex flex-col items-center justify-end ${isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400'}`}>
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-80 translate-y-2">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      </svg>
     </div>
   );
 
@@ -68,7 +70,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
         )}
       </div>
 
-      {/* 5. أزرار التواصل السريع (3 أزرار الآن) */}
+      {/* 5. أزرار التواصل السريع */}
       <div className="px-6 mt-8 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           {data.phone && (
@@ -94,7 +96,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang }) => {
           )}
         </div>
         
-        {/* زر vCard الجديد */}
         <button 
           onClick={() => downloadVCard(data)}
           className={`w-full flex items-center justify-center gap-2 py-4 rounded-[1.5rem] font-black shadow-md transition-all hover:scale-[1.01] active:scale-95 text-xs uppercase tracking-wider border ${isDark ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : 'bg-slate-900 border-transparent text-white hover:bg-slate-800'}`}

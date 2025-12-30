@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CardData, Language, SocialLink } from '../types';
-import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA, AVATAR_PRESETS } from '../constants';
+import { TRANSLATIONS, THEME_COLORS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
 import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud, User, Users } from 'lucide-react';
+import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Star, Pipette, Link as LinkIcon, CheckCircle2, ShieldCheck, AlertCircle, UploadCloud, User, Link as LinkIconLucide } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
@@ -23,7 +23,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const colorInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // تتبع المعرف الأصلي للبطاقة عند التعديل لضمان تحديث المستند بدلاً من إنشاء جديد
   const originalIdRef = useRef<string | null>(initialData?.id || null);
 
   const getDefaults = (l: Language): CardData => ({
@@ -34,9 +33,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   });
 
   const [formData, setFormData] = useState<CardData>(initialData || getDefaults(lang));
-  const [activeImgTab, setActiveImgTab] = useState<'upload' | 'social' | 'avatar' | 'link'>('upload');
-  const [socialHandle, setSocialHandle] = useState('');
-  const [socialProvider, setSocialProvider] = useState('twitter');
+  const [activeImgTab, setActiveImgTab] = useState<'upload' | 'link'>('upload');
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
@@ -149,17 +146,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const inputClasses = "w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-sm";
   const labelClasses = "block text-xs font-black text-gray-400 dark:text-gray-500 mb-2 px-1 uppercase tracking-widest";
 
-  const renderAvatars = (gender: 'male' | 'female' | 'none') => (
-    <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
-      {AVATAR_PRESETS.filter(p => p.gender === gender).map((p, idx) => (
-        <button 
-          key={idx} 
-          onClick={() => handleChange('profileImage', `https://api.dicebear.com/7.x/${p.style}/svg?seed=${p.seed}`)}
-          className={`shrink-0 w-16 h-16 rounded-2xl bg-white dark:bg-gray-800 border-2 transition-all hover:scale-110 overflow-hidden ${formData.profileImage.includes(p.seed) ? 'border-blue-500 shadow-lg' : 'border-gray-100 dark:border-gray-700'}`}
-        >
-          <img src={`https://api.dicebear.com/7.x/${p.style}/svg?seed=${p.seed}`} alt="Avatar" className="w-full h-full object-cover" />
-        </button>
-      ))}
+  const defaultSilhouette = (
+    <div className="w-full h-full flex flex-col items-center justify-end bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full opacity-60 translate-y-2">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      </svg>
     </div>
   );
 
@@ -202,56 +193,40 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
             <label className={labelClasses}>{t('imageSource')}</label>
             <div className="flex flex-col md:flex-row items-center gap-8">
                <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-gray-200 relative group shrink-0">
-                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <div className="w-full h-full flex items-center justify-center text-gray-400"><UserCircle2 size={40} /></div>}
+                 {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : defaultSilhouette}
                  {isUploading && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
                </div>
                <div className="flex-1 w-full space-y-4 overflow-hidden">
-                  <div className="flex gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
-                    <button onClick={() => setActiveImgTab('upload')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{lang === 'ar' ? 'رفع ملف' : 'Upload File'}</button>
-                    <button onClick={() => setActiveImgTab('avatar')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'avatar' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('avatarLib')}</button>
-                    <button onClick={() => setActiveImgTab('social')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'social' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('socialSync')}</button>
-                    <button onClick={() => setActiveImgTab('link')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all shrink-0 ${activeImgTab === 'link' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>{t('directLink')}</button>
+                  <div className="flex gap-1 p-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 w-fit">
+                    <button onClick={() => setActiveImgTab('upload')} className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-2 ${activeImgTab === 'upload' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}>
+                      <UploadCloud size={14} /> {lang === 'ar' ? 'رفع صورة' : 'Upload Image'}
+                    </button>
+                    <button onClick={() => setActiveImgTab('link')} className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-2 ${activeImgTab === 'link' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}>
+                      <LinkIconLucide size={14} /> {t('directLink')}
+                    </button>
                   </div>
                   
                   {activeImgTab === 'upload' && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 animate-fade-in">
                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                       <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group">
-                         <UploadCloud className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                       <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full py-8 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-3 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group">
+                         <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 group-hover:text-blue-500 group-hover:scale-110 transition-all">
+                           <UploadCloud size={24} />
+                         </div>
                          <span className="text-xs font-bold text-gray-500">{isUploading ? (lang === 'ar' ? 'جاري المعالجة...' : 'Processing...') : (lang === 'ar' ? 'اختر صورة من جهازك' : 'Choose a file')}</span>
                        </button>
                     </div>
                   )}
                   
-                  {activeImgTab === 'avatar' && (
+                  {activeImgTab === 'link' && (
                     <div className="space-y-4 animate-fade-in">
-                       <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><User size={12} /> {lang === 'ar' ? 'شخصيات رجالية' : 'Professional Men'}</div>
-                          {renderAvatars('male')}
-                       </div>
-                       <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><User size={12} /> {lang === 'ar' ? 'شخصيات نسائية' : 'Professional Women'}</div>
-                          {renderAvatars('female')}
-                       </div>
-                       <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest"><Users size={12} /> {lang === 'ar' ? 'أنماط أخرى' : 'Other Styles'}</div>
-                          {renderAvatars('none')}
-                       </div>
+                      <div className="relative">
+                        <LinkIconLucide className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
+                        <input type="url" value={formData.profileImage} onChange={e => handleChange('profileImage', e.target.value)} placeholder="https://example.com/image.jpg" className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} />
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-400 px-1">{lang === 'ar' ? 'الصق رابط الصورة المباشر هنا.' : 'Paste direct image URL here.'}</p>
                     </div>
                   )}
-
-                  {activeImgTab === 'social' && (
-                    <div className="flex gap-2">
-                       <select value={socialProvider} onChange={e => setSocialProvider(e.target.value)} className="bg-gray-100 dark:bg-gray-800 p-2 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-blue-500">
-                          <option value="twitter">X / Twitter</option>
-                          <option value="github">GitHub</option>
-                          <option value="instagram">Instagram</option>
-                       </select>
-                       <input type="text" value={socialHandle} onChange={e => setSocialHandle(e.target.value)} placeholder="Username..." className={inputClasses} />
-                       <button onClick={() => handleChange('profileImage', `https://unavatar.io/${socialProvider}/${socialHandle}`)} className="px-4 bg-blue-600 text-white rounded-xl text-xs font-bold">Sync</button>
-                    </div>
-                  )}
-                  {activeImgTab === 'link' && <input type="url" value={formData.profileImage} onChange={e => handleChange('profileImage', e.target.value)} placeholder="URL..." className={inputClasses} />}
                </div>
             </div>
           </div>

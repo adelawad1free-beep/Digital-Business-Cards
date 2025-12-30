@@ -209,7 +209,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Formal Top Navbar - Extended, No Shadow */}
       <header className="hidden md:block sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -294,7 +294,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content Area */}
-      <main className="transition-all duration-300 pb-24 md:pb-12 pt-4">
+      <main className="flex-1 transition-all duration-300 pb-24 md:pb-12 pt-4">
         <div className="max-w-[1440px] mx-auto p-4 md:p-12">
            {activeTab === 'home' && <Home lang={lang} onStart={handleCreateNew} />}
            
@@ -340,7 +340,7 @@ const App: React.FC = () => {
                    {userCards.length === 0 && (
                       <div className="col-span-full py-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-[4rem] bg-white/50 dark:bg-gray-900/20">
                          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-full flex items-center justify-center mb-6"><Plus size={40} /></div>
-                         <p className="text-gray-400 font-black text-xl mb-2">{isRtl ? 'ابدأ هويتك الرقمية الآن' : 'Start your digital ID now'}</p>
+                         <p className="text-gray-400 font-black text-xl mb-2">{isRtl ? 'ابدأ هويتي الرقمية الآن' : 'Start your digital ID now'}</p>
                          <button onClick={handleCreateNew} className="text-blue-600 font-bold hover:underline">{isRtl ? 'اضغط هنا لإنشاء بطاقتك الأولى' : 'Click here to create your first card'}</button>
                       </div>
                    )}
@@ -353,6 +353,13 @@ const App: React.FC = () => {
            {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
         </div>
       </main>
+
+      {/* Footer Text */}
+      <footer className="w-full py-8 text-center bg-transparent mb-20 md:mb-0">
+        <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+           {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'} | info@nextid.my
+        </p>
+      </footer>
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex px-4 z-[200] h-20 safe-area-inset-bottom rounded-t-3xl shadow-lg">

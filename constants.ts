@@ -63,30 +63,6 @@ export const THEME_COLORS = [
   '#C5A059'  // Luxury Gold
 ];
 
-// مكتبة الصور التعبيرية الاحترافية المصنفة
-export const AVATAR_PRESETS = [
-  // فئة الرجال - رسمية
-  { style: 'avataaars', seed: 'Felix', gender: 'male' },
-  { style: 'avataaars', seed: 'Jack', gender: 'male' },
-  { style: 'avataaars', seed: 'Oliver', gender: 'male' },
-  { style: 'avataaars', seed: 'Leo', gender: 'male' },
-  { style: 'notionists', seed: '1', gender: 'male' },
-  { style: 'micah', seed: '2', gender: 'male' },
-  
-  // فئة النساء - رسمية
-  { style: 'avataaars', seed: 'Aneka', gender: 'female' },
-  { style: 'avataaars', seed: 'Mimi', gender: 'female' },
-  { style: 'avataaars', seed: 'Sophia', gender: 'female' },
-  { style: 'avataaars', seed: 'Maya', gender: 'female' },
-  { style: 'notionists', seed: '4', gender: 'female' },
-  { style: 'micah', seed: '1', gender: 'female' },
-  
-  // فئات فنية متنوعة
-  { style: 'bottts', seed: 'Robot1', gender: 'none' },
-  { style: 'personas', seed: 'Mason', gender: 'none' },
-  { style: 'personas', seed: 'Sasha', gender: 'none' }
-];
-
 export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
   ar: {
     name: 'أحمد بن محمد',
@@ -98,7 +74,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     whatsapp: '+966500000000',
     themeColor: '#2563eb',
     isDark: false,
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    profileImage: '', // فارغة لاستخدام الصورة الرمزية الرسمية
     socialLinks: []
   },
   en: {
@@ -111,7 +87,7 @@ export const SAMPLE_DATA: Record<'ar' | 'en', Partial<CardData>> = {
     whatsapp: '+1234567890',
     themeColor: '#7c3aed',
     isDark: false,
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+    profileImage: '', // Empty for default formal silhouette
     socialLinks: []
   }
 };
