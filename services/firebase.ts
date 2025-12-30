@@ -68,18 +68,79 @@ export const updateSiteSettings = async (settings: any) => {
   }
 };
 
-export const updateAdminSecurity = async (currentPassword: string, newEmail?: string, newPassword?: string) => {
-  const user = auth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+/**
+ * وظيفة الحفظ المحسنة: تضمن وجود ownerId في كلا المكانين
+ */
+export const saveCardToDB = async (userId: string, cardData: any, oldId?: string) => {
   try {
-    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    if (newEmail && newEmail !== user.email) await updateEmail(user, newEmail);
-    if (newPassword) await updatePassword(user, newPassword);
+    const currentUid = auth.currentUser?.uid;
+    if (!currentUid) throw new Error("Authentication required");
+
+    // نضمن دائماً وجود معرف المالك
+    const finalOwnerId = cardData.ownerId || userId || currentUid;
+    
+    const dataToSave = { 
+      ...cardData, 
+      ownerId: finalOwnerId,
+      updatedAt: new Date().toISOString()
+    };
+
+    const newId = cardData.id.toLowerCase();
+    const cleanOldId = oldId?.toLowerCase();
+
+    // حذف القديم إذا تغير الرابط
+    if (cleanOldId && cleanOldId !== newId) {
+      try {
+        await deleteDoc(doc(db, "public_cards", cleanOldId));
+        await deleteDoc(doc(db, "users", finalOwnerId, "cards", cleanOldId));
+      } catch (e) {
+        console.warn("Cleanup error (ignored)");
+      }
+    }
+
+    // الحفظ في الفهرس العام ومجموعة المستخدم
+    await Promise.all([
+      setDoc(doc(db, "public_cards", newId), dataToSave),
+      setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
+    ]);
+    
     return true;
   } catch (error: any) {
+    console.error("Save Error:", error);
     throw error;
   }
+};
+
+/**
+ * وظيفة الحذف الذكية: تعالج أخطاء الصلاحيات بمرونة
+ */
+export const deleteUserCard = async (ownerId: string, cardId: string) => {
+  const cleanId = cardId.toLowerCase();
+  let publicDeleted = false;
+  let userDeleted = false;
+
+  // 1. محاولة الحذف من الفهرس العام
+  try {
+    await deleteDoc(doc(db, "public_cards", cleanId));
+    publicDeleted = true;
+  } catch (error: any) {
+    console.warn("Could not delete from public index (Permission or Missing):", error.message);
+  }
+
+  // 2. محاولة الحذف من مجموعة المستخدم (المسار الخاص)
+  try {
+    await deleteDoc(doc(db, "users", ownerId, "cards", cleanId));
+    userDeleted = true;
+  } catch (error: any) {
+    console.warn("Could not delete from user collection:", error.message);
+  }
+
+  // إذا نجح حذف أي نسخة، نعتبر العملية ناجحة للمستخدم
+  if (!publicDeleted && !userDeleted) {
+    throw new Error("Missing or insufficient permissions.");
+  }
+  
+  return true;
 };
 
 export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
@@ -92,36 +153,6 @@ export const isSlugAvailable = async (slug: string, currentUserId?: string): Pro
     return data.ownerId === currentUserId;
   } catch (error) {
     return false;
-  }
-};
-
-export const saveCardToDB = async (userId: string, cardData: any) => {
-  try {
-    const dataToSave = { 
-      ...cardData, 
-      ownerId: userId,
-      updatedAt: new Date().toISOString()
-    };
-    // 1. الحفظ في الفهرس العام (للوصول عبر الرابط)
-    const cardRef = doc(db, "public_cards", cardData.id.toLowerCase());
-    await setDoc(cardRef, dataToSave);
-    
-    // 2. الحفظ في مجموعة بطاقات المستخدم الخاصة
-    const userCardRef = doc(db, "users", userId, "cards", cardData.id.toLowerCase());
-    await setDoc(userCardRef, dataToSave);
-    return true;
-  } catch (error: any) {
-    throw error;
-  }
-};
-
-export const deleteUserCard = async (userId: string, cardId: string) => {
-  try {
-    await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
-    await deleteDoc(doc(db, "users", userId, "cards", cardId.toLowerCase()));
-    return true;
-  } catch (error) {
-    throw error;
   }
 };
 
@@ -142,19 +173,7 @@ export const getUserCards = async (userId: string) => {
     const snap = await getDocs(q);
     return snap.docs.map(doc => doc.data());
   } catch (error: any) {
-    console.error("Fetch Cards Error:", error);
     return [];
-  }
-};
-
-export const deleteCardByAdmin = async (cardId: string, ownerId: string) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
-  try {
-    await deleteDoc(doc(db, "public_cards", cardId.toLowerCase()));
-    await deleteDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()));
-    return true;
-  } catch (error) {
-    throw error;
   }
 };
 
@@ -172,5 +191,28 @@ export const getAdminStats = async () => {
     };
   } catch (e) {
     return { totalCards: 0, recentCards: [] };
+  }
+};
+
+export const updateAdminSecurity = async (currentPassword: string, newEmail: string, newPassword?: string) => {
+  const user = auth.currentUser;
+  if (!user || user.email !== ADMIN_EMAIL) throw new Error("Unauthorized");
+
+  try {
+    const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    if (newEmail && newEmail !== user.email) {
+      await updateEmail(user, newEmail);
+    }
+
+    if (newPassword) {
+      await updatePassword(user, newPassword);
+    }
+    
+    return true;
+  } catch (error: any) {
+    console.error("Security Update Error:", error);
+    throw error;
   }
 };

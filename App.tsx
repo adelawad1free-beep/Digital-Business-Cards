@@ -12,7 +12,7 @@ import AuthModal from './components/AuthModal';
 import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus, Settings, CreditCard, ExternalLink, Edit2 } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Eye, Share2, Loader2, ShieldAlert, LogIn, LogOut, Trash2, Home as HomeIcon, SearchX, Plus, Settings, CreditCard, ExternalLink, Edit2, AlertTriangle, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('ar');
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, ownerId: string } | null>(null);
   
   const [siteConfig, setSiteConfig] = useState({ 
     siteNameAr: 'هويتي الرقمية', 
@@ -32,7 +33,7 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [editingCard, setEditingCard] = useState<CardData | null>(null);
-  const [notFoundSlug, setNotFoundSlug] = useState<string | null>(null);
+  const [pendingSaveData, setPendingSaveData] = useState<{data: CardData, oldId?: string} | null>(null);
 
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
   const isRtl = lang === 'ar';
@@ -64,19 +65,19 @@ const App: React.FC = () => {
             setIsDarkMode(card.isDark);
             setIsInitializing(false);
             return;
-          } else {
-            setNotFoundSlug(slug);
           }
-        } catch (e) {
-          setNotFoundSlug(slug);
-        }
+        } catch (e) {}
       }
 
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         setCurrentUser(user);
         if (user) {
           await refreshUserCards(user.uid);
-          if (activeTab === 'home') setActiveTab('manager');
+          // إذا كان هناك حفظ معلق بعد تسجيل الدخول مباشرة
+          if (pendingSaveData) {
+            handleSave({ ...pendingSaveData.data, ownerId: user.uid }, pendingSaveData.oldId);
+            setPendingSaveData(null);
+          }
         }
         setIsInitializing(false);
       });
@@ -85,7 +86,7 @@ const App: React.FC = () => {
     };
 
     initializeApp();
-  }, []);
+  }, [pendingSaveData]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -98,10 +99,14 @@ const App: React.FC = () => {
       id: generateSerialId(),
       name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
       themeColor: THEME_COLORS[0], isDark: false, socialLinks: [],
+      ownerId: currentUser?.uid || undefined,
       ...SAMPLE_DATA[lang]
     };
-    setEditingCard(newCard);
-    setActiveTab('editor');
+    setEditingCard(null); 
+    setTimeout(() => {
+      setEditingCard(newCard);
+      setActiveTab('editor');
+    }, 10);
   };
 
   const handleEditCard = (card: CardData) => {
@@ -109,28 +114,46 @@ const App: React.FC = () => {
     setActiveTab('editor');
   };
 
-  const handleDeleteCard = async (cardId: string) => {
-    if (!currentUser) return;
-    if (!window.confirm(isRtl ? "هل أنت متأكد من حذف هذه البطاقة نهائياً؟" : "Are you sure you want to delete this card permanently?")) return;
+  const confirmDeleteCard = async () => {
+    if (!deleteConfirmation) return;
     
+    const finalOwnerId = deleteConfirmation.ownerId || currentUser?.uid;
+    if (!finalOwnerId) return;
+
     setSaveLoading(true);
     try {
-      await deleteUserCard(currentUser.uid, cardId);
-      await refreshUserCards(currentUser.uid);
+      await deleteUserCard(finalOwnerId, deleteConfirmation.id);
+      if (currentUser) await refreshUserCards(currentUser.uid);
+      setDeleteConfirmation(null);
+      if (activeTab === 'editor') setActiveTab('manager');
+    } catch (e: any) {
+      alert(isRtl 
+        ? "تعذر الحذف بالكامل. يرجى تعديل البطاقة وحفظها مرة أخرى ثم محاولة الحذف." 
+        : "Partial delete failure. Try editing and saving the card again before deleting.");
     } finally {
       setSaveLoading(false);
     }
   };
 
-  const handleSave = async (data: CardData) => {
-    if (!currentUser) { setShowAuthModal(true); return; }
+  const handleSave = async (data: CardData, oldId?: string) => {
+    // إذا لم يكن المستخدم مسجلاً، نحفظ البيانات في "المعلق" ونطلب منه التسجيل
+    if (!auth.currentUser) { 
+      setPendingSaveData({ data, oldId });
+      setShowAuthModal(true); 
+      return; 
+    }
+    
     setSaveLoading(true);
     try {
-      await saveCardToDB(data.ownerId || currentUser.uid, data);
-      await refreshUserCards(currentUser.uid);
+      const targetUserId = data.ownerId || auth.currentUser.uid;
+      await saveCardToDB(targetUserId, data, oldId);
+      
+      await refreshUserCards(auth.currentUser.uid);
       setEditingCard(data);
       setShowShareModal(true);
       setActiveTab('manager');
+    } catch (error) {
+      alert(isRtl ? "فشل الحفظ" : "Save failed");
     } finally {
       setSaveLoading(false);
     }
@@ -201,7 +224,7 @@ const App: React.FC = () => {
 
       <main className={`flex-1 transition-all duration-300 ${isRtl ? 'md:mr-72' : 'md:ml-72'} pb-24 md:pb-0`}>
         <div className="max-w-[1440px] mx-auto p-4 md:p-12">
-           {activeTab === 'home' && <Home lang={lang} onStart={currentUser ? () => setActiveTab('manager') : () => setShowAuthModal(true)} />}
+           {activeTab === 'home' && <Home lang={lang} onStart={handleCreateNew} />}
            
            {activeTab === 'manager' && (
              <div className="space-y-10 animate-fade-in-up">
@@ -231,7 +254,7 @@ const App: React.FC = () => {
                             <a href={`?u=${card.id}`} target="_blank" className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all">
                                <ExternalLink size={16} /> <span className="text-[10px] font-black uppercase">رابط</span>
                             </a>
-                            <button onClick={() => handleDeleteCard(card.id)} className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-all">
+                            <button onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || currentUser?.uid || '' })} className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-600 hover:text-white transition-all">
                                <Trash2 size={16} /> <span className="text-[10px] font-black uppercase">حذف</span>
                             </button>
                          </div>
@@ -247,7 +270,7 @@ const App: React.FC = () => {
            )}
 
            {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} />}
-           {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={handleEditCard} />}
+           {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={handleEditCard} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
         </div>
       </main>
 
@@ -256,6 +279,36 @@ const App: React.FC = () => {
         {currentUser && <NavItem id="manager" icon={CreditCard} label={isRtl ? 'بطاقاتي' : 'Cards'} />}
         {isAdmin && <NavItem id="admin" icon={ShieldAlert} label={isRtl ? 'إدارة' : 'Admin'} />}
       </nav>
+
+      {deleteConfirmation && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[340px] rounded-[2.5rem] p-8 text-center shadow-2xl border border-gray-100 dark:border-gray-800">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className="text-lg font-black mb-2 dark:text-white">
+              {isRtl ? "تأكيد الحذف" : "Confirm Delete"}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-8 font-bold leading-relaxed">
+              {isRtl ? "هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure? This action cannot be undone."}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => setDeleteConfirmation(null)} 
+                className="py-3.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl font-black text-xs uppercase tracking-wider transition-all hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                {isRtl ? "إلغاء" : "Cancel"}
+              </button>
+              <button 
+                onClick={confirmDeleteCard} 
+                className="py-3.5 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/20 hover:scale-[1.03] active:scale-95 transition-all"
+              >
+                {isRtl ? "نعم، احذف" : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {saveLoading && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -267,7 +320,7 @@ const App: React.FC = () => {
       )}
 
       {showShareModal && editingCard && <ShareModal data={editingCard} lang={lang} onClose={() => setShowShareModal(false)} />}
-      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); setActiveTab('manager'); }} />}
+      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={(uid) => { setShowAuthModal(false); /* يتم التعامل مع الحفظ المعلق في useEffect */ }} />}
     </div>
   );
 };

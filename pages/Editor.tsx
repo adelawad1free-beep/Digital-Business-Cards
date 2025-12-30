@@ -12,7 +12,7 @@ import { Save, Plus, X, Loader2, Sparkles, UserCircle2, Moon, Sun, Hash, Mail, P
 
 interface EditorProps {
   lang: Language;
-  onSave: (data: CardData) => void;
+  onSave: (data: CardData, oldId?: string) => void;
   initialData?: CardData;
   isAdminEdit?: boolean;
 }
@@ -23,6 +23,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const colorInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // تتبع المعرف الأصلي للبطاقة عند التعديل لضمان تحديث المستند بدلاً من إنشاء جديد
+  const originalIdRef = useRef<string | null>(initialData?.id || null);
+
   const getDefaults = (l: Language): CardData => ({
     id: generateSerialId(),
     name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
@@ -42,8 +45,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
+      originalIdRef.current = initialData.id;
+      setSlugStatus('available'); 
+    } else {
+      setFormData(getDefaults(lang));
+      originalIdRef.current = null;
+      setSlugStatus('idle');
     }
-  }, [initialData]);
+  }, [initialData, lang]);
 
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') {
@@ -78,8 +87,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
       alert(lang === 'ar' ? 'يجب أن يكون الرابط 3 أحرف على الأقل' : 'Link must be at least 3 characters');
       return;
     }
+
+    if (formData.id.toLowerCase() === originalIdRef.current?.toLowerCase()) {
+      setSlugStatus('available');
+      return;
+    }
+
     setSlugStatus('checking');
-    const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
+    const available = await isSlugAvailable(formData.id, formData.ownerId || auth.currentUser?.uid);
     setSlugStatus(available ? 'available' : 'taken');
   };
 
@@ -114,17 +129,21 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   };
 
   const handleFinalSave = async () => {
-    if (slugStatus !== 'available' && !isAdminEdit) {
-      setSlugStatus('checking');
-      const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
-      if (!available) {
-        setSlugStatus('taken');
-        alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل" : "This link is already taken");
-        return;
-      }
-      setSlugStatus('available');
+    if (slugStatus !== 'available') {
+        if (formData.id.toLowerCase() === originalIdRef.current?.toLowerCase()) {
+            setSlugStatus('available');
+        } else {
+            setSlugStatus('checking');
+            const available = await isSlugAvailable(formData.id, formData.ownerId || auth.currentUser?.uid);
+            if (!available) {
+                setSlugStatus('taken');
+                alert(lang === 'ar' ? "هذا الرابط مستخدم بالفعل" : "Link already taken");
+                return;
+            }
+        }
     }
-    onSave(formData);
+    
+    onSave(formData, originalIdRef.current || undefined);
   };
 
   const inputClasses = "w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-sm";
@@ -164,15 +183,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
                   <h3 className="text-lg font-black text-blue-900 dark:text-blue-100">{t('customLink')}</h3>
                   <p className="text-xs font-bold text-blue-600/70">{t('linkHint')} <span className="underline">{window.location.host}/{formData.id || '...'}</span></p>
                </div>
-               <button onClick={checkAvailability} disabled={slugStatus === 'checking'} className="px-6 py-3 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl font-black text-xs shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-blue-100 dark:border-blue-900/30">
+               <button onClick={checkAvailability} disabled={slugStatus === 'checking'} className="px-6 py-3 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl font-black text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-blue-100 dark:border-blue-900/30">
                  {slugStatus === 'checking' ? <Loader2 size={16} className="animate-spin" /> : <LinkIcon size={16} />}
                  {lang === 'ar' ? 'تحقق من التوفر' : 'Check Availability'}
                </button>
             </div>
             <div className="relative">
-              <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} text-lg font-black tracking-wider border-blue-200 dark:border-blue-800 focus:ring-blue-500/10`} placeholder="username" disabled={isAdminEdit} />
+              <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} text-lg font-black tracking-wider border-blue-200 dark:border-blue-800 focus:ring-blue-500/10`} placeholder="username" />
               <Hash className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-400`} size={20} />
-              <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2`}>{slugStatus === 'available' && <CheckCircle2 className="text-emerald-500" size={24} />}{slugStatus === 'taken' && <AlertCircle className="text-red-500" size={24} />}</div>
+              <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2`}>
+                {slugStatus === 'available' && <CheckCircle2 className="text-emerald-500" size={24} />}
+                {slugStatus === 'taken' && <AlertCircle className="text-red-500" size={24} />}
+              </div>
             </div>
           </div>
 
@@ -308,7 +330,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
 
           <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
             <Save size={24} />
-            {isAdminEdit ? (lang === 'ar' ? 'تحديث البطاقة (إدارة)' : 'Update Card (Admin)') : t('save')}
+            {lang === 'ar' ? 'حفظ التعديلات' : 'Save Changes'}
           </button>
         </div>
       </div>
