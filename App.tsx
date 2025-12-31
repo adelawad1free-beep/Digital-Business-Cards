@@ -203,7 +203,7 @@ const App: React.FC = () => {
         {activeTab === 'home' && <Home lang={lang} onStart={() => setActiveTab('templates')} />}
         {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={handleCreateNew} />}
         {activeTab === 'manager' && (
-           <div className="space-y-12 animate-fade-in-up">
+           <div className="max-w-6xl mx-auto space-y-12 animate-fade-in-up">
               <div className="flex items-center justify-between">
                  <h2 className="text-4xl font-black dark:text-white">{t('myCards')}</h2>
                  <button onClick={() => setActiveTab('templates')} className="p-5 bg-blue-600 text-white rounded-3xl shadow-2xl hover:scale-110 transition-all"><Plus size={28} /></button>

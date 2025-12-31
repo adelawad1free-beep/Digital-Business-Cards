@@ -4,7 +4,7 @@ import {
   getAdminStats, ADMIN_EMAIL, deleteUserCard, 
   getSiteSettings, updateSiteSettings, updateAdminSecurity,
   saveCustomTemplate, getAllTemplates, deleteTemplate,
-  auth
+  auth, getAuthErrorMessage
 } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import { Language, CardData, CustomTemplate } from '../types';
@@ -15,7 +15,7 @@ import {
   ShieldCheck, Trash2, Edit3, Eye, Settings, 
   Globe, Power, Save, Search, LayoutGrid,
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, 
-  Plus, Palette, ShieldAlert, Key, Star, Hash
+  Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -44,6 +44,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
+  const [securityStatus, setSecurityStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [securityData, setSecurityData] = useState({ 
     currentPassword: '', 
@@ -105,7 +106,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 md:px-6 space-y-10 animate-fade-in-up">
-      {/* Hide common header when in builder mode for a more focused experience */}
       {activeTab !== 'builder' && (
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-gray-100 dark:border-gray-800 pb-10">
           <div>
@@ -145,13 +145,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                  {customTemplates.map(tmpl => (
                     <div key={tmpl.id} className={`bg-white dark:bg-[#121215] p-8 rounded-[3rem] border shadow-xl group hover:shadow-2xl transition-all relative ${tmpl.isFeatured ? 'border-amber-400 shadow-amber-500/5' : 'border-gray-100 dark:border-gray-800'}`}>
-                       
                        {tmpl.isFeatured && (
                          <div className="absolute -top-3 -right-3 bg-amber-500 text-white p-2.5 rounded-2xl shadow-lg z-10">
                            <Star size={20} fill="currentColor" />
                          </div>
                        )}
-
                        <div className="flex items-center justify-between mb-8">
                           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl group-hover:rotate-6 transition-transform"><Palette size={24} /></div>
                           <div className="flex items-center gap-2">
@@ -171,12 +169,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                        </div>
                     </div>
                  ))}
-                 {customTemplates.length === 0 && (
-                   <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-[3rem]">
-                      <Palette className="mx-auto text-gray-300 mb-4" size={48} />
-                      <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">{t('لا توجد قوالب مضافة بعد', 'No custom templates yet')}</p>
-                   </div>
-                 )}
               </div>
            </div>
         )}
@@ -254,16 +246,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
 
         {activeTab === 'security' && (
           <div className="max-w-2xl mx-auto animate-fade-in">
-             <form onSubmit={async (e) => { e.preventDefault(); setSavingSecurity(true); try { await updateAdminSecurity(securityData.currentPassword, securityData.newEmail, securityData.newPassword || undefined); alert(t('تم التحديث', 'Updated')); } catch (err: any) { alert(err.message); } finally { setSavingSecurity(false); } }} className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
+             <form onSubmit={async (e) => { 
+               e.preventDefault(); 
+               setSecurityStatus(null);
+               if (securityData.newPassword && securityData.newPassword !== securityData.confirmPassword) {
+                  setSecurityStatus({ type: 'error', message: t("كلمات المرور غير متطابقة", "Passwords do not match") });
+                  return;
+               }
+               setSavingSecurity(true); 
+               try { 
+                 await updateAdminSecurity(securityData.currentPassword, securityData.newEmail, securityData.newPassword || undefined); 
+                 setSecurityStatus({ type: 'success', message: t('تم تحديث بيانات الأمان بنجاح', 'Security updated successfully') });
+                 setSecurityData({...securityData, currentPassword: '', newPassword: '', confirmPassword: ''});
+               } catch (err: any) { 
+                 setSecurityStatus({ type: 'error', message: getAuthErrorMessage(err.code, isRtl ? 'ar' : 'en') });
+               } finally { 
+                 setSavingSecurity(false); 
+               } 
+             }} className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
+                
                 <div className="flex items-center gap-4"><div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-2xl"><Key size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('أمان المسؤول', 'Admin Security')}</h2></div>
+                
+                {securityStatus && (
+                  <div className={`p-4 rounded-2xl flex items-center gap-3 animate-fade-in ${securityStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                    {securityStatus.type === 'success' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+                    <span className="text-xs font-bold">{securityStatus.message}</span>
+                  </div>
+                )}
+
                 <div className="space-y-6">
-                   <input type="password" required value={securityData.currentPassword} onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="كلمة المرور الحالية" />
-                   <div className="pt-4 border-t border-gray-100 space-y-4">
-                      <input type="email" value={securityData.newEmail} onChange={(e) => setSecurityData({...securityData, newEmail: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" />
-                      <input type="password" value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="كلمة سر جديدة (اختياري)" />
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('كلمة المرور الحالية', 'Current Password')}</label>
+                      <input type="password" required value={securityData.currentPassword} onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                   </div>
+                   <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-4">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('البريد الإلكتروني', 'Email')}</label>
+                         <input type="email" value={securityData.newEmail} onChange={(e) => setSecurityData({...securityData, newEmail: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('كلمة سر جديدة', 'New Password')}</label>
+                            <input type="password" value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('تأكيد كلمة السر', 'Confirm')}</label>
+                            <input type="password" value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                         </div>
+                      </div>
                    </div>
                 </div>
-                <button type="submit" disabled={savingSecurity} className="w-full py-5 bg-red-600 text-white rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">{savingSecurity ? <Loader2 className="animate-spin" /> : <ShieldAlert size={20} />} {t('تحديث البيانات', 'Update Security')}</button>
+                <button type="submit" disabled={savingSecurity} className="w-full py-5 bg-red-600 text-white rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">{savingSecurity ? <Loader2 className="animate-spin" /> : <ShieldAlert size={20} />} {t('تحديث البيانات', 'Update Security')}</button>
              </form>
           </div>
         )}

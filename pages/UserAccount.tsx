@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { auth, updateUserSecurity } from '../services/firebase';
+import { auth, updateUserSecurity, getAuthErrorMessage } from '../services/firebase';
 import { Language } from '../types';
 import { 
   User, Lock, Mail, ShieldCheck, Key, Loader2, 
-  AlertTriangle, CheckCircle2, ChevronRight, UserCircle 
+  AlertTriangle, CheckCircle2, UserCircle 
 } from 'lucide-react';
 
 interface UserAccountProps {
@@ -16,6 +16,7 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
   const user = auth.currentUser;
   
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [securityData, setSecurityData] = useState({
     currentPassword: '',
     newEmail: user?.email || '',
@@ -27,8 +28,13 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setStatus(null);
+
     if (securityData.newPassword && securityData.newPassword !== securityData.confirmPassword) {
-      alert(t("كلمات المرور الجديدة غير متطابقة", "New passwords do not match"));
+      setStatus({ 
+        type: 'error', 
+        message: t("كلمات المرور الجديدة غير متطابقة", "New passwords do not match") 
+      });
       return;
     }
 
@@ -39,10 +45,17 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
         securityData.newEmail,
         securityData.newPassword || undefined
       );
-      alert(t("تم تحديث بيانات حسابك بنجاح", "Account details updated successfully"));
+      setStatus({ 
+        type: 'success', 
+        message: t("تم تحديث بيانات حسابك بنجاح", "Account details updated successfully") 
+      });
       setSecurityData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
     } catch (error: any) {
-      alert(t(`فشل التحديث: ${error.message}`, `Update failed: ${error.message}`));
+      console.error("Update Error:", error);
+      setStatus({ 
+        type: 'error', 
+        message: getAuthErrorMessage(error.code, isRtl ? 'ar' : 'en') 
+      });
     } finally {
       setLoading(false);
     }
@@ -71,26 +84,32 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sidebar Info */}
         <div className="lg:col-span-1 space-y-6">
            <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-xl">
               <h3 className="font-black text-gray-900 dark:text-white mb-4">{t('معلومات الدخول', 'Login Info')}</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                {t('تستخدم هذه البيانات للوصول إلى لوحة التحكم الخاصة بك وإدارة بطاقاتك الرقمية.', 'Use these credentials to access your dashboard and manage your digital cards.')}
+                {t('تستخدم هذه البيانات للوصول إلى لوحة التحكم الخاصة بك وإدارة بطاقاتك الرقمية.', 'Use these credentials to access your dashboard.')}
               </p>
            </div>
            
            <div className="bg-amber-50 dark:bg-amber-900/10 p-6 rounded-[2rem] border border-amber-100 dark:border-amber-900/30 flex gap-4">
               <AlertTriangle className="text-amber-600 shrink-0" size={20} />
               <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 leading-relaxed">
-                {t('لتغيير البريد أو كلمة المرور، يجب إدخال كلمة المرور الحالية أولاً لدواعي الأمان.', 'To change your email or password, you must enter your current password first for security.')}
+                {t('لتغيير البريد أو كلمة المرور، يجب إدخال كلمة المرور الحالية أولاً لدواعي الأمان.', 'Current password is required to change email or password.')}
               </p>
            </div>
         </div>
 
-        {/* Form Content */}
         <div className="lg:col-span-2">
            <form onSubmit={handleUpdate} className="bg-white dark:bg-gray-900 p-8 md:p-12 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
+              
+              {status && (
+                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-fade-in ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                  {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+                  <span className="text-xs font-bold">{status.message}</span>
+                </div>
+              )}
+
               <div className="space-y-6">
                  <div>
                     <label className={labelClasses}>{t('كلمة المرور الحالية (مطلوب للتغيير)', 'Current Password (Required)')}</label>
@@ -108,7 +127,7 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
 
                  <div className="pt-6 border-t border-gray-100 dark:border-gray-800 space-y-6">
                     <div>
-                       <label className={labelClasses}>{t('البريد الإلكتروني', 'Email Address')}</label>
+                       <label className={labelClasses}>{t('البريد الإلكتروني الجديد', 'New Email Address')}</label>
                        <div className="relative">
                           <Mail className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
                           <input 
@@ -128,7 +147,7 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
                             value={securityData.newPassword}
                             onChange={e => setSecurityData({...securityData, newPassword: e.target.value})}
                             className={inputClasses}
-                            placeholder={t('اتركها فارغة لعدم التغيير', 'Leave blank to keep current')}
+                            placeholder={t('6 أحرف على الأقل', 'Min 6 characters')}
                           />
                        </div>
                        <div>
@@ -146,7 +165,7 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
 
               <button 
                 type="submit" disabled={loading}
-                className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all"
+                className="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                 {t('تحديث بيانات الحساب', 'Update Account Details')}

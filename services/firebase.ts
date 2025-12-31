@@ -25,22 +25,6 @@ import {
   where
 } from "firebase/firestore";
 
-/**
- * 🛠️ حل مشكلة "Permission Denied":
- * 1. اذهب إلى Firebase Console > Firestore > Rules
- * 2. انسخ القواعد التالية والصقها هناك:
- * 
- * rules_version = '2';
- * service cloud.firestore {
- *   match /databases/{database}/documents {
- *     match /custom_templates/{id} { allow read: if true; allow write: if request.auth.token.email == "adelawad1free@gmail.com"; }
- *     match /settings/global { allow read: if true; allow write: if request.auth.token.email == "adelawad1free@gmail.com"; }
- *     match /public_cards/{id} { allow read: if true; allow create: if request.auth != null; allow update, delete: if request.auth.token.email == "adelawad1free@gmail.com" || (request.auth != null && resource.data.ownerId == request.auth.uid); }
- *     match /users/{userId}/{allPaths=**} { allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == "adelawad1free@gmail.com"); }
- *   }
- * }
- */
-
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
   authDomain: "my-digital-identity.firebaseapp.com",
@@ -56,6 +40,30 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
+
+// دالة مساعدة لترجمة أخطاء Firebase
+export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
+  const isAr = lang === 'ar';
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.';
+    case 'auth/email-already-in-use':
+      return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
+    case 'auth/weak-password':
+      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
+    case 'auth/requires-recent-login':
+      return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
+    case 'auth/invalid-email':
+      return isAr ? 'صيغة البريد الإلكتروني غير صحيحة.' : 'Invalid email format.';
+    case 'auth/too-many-requests':
+      return isAr ? 'محاولات كثيرة خاطئة، تم حظر الحساب مؤقتاً.' : 'Too many failed attempts, account temporarily locked.';
+    case 'auth/user-not-found':
+      return isAr ? 'هذا الحساب غير موجود لدينا.' : 'User account not found.';
+    default:
+      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred, please try again.';
+  }
+};
 
 export const getSiteSettings = async () => {
   try {
@@ -83,17 +91,12 @@ export const getAllTemplates = async () => {
   try {
     const snap = await getDocs(collection(db, "custom_templates"));
     const templates = snap.docs.map(doc => doc.data() as any);
-    
-    // الترتيب: الميزة (isFeatured) أولاً، ثم حسب رقم الترتيب (order)، ثم الأحدث
     return templates.sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
       if (a.order !== b.order) return (a.order || 0) - (b.order || 0);
       return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
     });
   } catch (error: any) {
-    if (error.code === 'permission-denied') {
-      console.error("Firebase Auth Error: Please apply the Security Rules in your Firebase Console.");
-    }
     return [];
   }
 };
@@ -167,10 +170,9 @@ export const signInWithGoogle = async () => {
 
 export const sendPasswordReset = async (email: string) => sendPasswordResetEmail(auth, email);
 
-// Fix: Implement updateUserSecurity to handle re-authentication and profile updates (email and password)
 export const updateUserSecurity = async (currentPassword: string, newEmail: string, newPassword?: string) => {
   const user = auth.currentUser;
-  if (!user || !user.email) throw new Error("No user logged in or user has no email address");
+  if (!user || !user.email) throw new Error("auth/no-user");
   
   const credential = EmailAuthProvider.credential(user.email, currentPassword);
   await reauthenticateWithCredential(user, credential);
@@ -184,5 +186,4 @@ export const updateUserSecurity = async (currentPassword: string, newEmail: stri
   }
 };
 
-// Fix: Export updateAdminSecurity as it is expected in AdminDashboard.tsx for managing admin credentials
 export const updateAdminSecurity = updateUserSecurity;

@@ -29,7 +29,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
     
     switch (errorCode) {
       case 'auth/user-not-found': return t('هذا الحساب غير مسجل لدينا', 'User not found');
-      case 'auth/wrong-password': return t('كلمة المرور غير صحيحة', 'Incorrect password');
+      case 'auth/wrong-password': 
+      case 'auth/invalid-credential':
+        return t('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'Invalid email or password');
       case 'auth/email-already-in-use': return t('هذا البريد مستخدم بالفعل', 'Email already in use');
       case 'auth/weak-password': return t('كلمة المرور ضعيفة جداً', 'Password is too weak');
       case 'auth/popup-closed-by-user': return t('تم إغلاق نافذة تسجيل الدخول قبل الإكمال', 'Sign-in popup closed before completion');
