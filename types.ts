@@ -11,6 +11,7 @@ export type ThemeType = 'color' | 'gradient' | 'image';
 
 export interface CardData {
   id: string;
+  templateId: string; // القالب المختار
   name: string;
   title: string;
   company: string;
