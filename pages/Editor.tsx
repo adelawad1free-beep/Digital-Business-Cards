@@ -45,15 +45,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
          themeColor: selectedTmpl.config.defaultThemeColor || data.themeColor,
          themeGradient: selectedTmpl.config.defaultThemeGradient || data.themeGradient,
          backgroundImage: selectedTmpl.config.defaultBackgroundImage || data.backgroundImage,
-         // Fix: Added defaultProfileImage override from template
          profileImage: selectedTmpl.config.defaultProfileImage || data.profileImage,
          isDark: selectedTmpl.config.defaultIsDark ?? data.isDark,
-         nameColor: selectedTmpl.config.nameColor,
-         titleColor: selectedTmpl.config.titleColor,
-         bioTextColor: selectedTmpl.config.bioTextColor,
-         bioBgColor: selectedTmpl.config.bioBgColor,
-         linksColor: selectedTmpl.config.linksColor
-       };
+         nameColor: selectedTmpl.config.nameColor || null,
+         titleColor: selectedTmpl.config.titleColor || null,
+         bioTextColor: selectedTmpl.config.bioTextColor || null,
+         bioBgColor: selectedTmpl.config.bioBgColor || null,
+         linksColor: selectedTmpl.config.linksColor || null
+       } as CardData;
     }
     return data;
   });
@@ -71,28 +70,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
       setFormData(initialData);
       originalIdRef.current = initialData.id;
       setSlugStatus('available'); 
-      
-      // تطبيق سمات القالب إذا كانت بطاقة جديدة
-      const selectedTmpl = templates.find(t => t.id === initialData.templateId);
-      if (selectedTmpl && !initialData.ownerId) {
-        setFormData(prev => ({
-          ...prev,
-          themeType: selectedTmpl.config.defaultThemeType || prev.themeType,
-          themeColor: selectedTmpl.config.defaultThemeColor || prev.themeColor,
-          themeGradient: selectedTmpl.config.defaultThemeGradient || prev.themeGradient,
-          backgroundImage: selectedTmpl.config.defaultBackgroundImage || prev.backgroundImage,
-          // Fix: Added defaultProfileImage override from template in useEffect
-          profileImage: selectedTmpl.config.defaultProfileImage || prev.profileImage,
-          isDark: selectedTmpl.config.defaultIsDark ?? prev.isDark,
-          nameColor: selectedTmpl.config.nameColor,
-          titleColor: selectedTmpl.config.titleColor,
-          bioTextColor: selectedTmpl.config.bioTextColor,
-          bioBgColor: selectedTmpl.config.bioBgColor,
-          linksColor: selectedTmpl.config.linksColor
-        }));
-      }
     }
-  }, [initialData, templates]);
+  }, [initialData]);
 
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') {
@@ -110,14 +89,13 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
           themeColor: newTmpl.config.defaultThemeColor || prev.themeColor,
           themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
           backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
-          // Fix: Added defaultProfileImage override from template when template changes
           profileImage: newTmpl.config.defaultProfileImage || prev.profileImage,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
-          nameColor: newTmpl.config.nameColor,
-          titleColor: newTmpl.config.titleColor,
-          bioTextColor: newTmpl.config.bioTextColor,
-          bioBgColor: newTmpl.config.bioBgColor,
-          linksColor: newTmpl.config.linksColor
+          nameColor: newTmpl.config.nameColor || prev.nameColor || null,
+          titleColor: newTmpl.config.titleColor || prev.titleColor || null,
+          bioTextColor: newTmpl.config.bioTextColor || prev.bioTextColor || null,
+          bioBgColor: newTmpl.config.bioBgColor || prev.bioBgColor || null,
+          linksColor: newTmpl.config.linksColor || prev.linksColor || null
         }));
         return;
       }
@@ -199,7 +177,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
   const inputClasses = "w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-[13px]";
   const labelClasses = "block text-[9px] font-black text-gray-400 dark:text-gray-500 mb-1 px-1 uppercase tracking-widest";
 
-  const ColorPickerField = ({ label, field, value }: { label: string, field: keyof CardData, value?: string }) => (
+  const ColorPickerField = ({ label, field, value }: { label: string, field: keyof CardData, value?: string | null }) => (
     <div className="flex items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
       <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider shrink-0">{label}</span>
       <div className="flex items-center gap-2">
@@ -212,7 +190,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
             />
             <div className="w-full h-full" style={{ backgroundColor: value || (isRtl ? '#cccccc' : '#eee') }} />
          </div>
-         <button onClick={() => handleChange(field, undefined)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"><X size={14}/></button>
+         <button onClick={() => handleChange(field, null)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"><X size={14}/></button>
       </div>
     </div>
   );

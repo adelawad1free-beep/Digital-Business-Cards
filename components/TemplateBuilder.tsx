@@ -12,7 +12,7 @@ import {
   Type as TypographyIcon, Ruler,
   Star, Hash, ArrowLeft, Palette, Sparkles, Image as ImageIcon, UploadCloud, Sun, Moon, Pipette,
   Settings, FileText, AlignLeft, AlignRight, LayoutTemplate, Info, Maximize2, UserCircle,
-  Mail, Phone, Globe, MessageCircle, Camera
+  Mail, Phone, Globe, MessageCircle, Camera, Download
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -100,6 +100,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     } finally {
       setUploadingImg(false);
     }
+  };
+
+  const downloadImage = (base64: string | undefined, name: string) => {
+    if (!base64) return;
+    const link = document.createElement('a');
+    link.href = base64;
+    link.download = `${name}.png`;
+    link.click();
   };
 
   const sampleCardData = (SAMPLE_DATA[lang] || SAMPLE_DATA['en']) as CardData;
@@ -254,6 +262,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                   <button onClick={() => logoInputRef.current?.click()} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg flex items-center justify-center gap-2">
                                      {uploadingImg ? <Loader2 className="animate-spin" size={16}/> : <UploadCloud size={16}/>} {t('رفع خلفية', 'Upload BG')}
                                   </button>
+                                  <button onClick={() => downloadImage(template.config.defaultBackgroundImage, 'template-bg')} className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-600 rounded-2xl"><Download size={18}/></button>
                                   <button onClick={() => updateConfig('defaultBackgroundImage', '')} className="p-4 bg-white dark:bg-gray-800 border text-red-500 rounded-2xl"><X size={18}/></button>
                                </div>
                             </div>
@@ -302,22 +311,31 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   </div>
                   
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
-                    <label className={labelTextClasses}>{t('رفع صورة تجريبية للقالب', 'Upload Default Profile Image')}</label>
+                    <label className={labelTextClasses}>{t('رفع وتنزيل صورة تجريبية للقالب', 'Avatar Upload & Download')}</label>
                     <div className="flex items-center gap-6">
                        <div className="w-24 h-24 rounded-full border-4 border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden">
                           {template.config.defaultProfileImage ? <img src={template.config.defaultProfileImage} className="w-full h-full object-cover" /> : <Camera size={32} className="text-gray-300" />}
                        </div>
-                       <div className="flex-1 space-y-2">
+                       <div className="flex-1 space-y-3">
                           <input type="file" ref={avatarInputRef} onChange={(e) => handleFileUpload(e, 'defaultProfileImage')} className="hidden" accept="image/*" />
-                          <button onClick={() => avatarInputRef.current?.click()} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-95 transition-all">
-                             <UploadCloud size={16}/> {t('رفع صورة', 'Upload Photo')}
-                          </button>
+                          <div className="flex gap-2">
+                             <button onClick={() => avatarInputRef.current?.click()} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-95 transition-all">
+                                <UploadCloud size={16}/> {t('رفع', 'Upload')}
+                             </button>
+                             <button onClick={() => downloadImage(template.config.defaultProfileImage, 'default-avatar')} className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-600 rounded-2xl hover:bg-gray-200 transition-all">
+                                <Download size={18}/>
+                             </button>
+                          </div>
                           <button onClick={() => updateConfig('defaultProfileImage', '')} className="w-full py-2 text-red-500 text-[10px] font-black uppercase">{t('حذف الصورة', 'Remove')}</button>
                        </div>
                     </div>
                   </div>
 
-                  <RangeControl label={t('حجم الصورة', 'Avatar Size')} min={60} max={250} value={template.config.avatarSize} onChange={(v: number) => updateConfig('avatarSize', v)} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <RangeControl label={t('حجم الصورة', 'Avatar Size')} min={60} max={250} value={template.config.avatarSize} onChange={(v: number) => updateConfig('avatarSize', v)} />
+                     <RangeControl label={t('إزاحة الصورة X', 'Avatar X')} min={-150} max={150} value={template.config.avatarOffsetX} onChange={(v: number) => updateConfig('avatarOffsetX', v)} icon={Move} />
+                     <RangeControl label={t('إزاحة الصورة Y', 'Avatar Y')} min={-150} max={150} value={template.config.avatarOffsetY} onChange={(v: number) => updateConfig('avatarOffsetY', v)} icon={Move} />
+                  </div>
                </div>
             )}
 
@@ -361,8 +379,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     <RangeControl label={t('إزاحة الموقع', 'Web Y')} min={-100} max={100} value={template.config.websiteOffsetY} onChange={(v: number) => updateConfig('websiteOffsetY', v)} icon={Globe} />
                     <RangeControl label={t('إزاحة الأزرار', 'Btns Y')} min={-100} max={100} value={template.config.contactButtonsOffsetY} onChange={(v: number) => updateConfig('contactButtonsOffsetY', v)} icon={Phone} />
                     <RangeControl label={t('إزاحة التواصل', 'Social Y')} min={-100} max={100} value={template.config.socialLinksOffsetY} onChange={(v: number) => updateConfig('socialLinksOffsetY', v)} icon={MessageCircle} />
-                    <RangeControl label={t('إزاحة الصورة X', 'Avatar X')} min={-150} max={150} value={template.config.avatarOffsetX} onChange={(v: number) => updateConfig('avatarOffsetX', v)} icon={Move} />
-                    <RangeControl label={t('إزاحة الصورة Y', 'Avatar Y')} min={-150} max={150} value={template.config.avatarOffsetY} onChange={(v: number) => updateConfig('avatarOffsetY', v)} icon={Move} />
                  </div>
               </div>
             )}

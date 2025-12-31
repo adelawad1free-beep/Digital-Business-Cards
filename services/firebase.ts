@@ -41,6 +41,21 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
+// وظيفة مساعدة لتنظيف البيانات من قيم undefined التي تسبب فشل الحفظ في Firestore
+const sanitizeData = (data: any) => {
+  const clean: any = {};
+  Object.keys(data).forEach(key => {
+    if (data[key] !== undefined) {
+      if (data[key] !== null && typeof data[key] === 'object' && !Array.isArray(data[key])) {
+        clean[key] = sanitizeData(data[key]);
+      } else {
+        clean[key] = data[key];
+      }
+    }
+  });
+  return clean;
+};
+
 export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
   const isAr = lang === 'ar';
   switch (code) {
@@ -67,15 +82,16 @@ export const getSiteSettings = async () => {
 
 export const updateSiteSettings = async (settings: any) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  await setDoc(doc(db, "settings", "global"), { ...settings, updatedAt: new Date().toISOString() }, { merge: true });
+  const cleanSettings = sanitizeData(settings);
+  await setDoc(doc(db, "settings", "global"), { ...cleanSettings, updatedAt: new Date().toISOString() }, { merge: true });
 };
 
 export const saveCustomTemplate = async (template: any) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  // نستخدم ID القالب كاسم للوثيقة لسهولة حذفه لاحقاً
   const templateId = template.id || `custom_${Date.now()}`;
+  const cleanTemplate = sanitizeData(template);
   await setDoc(doc(db, "custom_templates", templateId), {
-    ...template,
+    ...cleanTemplate,
     id: templateId,
     updatedAt: new Date().toISOString()
   });
@@ -84,7 +100,6 @@ export const saveCustomTemplate = async (template: any) => {
 export const getAllTemplates = async () => {
   try {
     const snap = await getDocs(collection(db, "custom_templates"));
-    // نضمن أن id هو دائماً اسم الوثيقة doc.id لضمان عمل الحذف
     const templates = snap.docs.map(doc => {
       const data = doc.data();
       return { ...data, id: doc.id } as any;
@@ -101,30 +116,19 @@ export const getAllTemplates = async () => {
 };
 
 export const deleteTemplate = async (id: string) => {
-  console.log("Attempting to delete template with ID:", id);
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
-    console.error("Delete failed: Not authorized or not admin.");
-    throw new Error("Admin only");
-  }
-  if (!id) {
-    console.error("Delete failed: No ID provided.");
-    throw new Error("ID required");
-  }
-  try {
-    const docRef = doc(db, "custom_templates", id);
-    await deleteDoc(docRef);
-    console.log("Template deleted successfully from Firebase.");
-  } catch (error) {
-    console.error("Firebase deleteDoc error:", error);
-    throw error;
-  }
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  if (!id) throw new Error("ID required");
+  await deleteDoc(doc(db, "custom_templates", id));
 };
 
 export const saveCardToDB = async (userId: string, cardData: any, oldId?: string) => {
   const currentUid = auth.currentUser?.uid;
   if (!currentUid) throw new Error("Auth required");
   const finalOwnerId = cardData.ownerId || userId || currentUid;
-  const dataToSave = { ...cardData, ownerId: finalOwnerId, updatedAt: new Date().toISOString() };
+  
+  // تنظيف البيانات من أي قيم undefined قبل الحفظ
+  const cleanCardData = sanitizeData(cardData);
+  const dataToSave = { ...cleanCardData, ownerId: finalOwnerId, updatedAt: new Date().toISOString() };
   const newId = cardData.id.toLowerCase();
   
   if (oldId && oldId.toLowerCase() !== newId) {

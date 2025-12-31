@@ -1,5 +1,5 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download } from 'lucide-react';
 import React from 'react';
 import { CardData, Language, TemplateConfig } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -10,9 +10,10 @@ interface CardPreviewProps {
   data: CardData;
   lang: Language;
   customConfig?: TemplateConfig; 
+  hideSaveButton?: boolean; // خاصية جديدة لمنع التكرار
 }
 
-const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) => {
+const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
@@ -111,7 +112,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
       
     const spacingClass = cfg.spacing === 'compact' ? 'space-y-4' : (cfg.spacing === 'relaxed' ? 'space-y-10' : 'space-y-6');
 
-    // نمط 1: كلاسيك (Classic) - خلفية بالأعلى، الصورة بالمنتصف
     if (cfg.headerType === 'classic') {
       return (
         <div className={`flex flex-col h-full min-h-[600px] ${spacingClass}`}>
@@ -128,7 +128,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
       );
     }
 
-    // نمط 2: منقسم (Split) - الصورة والمعلومات في صف واحد داخل الترويسة
     if (cfg.headerType === 'split') {
       return (
         <div className={`flex flex-col h-full min-h-[600px] ${spacingClass}`}>
@@ -148,7 +147,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
       );
     }
 
-    // نمط 3: متداخل (Overlay) - خلفية كبيرة وبطاقة محتوى عائمة
     if (cfg.headerType === 'overlay') {
       return (
         <div className={`flex flex-col h-full min-h-[600px] relative`}>
@@ -167,7 +165,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
       );
     }
 
-    // نمط 4: البانورامي (Hero) - صورة كبيرة تتوسط الخلفية الملونة
     if (cfg.headerType === 'hero') {
       return (
         <div className={`flex flex-col h-full min-h-[600px] ${spacingClass}`}>
@@ -188,7 +185,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
       );
     }
 
-    // نمط 5: بسيط (Minimal) - ترويسة نحيفة جداً أو غير موجودة
     return (
       <div className={`flex flex-col h-full min-h-[600px] p-8 ${alignClass} ${spacingClass}`}>
         <div className="pt-6 w-full flex flex-col items-center">
@@ -232,9 +228,20 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
 
       <SocialLinks justify={cfg.contentAlign} offsetY={cfg.socialLinksOffsetY || 0} />
       
-      <button onClick={() => downloadVCard(data)} className="w-full mt-6 py-5 bg-slate-900 dark:bg-white dark:text-gray-950 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all">
-          <UserPlus size={18} /> {t('saveContact')}
-      </button>
+      {/* ظهور الزر مشروط بخاصية hideSaveButton */}
+      {!hideSaveButton && (
+        <button 
+          onClick={() => downloadVCard(data)} 
+          className="group relative w-full mt-8 overflow-hidden rounded-2xl p-[1px] transition-all active:scale-95 shadow-xl"
+        >
+            <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.4),transparent_30%,rgba(255,255,255,0.4),transparent)]" />
+            <div className="relative flex items-center justify-center gap-3 py-5 bg-gray-900 dark:bg-white dark:text-gray-950 text-white rounded-2xl font-black text-[11px] uppercase tracking-wider transition-colors group-hover:bg-gray-800 dark:group-hover:bg-gray-100">
+               <UserPlus size={18} className="group-hover:rotate-12 transition-transform" /> 
+               {t('saveContact')}
+               <Download size={14} className="opacity-40" />
+            </div>
+        </button>
+      )}
     </React.Fragment>
   );
 
