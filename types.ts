@@ -9,9 +9,46 @@ export interface SocialLink {
 
 export type ThemeType = 'color' | 'gradient' | 'image';
 
+// إعدادات القالب الديناميكي المتقدمة
+export interface TemplateConfig {
+  headerType: 'classic' | 'split' | 'overlay' | 'minimal';
+  headerHeight: number;
+  avatarStyle: 'circle' | 'squircle' | 'none';
+  avatarSize: number;
+  avatarOffsetY: number;
+  avatarOffsetX: number;
+  nameOffsetY: number;
+  bioOffsetY: number;
+  emailOffsetY: number; // جديد: تحريك البريد
+  websiteOffsetY: number; // جديد: تحريك الموقع
+  contactButtonsOffsetY: number;
+  socialLinksOffsetY: number;
+  contentAlign: 'start' | 'center' | 'end';
+  buttonStyle: 'pill' | 'square' | 'glass';
+  animations: 'none' | 'fade' | 'slide' | 'bounce';
+  spacing: 'compact' | 'normal' | 'relaxed';
+  nameSize: number;
+  bioSize: number; // جديد: حجم خط النبذة
+  customCss?: string;
+}
+
+export interface CustomTemplate {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  descAr: string;
+  descEn: string;
+  config: TemplateConfig;
+  isActive: boolean;
+  isFeatured: boolean; // جديد: تمييز القالب
+  order: number; // جديد: ترتيب العرض
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface CardData {
   id: string;
-  templateId: string; // القالب المختار
+  templateId: string;
   name: string;
   title: string;
   company: string;

@@ -11,23 +11,16 @@ export const LANGUAGES_CONFIG: Record<Language, { name: string, native: string, 
   ja: { name: 'Japanese', native: '日本語', dir: 'ltr', flag: '🇯🇵' },
   pt: { name: 'Portuguese', native: 'Português', dir: 'ltr', flag: '🇵🇹' },
   ru: { name: 'Russian', native: 'Русский', dir: 'ltr', flag: '🇷🇺' },
-  hi: { name: 'Hindi', native: 'हिन्दी', dir: 'ltr', flag: '🇮🇳' },
+  hi: { name: 'Hindi', native: 'ヒندي', dir: 'ltr', flag: '🇮🇳' },
 };
 
-export const TEMPLATES = [
-  { id: 'classic', nameAr: 'مودرن كلاسيك', nameEn: 'Modern Classic', descAr: 'توازن مثالي وأناقة هادئة', descEn: 'Perfect balance and quiet elegance' },
-  { id: 'bento', nameAr: 'بينتو جريد', nameEn: 'Bento Grid', descAr: 'تنظيم شبكي للمحترفين التقنيين', descEn: 'Structured grid for tech pros' },
-  { id: 'split', nameAr: 'دايناميك سبليت', nameEn: 'Dynamic Split', descAr: 'جريء، عصري، وملفت للأنظار', descEn: 'Bold, modern, and eye-catching' },
-  { id: 'glass', nameAr: 'فيوتشر جلاس', nameEn: 'Future Glass', descAr: 'تأثيرات زجاجية مستقبلية شفافة', descEn: 'Futuristic frosted glass effects' },
-  { id: 'minimal', nameAr: 'سويس مينيمال', nameEn: 'Swiss Minimal', descAr: 'الفخامة في البساطة المطلقة', descEn: 'Luxury in absolute simplicity' },
-  { id: 'neo', nameAr: 'نيو بروتال', nameEn: 'Neo Brutal', descAr: 'تصميم جريء للأرواح المبدعة', descEn: 'Bold design for creative souls' },
-  { id: 'mosaic', nameAr: 'سوشيال هب', nameEn: 'Social Hub', descAr: 'تركيز مكثف على الروابط والانتشار', descEn: 'Intense focus on social reach' },
-  { id: 'zen', nameAr: 'زين فوكس', nameEn: 'Zen Focus', descAr: 'هدوء بصري وتركيز على الجوهر', descEn: 'Visual calm and essence focus' }
-];
+// تم إفراغ القوالب الثابتة للاعتماد على قاعدة البيانات
+export const TEMPLATES = [];
 
 export const TRANSLATIONS: TranslationStrings = {
   appName: { en: 'NextID', ar: 'هويتي' },
   home: { en: 'Home', ar: 'الرئيسية' },
+  templates: { en: 'Templates', ar: 'القوالب' },
   myCards: { en: 'My Cards', ar: 'بطاقاتي' },
   admin: { en: 'Admin', ar: 'الإدارة' },
   account: { en: 'Account', ar: 'الحساب' },
@@ -44,8 +37,8 @@ export const TRANSLATIONS: TranslationStrings = {
   heroTitle: { en: 'Professional Digital Business Cards', ar: 'بطاقات أعمال رقمية احترافية' },
   heroDesc: { en: 'The easiest way to share your professional profile with the world.', ar: 'الطريقة الأسهل لمشاركة ملفك المهني مع العالم.' },
   createBtn: { en: 'Create Now', ar: 'ابدأ الآن' },
-  template: { en: 'Layout Template', ar: 'قالب التوزيع', es: 'Plantilla', fr: 'Modèle' },
-  selectTemplate: { en: 'Select Style', ar: 'اختر النمط الهيكلي', es: 'Seleccionar estilo' },
+  template: { en: 'Layout Template', ar: 'قالب التوزيع' },
+  selectTemplate: { en: 'Select Style', ar: 'اختر النمط الهيكلي' },
   bio: { en: 'Professional Bio', ar: 'النبذة المهنية' },
   email: { en: 'Email Address', ar: 'البريد الإلكتروني' },
   phone: { en: 'Phone Number', ar: 'رقم الهاتف' },
@@ -53,7 +46,11 @@ export const TRANSLATIONS: TranslationStrings = {
   website: { en: 'Website URL', ar: 'رابط الموقع' },
   socials: { en: 'Social Links', ar: 'روابط التواصل' },
   jobTitle: { en: 'Job Title', ar: 'المسمى الوظيفي' },
-  company: { en: 'Company', ar: 'الشركة' }
+  company: { en: 'Company', ar: 'الشركة' },
+  templatesTitle: { en: 'Discover Our Templates', ar: 'اكتشف قوالبنا الاحترافية' },
+  templatesDesc: { en: 'Choose the perfect design that reflects your professional identity.', ar: 'اختر التصميم المثالي الذي يعكس هويتك المهنية الراقية.' },
+  useTemplate: { en: 'Use This Design', ar: 'استخدم هذا التصميم' },
+  noCardsYet: { en: 'No cards yet', ar: 'لا توجد بطاقات حتى الآن' }
 };
 
 export const THEME_COLORS = ['#2563eb', '#7c3aed', '#db2777', '#059669', '#d97706', '#0f172a', '#C5A059'];
@@ -93,7 +90,7 @@ export const SAMPLE_DATA: Record<string, Partial<CardData>> = {
     name: 'عبدالله محمد', 
     title: 'مستشار تطوير أعمال', 
     company: 'هويتي التقنية', 
-    bio: 'خبير في استراتيجيات التحول الرقمي مع خبرة تزيد عن 10 سنوات في بناء الهوية الرقمية للشركات والأفراد. أسعى دائماً لتقديم حلول مبتكرة تجمع بين الجمالية والوظيفة.', 
+    bio: 'خبير في استراتيجيات التحول الرقمي مع خبرة تزيد عن 10 سنوات في بناء الهوية الرقمية للشركات والأفراد.', 
     email: 'abdullah@example.com',
     phone: '+966500000000',
     whatsapp: '966500000000',
@@ -113,7 +110,7 @@ export const SAMPLE_DATA: Record<string, Partial<CardData>> = {
     name: 'Alexander Smith', 
     title: 'Senior Solutions Architect', 
     company: 'NextID Global', 
-    bio: 'Passionate about crafting seamless digital experiences and architectural solutions. Focused on driving innovation through technology and design thinking for modern businesses.', 
+    bio: 'Passionate about crafting seamless digital experiences and architectural solutions for modern businesses.', 
     email: 'alex@example.com',
     phone: '+1 555 123 4567',
     whatsapp: '15551234567',
