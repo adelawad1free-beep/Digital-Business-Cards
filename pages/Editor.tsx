@@ -258,91 +258,145 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
              </div>
           </div>
 
-          {/* 6. Theme & Background Section (Moved to Bottom) */}
-          <div className="bg-gray-50 dark:bg-gray-900/40 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-8">
-             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
-                <div>
-                  <h3 className="text-lg font-black dark:text-white">{t('theme')}</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{lang === 'ar' ? 'اختر النمط البصري لبطاقتك' : 'Choose visual style'}</p>
+          {/* 6. Theme & Background Section - Updated for Mobile optimization (Matching User Image) */}
+          <div className="bg-white dark:bg-gray-950 p-6 md:p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-10 shadow-sm">
+             <div className={`flex flex-col md:flex-row md:items-center justify-between gap-6 ${isRtl ? 'text-right' : 'text-left'}`}>
+                <div className="order-1 md:order-2">
+                  <h3 className="text-2xl font-black dark:text-white leading-none mb-1">{t('theme')}</h3>
+                  <p className="text-xs font-bold text-gray-400/80 leading-relaxed max-w-[150px] md:max-w-none">
+                    {lang === 'ar' ? 'اختر النمط البصري لبطاقتك' : 'Choose visual style'}
+                  </p>
                 </div>
-                <div className="flex bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                  <button onClick={() => handleChange('themeType', 'color')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'color' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
-                    <Palette size={16} className="mb-1 mx-auto" />
-                    {lang === 'ar' ? 'ألوان' : 'Color'}
+                
+                {/* Visual Type Selector - Card Style from Image */}
+                <div className="order-2 md:order-1 flex bg-gray-50 dark:bg-gray-900 p-1.5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-inner w-full md:w-auto">
+                  <button 
+                    onClick={() => handleChange('themeType', 'image')} 
+                    className={`flex-1 md:w-24 p-3 rounded-[1.5rem] transition-all flex flex-col items-center gap-1 ${formData.themeType === 'image' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+                  >
+                    <ImageIcon size={20} />
+                    <span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'صورة' : 'Image'}</span>
                   </button>
-                  <button onClick={() => handleChange('themeType', 'gradient')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'gradient' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
-                    <Sparkles size={16} className="mb-1 mx-auto" />
-                    {lang === 'ar' ? 'تدرج' : 'Gradient'}
+                  <button 
+                    onClick={() => handleChange('themeType', 'gradient')} 
+                    className={`flex-1 md:w-24 p-3 rounded-[1.5rem] transition-all flex flex-col items-center gap-1 ${formData.themeType === 'gradient' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+                  >
+                    <Sparkles size={20} />
+                    <span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'تدرج' : 'Gradient'}</span>
                   </button>
-                  <button onClick={() => handleChange('themeType', 'image')} className={`p-2 px-4 rounded-lg text-[10px] font-black transition-all ${formData.themeType === 'image' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
-                    <ImageIcon size={16} className="mb-1 mx-auto" />
-                    {lang === 'ar' ? 'صورة' : 'Image'}
+                  <button 
+                    onClick={() => handleChange('themeType', 'color')} 
+                    className={`flex-1 md:w-24 p-3 rounded-[1.5rem] transition-all flex flex-col items-center gap-1 ${formData.themeType === 'color' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+                  >
+                    <Palette size={20} />
+                    <span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'ألوان' : 'Color'}</span>
                   </button>
                 </div>
              </div>
 
-             <div className="animate-fade-in">
+             <div className="pt-2 animate-fade-in">
                 {formData.themeType === 'color' && (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-3">
-                      {THEME_COLORS.map(color => (
-                        <button key={color} onClick={() => handleChange('themeColor', color)} className={`w-10 h-10 rounded-full transition-all hover:scale-110 shadow-lg ${formData.themeColor === color ? 'ring-4 ring-blue-500 ring-offset-4 dark:ring-offset-gray-900' : ''}`} style={{ backgroundColor: color }} />
-                      ))}
-                      <button onClick={() => colorInputRef.current?.click()} className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center text-gray-400"><Plus size={16}/></button>
-                      <input type="color" ref={colorInputRef} className="sr-only" onChange={e => handleChange('themeColor', e.target.value)} />
-                    </div>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-5">
+                    {THEME_COLORS.map(color => (
+                      <button 
+                        key={color} 
+                        onClick={() => handleChange('themeColor', color)} 
+                        className={`w-14 h-14 rounded-full transition-all hover:scale-105 shadow-md relative flex items-center justify-center`} 
+                        style={{ backgroundColor: color }}
+                      >
+                         {formData.themeColor === color && (
+                           <div className="absolute -inset-1.5 border-[3.5px] border-blue-600 rounded-full" />
+                         )}
+                         {formData.themeColor === color && (
+                           <div className="absolute -inset-1 border-[2.5px] border-white dark:border-gray-950 rounded-full" />
+                         )}
+                      </button>
+                    ))}
+                    <button 
+                      onClick={() => colorInputRef.current?.click()} 
+                      className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-all"
+                    >
+                      <Plus size={24}/>
+                    </button>
+                    <input type="color" ref={colorInputRef} className="sr-only" onChange={e => handleChange('themeColor', e.target.value)} />
                   </div>
                 )}
 
                 {formData.themeType === 'gradient' && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {THEME_GRADIENTS.map((grad, idx) => (
-                      <button key={idx} onClick={() => handleChange('themeGradient', grad)} className={`h-16 rounded-2xl transition-all hover:scale-105 shadow-md ${formData.themeGradient === grad ? 'ring-4 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900' : ''}`} style={{ background: grad }} />
+                      <button 
+                        key={idx} 
+                        onClick={() => handleChange('themeGradient', grad)} 
+                        className={`h-20 rounded-[1.5rem] transition-all hover:scale-105 shadow-md relative overflow-hidden`} 
+                        style={{ background: grad }}
+                      >
+                        {formData.themeGradient === grad && (
+                          <div className="absolute inset-0 border-4 border-blue-600 rounded-[1.5rem] mix-blend-overlay" />
+                        )}
+                        {formData.themeGradient === grad && (
+                          <div className="absolute top-2 right-2 bg-white text-blue-600 p-1 rounded-full shadow-sm">
+                            <CheckCircle2 size={12} />
+                          </div>
+                        )}
+                      </button>
                     ))}
                   </div>
                 )}
 
                 {formData.themeType === 'image' && (
                   <div className="space-y-4">
-                     <div className="relative group overflow-hidden h-32 rounded-3xl bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                     <div className="relative group overflow-hidden h-40 rounded-[2rem] bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-800 flex items-center justify-center">
                         {formData.backgroundImage ? (
                           <>
                             <img src={formData.backgroundImage} className="w-full h-full object-cover" alt="BG" />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                               <button onClick={() => handleChange('backgroundImage', '')} className="p-2 bg-red-600 text-white rounded-full"><X size={16}/></button>
+                               <button onClick={() => handleChange('backgroundImage', '')} className="p-3 bg-red-600 text-white rounded-2xl"><X size={20}/></button>
                             </div>
                           </>
                         ) : (
-                          <button onClick={() => bgFileInputRef.current?.click()} className="flex flex-col items-center text-gray-400">
-                             <UploadCloud size={24} className="mb-1" />
-                             <span className="text-[10px] font-black uppercase">{lang === 'ar' ? 'رفع صورة خلفية' : 'Upload Background'}</span>
+                          <button onClick={() => bgFileInputRef.current?.click()} className="flex flex-col items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors">
+                             <UploadCloud size={32} />
+                             <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'ar' ? 'رفع صورة خلفية' : 'Upload Background'}</span>
                           </button>
                         )}
-                        {isUploadingBg && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                        {isUploadingBg && <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20"><Loader2 className="animate-spin text-white" /></div>}
                      </div>
                      <input type="file" ref={bgFileInputRef} onChange={handleBgFileUpload} accept="image/*" className="hidden" />
-                     <input type="url" value={formData.backgroundImage} onChange={e => handleChange('backgroundImage', e.target.value)} placeholder={lang === 'ar' ? 'أو ضع رابط صورة مباشر' : 'Or paste direct image URL'} className={inputClasses} />
+                     <div className="relative">
+                        <LinkIcon className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-300`} size={16} />
+                        <input 
+                          type="url" 
+                          value={formData.backgroundImage} 
+                          onChange={e => handleChange('backgroundImage', e.target.value)} 
+                          placeholder={lang === 'ar' ? 'أو ضع رابط صورة مباشر هنا...' : 'Or paste direct image URL here...'} 
+                          className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} text-xs`} 
+                        />
+                     </div>
                   </div>
                 )}
              </div>
 
-             <div className="flex items-center justify-between pt-6 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-3">
-                   <div className={`p-3 rounded-xl ${formData.isDark ? 'bg-gray-800 text-yellow-400' : 'bg-white text-gray-400 shadow-sm'}`}>
-                      {formData.isDark ? <Moon size={20}/> : <Sun size={20}/>}
+             <div className="flex items-center justify-between pt-8 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-4">
+                   <div className={`p-4 rounded-[1.2rem] transition-all ${formData.isDark ? 'bg-gray-900 text-yellow-400 shadow-inner' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                      {formData.isDark ? <Moon size={24}/> : <Sun size={24}/>}
                    </div>
                    <div>
-                      <span className="text-xs font-black dark:text-white block uppercase tracking-wider">{lang === 'ar' ? 'وضع البطاقة' : 'Card Theme'}</span>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">{formData.isDark ? (lang === 'ar' ? 'ليلي' : 'Dark') : (lang === 'ar' ? 'فاتح' : 'Light')}</span>
+                      <span className="text-sm font-black dark:text-white block uppercase leading-none mb-1">{lang === 'ar' ? 'وضع البطاقة' : 'Card Mode'}</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formData.isDark ? (lang === 'ar' ? 'ليلي / مظلم' : 'Dark Mode') : (lang === 'ar' ? 'نهاري / فاتح' : 'Light Mode')}</span>
                    </div>
                 </div>
-                <button onClick={() => handleChange('isDark', !formData.isDark)} className={`w-14 h-7 rounded-full relative transition-all ${formData.isDark ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                   <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all ${formData.isDark ? (isRtl ? 'right-8' : 'left-8') : (isRtl ? 'right-1' : 'left-1')}`} />
+                <button 
+                  onClick={() => handleChange('isDark', !formData.isDark)} 
+                  className={`w-16 h-8 rounded-full relative transition-all shadow-inner ${formData.isDark ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-800'}`}
+                >
+                   <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${formData.isDark ? (isRtl ? 'right-9' : 'left-9') : (isRtl ? 'right-1' : 'left-1')}`} />
                 </button>
              </div>
           </div>
 
-          <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+          <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2.2rem] font-black text-xl shadow-2xl shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
             <Save size={24} />
             {t('saveChanges')}
           </button>

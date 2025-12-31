@@ -26,7 +26,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account'>('home');
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account' | 'preview_draft'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -67,7 +67,6 @@ const App: React.FC = () => {
     root.lang = lang;
   }, [isDarkMode, lang]);
 
-  // تحديث أيقونة الموقع (Favicon) ديناميكياً
   useEffect(() => {
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
     if (favicon && siteConfig.siteIcon) {
@@ -85,7 +84,6 @@ const App: React.FC = () => {
       const settings = await getSiteSettings();
       if (settings) {
         setSiteConfig(settings as any);
-        // تحديث الأيقونة فورياً
         const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
         if (favicon && (settings as any).siteIcon) {
           favicon.href = (settings as any).siteIcon;
@@ -113,12 +111,20 @@ const App: React.FC = () => {
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         setCurrentUser(user);
         if (user) await refreshUserCards(user.uid);
+        
+        // Handle pending save after auth
+        if (user && pendingSaveData) {
+          const data = { ...pendingSaveData.data, ownerId: user.uid };
+          await handleSave(data, pendingSaveData.oldId);
+          setPendingSaveData(null);
+        }
+        
         setIsInitializing(false);
       });
       return unsubscribe;
     };
     initializeApp();
-  }, []);
+  }, [pendingSaveData]);
 
   const handleCreateNew = () => {
     const newCard: CardData = {
@@ -133,11 +139,8 @@ const App: React.FC = () => {
       ownerId: currentUser?.uid || undefined,
       ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en'])
     } as CardData;
-    setEditingCard(null); 
-    setTimeout(() => {
-      setEditingCard(newCard);
-      setActiveTab('editor');
-    }, 10);
+    setEditingCard(newCard);
+    setActiveTab('editor');
   };
 
   const handleEditCard = (card: CardData) => {
@@ -175,6 +178,11 @@ const App: React.FC = () => {
     }
   };
 
+  // Sync editor changes to the editingCard state in App for preview
+  const handleEditorChange = (data: CardData) => {
+    setEditingCard(data);
+  };
+
   if (isInitializing) return <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#050507]"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
   if (publicCard) return <PublicProfile data={publicCard} lang={lang} />;
 
@@ -201,7 +209,6 @@ const App: React.FC = () => {
       {/* Desktop Header */}
       <header className="hidden md:block sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setActiveTab('home')}>
               <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform overflow-hidden">
@@ -209,8 +216,6 @@ const App: React.FC = () => {
               </div>
               <span className="text-xl font-black dark:text-white tracking-tight">{displaySiteName}</span>
             </div>
-
-            {/* Desktop Main Navigation */}
             <nav className="flex items-center gap-3">
               <DesktopNavLink id="home" label={t('home')} icon={HomeIcon} />
               {currentUser && <DesktopNavLink id="manager" label={t('myCards')} icon={CreditCard} />}
@@ -223,9 +228,7 @@ const App: React.FC = () => {
             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-3 text-gray-400 hover:text-blue-500 bg-gray-50 dark:bg-gray-800/50 rounded-2xl transition-all">
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            
             <div className="h-8 w-px bg-gray-100 dark:bg-gray-800 mx-2"></div>
-            
             {currentUser ? (
               <div className="flex items-center gap-3">
                 <button 
@@ -290,7 +293,28 @@ const App: React.FC = () => {
                 )}
              </div>
            )}
-           {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} />}
+           {(activeTab === 'editor') && (
+             <Editor 
+               lang={lang} 
+               onSave={handleSave} 
+               initialData={editingCard || undefined} 
+               isAdminEdit={isAdmin} 
+             />
+           )}
+           {activeTab === 'preview_draft' && editingCard && (
+             <div className="animate-fade-in-up">
+               <div className="mb-6 flex justify-center">
+                 <button 
+                   onClick={() => setActiveTab('editor')}
+                   className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase flex items-center gap-2 shadow-lg"
+                 >
+                   <Edit2 size={16} />
+                   {isRtl ? 'العودة للتعديل' : 'Back to Editor'}
+                 </button>
+               </div>
+               <PublicProfile data={editingCard} lang={lang} />
+             </div>
+           )}
            {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={handleEditCard} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
            {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
         </div>
@@ -316,10 +340,17 @@ const App: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 flex px-4 z-[200] h-20 rounded-t-[2.5rem] shadow-[0_-15px_40px_rgba(0,0,0,0.08)]">
         <NavItemMobile id="home" icon={HomeIcon} label={t('home')} />
+        
+        {/* Mobile Preview Button - Visible when editing */}
+        {editingCard && (activeTab === 'editor' || activeTab === 'preview_draft') && (
+          <NavItemMobile id={activeTab === 'editor' ? 'preview_draft' : 'editor'} icon={activeTab === 'editor' ? Eye : Edit2} label={activeTab === 'editor' ? (isRtl ? 'معاينة' : 'Preview') : (isRtl ? 'تعديل' : 'Edit')} />
+        )}
+        
         {currentUser && <NavItemMobile id="manager" icon={CreditCard} label={t('myCards')} />}
         {currentUser && <NavItemMobile id="account" icon={UserCircle} label={t('account')} />}
         {isAdmin && <NavItemMobile id="admin" icon={ShieldAlert} label={t('admin')} />}
-        {!currentUser && (
+        
+        {!currentUser && activeTab !== 'editor' && activeTab !== 'preview_draft' && (
           <button onClick={() => setShowAuthModal(true)} className="flex flex-col items-center justify-center flex-1 py-3 text-blue-600 animate-pulse">
             <LogIn size={22} />
             <span className="text-[10px] font-bold mt-1 uppercase">{t('login')}</span>
