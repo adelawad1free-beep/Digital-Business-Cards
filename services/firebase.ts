@@ -41,7 +41,6 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
-// دالة مساعدة لترجمة أخطاء Firebase
 export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
   const isAr = lang === 'ar';
   switch (code) {
@@ -54,14 +53,8 @@ export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => 
       return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
     case 'auth/requires-recent-login':
       return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
-    case 'auth/invalid-email':
-      return isAr ? 'صيغة البريد الإلكتروني غير صحيحة.' : 'Invalid email format.';
-    case 'auth/too-many-requests':
-      return isAr ? 'محاولات كثيرة خاطئة، تم حظر الحساب مؤقتاً.' : 'Too many failed attempts, account temporarily locked.';
-    case 'auth/user-not-found':
-      return isAr ? 'هذا الحساب غير موجود لدينا.' : 'User account not found.';
     default:
-      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred, please try again.';
+      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred.';
   }
 };
 
@@ -69,9 +62,7 @@ export const getSiteSettings = async () => {
   try {
     const snap = await getDoc(doc(db, "settings", "global"));
     return snap.exists() ? snap.data() : null;
-  } catch (error) {
-    return null;
-  }
+  } catch (error) { return null; }
 };
 
 export const updateSiteSettings = async (settings: any) => {
@@ -81,8 +72,11 @@ export const updateSiteSettings = async (settings: any) => {
 
 export const saveCustomTemplate = async (template: any) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  await setDoc(doc(db, "custom_templates", template.id), {
+  // نستخدم ID القالب كاسم للوثيقة لسهولة حذفه لاحقاً
+  const templateId = template.id || `custom_${Date.now()}`;
+  await setDoc(doc(db, "custom_templates", templateId), {
     ...template,
+    id: templateId,
     updatedAt: new Date().toISOString()
   });
 };
@@ -90,20 +84,40 @@ export const saveCustomTemplate = async (template: any) => {
 export const getAllTemplates = async () => {
   try {
     const snap = await getDocs(collection(db, "custom_templates"));
-    const templates = snap.docs.map(doc => doc.data() as any);
+    // نضمن أن id هو دائماً اسم الوثيقة doc.id لضمان عمل الحذف
+    const templates = snap.docs.map(doc => {
+      const data = doc.data();
+      return { ...data, id: doc.id } as any;
+    });
     return templates.sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
       if (a.order !== b.order) return (a.order || 0) - (b.order || 0);
       return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
     });
   } catch (error: any) {
+    console.error("Fetch templates error:", error);
     return [];
   }
 };
 
 export const deleteTemplate = async (id: string) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  await deleteDoc(doc(db, "custom_templates", id));
+  console.log("Attempting to delete template with ID:", id);
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) {
+    console.error("Delete failed: Not authorized or not admin.");
+    throw new Error("Admin only");
+  }
+  if (!id) {
+    console.error("Delete failed: No ID provided.");
+    throw new Error("ID required");
+  }
+  try {
+    const docRef = doc(db, "custom_templates", id);
+    await deleteDoc(docRef);
+    console.log("Template deleted successfully from Firebase.");
+  } catch (error) {
+    console.error("Firebase deleteDoc error:", error);
+    throw error;
+  }
 };
 
 export const saveCardToDB = async (userId: string, cardData: any, oldId?: string) => {
@@ -173,17 +187,10 @@ export const sendPasswordReset = async (email: string) => sendPasswordResetEmail
 export const updateUserSecurity = async (currentPassword: string, newEmail: string, newPassword?: string) => {
   const user = auth.currentUser;
   if (!user || !user.email) throw new Error("auth/no-user");
-  
   const credential = EmailAuthProvider.credential(user.email, currentPassword);
   await reauthenticateWithCredential(user, credential);
-  
-  if (newEmail && newEmail !== user.email) {
-    await updateEmail(user, newEmail);
-  }
-  
-  if (newPassword) {
-    await updatePassword(user, newPassword);
-  }
+  if (newEmail && newEmail !== user.email) await updateEmail(user, newEmail);
+  if (newPassword) await updatePassword(user, newPassword);
 };
 
 export const updateAdminSecurity = updateUserSecurity;

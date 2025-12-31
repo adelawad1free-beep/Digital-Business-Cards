@@ -32,6 +32,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [stats, setStats] = useState<{ totalCards: number; recentCards: any[] } | null>(null);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | undefined>(undefined);
+  
+  // حالة جديدة للتحكم في نافذة الحذف المخصصة بدلاً من confirm
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  
   const [settings, setSettings] = useState({ 
     siteNameAr: '', 
     siteNameEn: '', 
@@ -80,10 +84,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     setActiveTab('templates');
   };
 
-  const handleDeleteTemplate = async (id: string) => {
-    if (!window.confirm(isRtl ? "هل أنت متأكد؟" : "Are you sure?")) return;
-    await deleteTemplate(id);
-    setCustomTemplates(prev => prev.filter(t => t.id !== id));
+  const confirmDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+    
+    setLoading(true);
+    try {
+      await deleteTemplate(templateToDelete);
+      setCustomTemplates(prev => prev.filter(t => t.id !== templateToDelete));
+      setTemplateToDelete(null);
+    } catch (error: any) {
+      console.error("Delete Template Error:", error);
+      alert(isRtl ? `فشل الحذف: ${error.message}` : `Delete failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const t = (ar: string, en: string) => isRtl ? ar : en;
@@ -97,7 +111,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     </button>
   );
 
-  if (loading) return (
+  if (loading && !templateToDelete) return (
     <div className="flex flex-col items-center justify-center py-20">
       <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
       <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">{t('جاري التحميل...', 'Loading...')}</p>
@@ -163,9 +177,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                        </div>
                        <h3 className="text-xl font-black dark:text-white mb-2">{isRtl ? tmpl.nameAr : tmpl.nameEn}</h3>
                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-10 truncate">{isRtl ? tmpl.descAr : tmpl.descEn}</p>
-                       <div className="flex gap-2">
-                          <button onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} className="flex-1 py-4 bg-gray-50 dark:bg-gray-800 text-blue-600 rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 transition-all hover:bg-blue-600 hover:text-white"><Edit3 size={14}/> {t('تعديل', 'Edit')}</button>
-                          <button onClick={() => handleDeleteTemplate(tmpl.id)} className="p-4 bg-gray-50 dark:bg-gray-800 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={20}/></button>
+                       <div className={`flex items-center gap-3 ${isRtl ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <button 
+                            onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} 
+                            className="flex-1 py-4 bg-blue-500 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 transition-all hover:bg-blue-600 shadow-md active:scale-95"
+                          >
+                            <Edit3 size={16}/> {t('تعديل', 'Edit')}
+                          </button>
+                          <button 
+                            onClick={() => setTemplateToDelete(tmpl.id)} 
+                            className="p-4 bg-gray-50 dark:bg-gray-800 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all border border-gray-100 dark:border-gray-700 active:scale-95"
+                          >
+                            <Trash2 size={20}/>
+                          </button>
                        </div>
                     </div>
                  ))}
@@ -301,6 +325,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
           </div>
         )}
       </div>
+
+      {/* نافذة تأكيد الحذف المخصصة */}
+      {templateToDelete && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
+            <Trash2 size={48} className="mx-auto text-red-500 mb-6" />
+            <h3 className="text-2xl font-black mb-4 dark:text-white">{t('تأكيد الحذف', 'Confirm Delete')}</h3>
+            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-10 leading-relaxed">
+              {t('هل أنت متأكد من حذف هذا القالب نهائياً؟ لا يمكن التراجع عن هذا الإجراء.', 'Are you sure you want to delete this template permanently? This action cannot be undone.')}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={confirmDeleteTemplate} 
+                className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all"
+              >
+                {t('نعم، احذف القالب', 'Yes, Delete Template')}
+              </button>
+              <button 
+                onClick={() => setTemplateToDelete(null)} 
+                className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase active:scale-95 transition-all border border-gray-100 dark:border-gray-700"
+              >
+                {t('إلغاء', 'Cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

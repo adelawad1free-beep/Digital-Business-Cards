@@ -1,7 +1,8 @@
 
+// Import React to ensure React.FC and other JSX-related types are available in the global or local namespace.
 import React, { useState, useEffect } from 'react';
 import { Language, CardData, CustomTemplate } from './types';
-import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, LANGUAGES_CONFIG } from './constants';
+import { TRANSLATIONS, SAMPLE_DATA, LANGUAGES_CONFIG } from './constants';
 import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -14,7 +15,7 @@ import AuthModal from './components/AuthModal';
 import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, Home as HomeIcon, ExternalLink, User as UserIcon, Mail, Coffee, Heart } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, Mail, Coffee, Heart } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -50,7 +51,6 @@ const App: React.FC = () => {
   const isRtl = LANGUAGES_CONFIG[lang].dir === 'rtl';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
 
-  // دالة ترجمة ذكية تدعم كافة اللغات
   const t = (key: string) => {
     if (!TRANSLATIONS[key]) return key;
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
@@ -119,18 +119,12 @@ const App: React.FC = () => {
   }, []);
 
   const handleCreateNew = (templateId: string) => {
+    const sample = (SAMPLE_DATA[lang] || SAMPLE_DATA['en']) as CardData;
     const newCard: CardData = {
+      ...sample,
       id: generateSerialId(),
-      name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
       templateId: templateId,
-      themeType: 'color',
-      themeColor: THEME_COLORS[0],
-      themeGradient: THEME_GRADIENTS[0],
-      backgroundImage: '',
-      isDark: false,
-      socialLinks: [],
-      ownerId: currentUser?.uid || undefined,
-      ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en'])
+      ownerId: undefined, 
     } as CardData;
     setEditingCard(newCard);
     setActiveTab('editor');
@@ -158,6 +152,16 @@ const App: React.FC = () => {
         alert(isRtl ? "فشل حفظ البطاقة" : "Failed to save card");
       }
     } finally { setSaveLoading(false); }
+  };
+
+  const handleAuthSuccess = (userId: string) => {
+    setShowAuthModal(false);
+    if (pendingSaveData) {
+      handleSave(pendingSaveData.data, pendingSaveData.oldId);
+      setPendingSaveData(null);
+    } else {
+      getUserCards(userId).then(cards => setUserCards(cards as CardData[]));
+    }
   };
 
   if (isInitializing) return <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-[#050507]"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
@@ -231,7 +235,7 @@ const App: React.FC = () => {
               </div>
            </div>
         )}
-        {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} />}
+        {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} templates={customTemplates} />}
         {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); setActiveTab('editor'); }} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
@@ -239,11 +243,10 @@ const App: React.FC = () => {
       <footer className="w-full pt-16 pb-10 mt-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
           
-          {/* Buy Me a Coffee Section in Footer */}
           <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[3rem] border border-amber-100 dark:border-amber-900/20 max-w-xl w-full flex flex-col sm:flex-row items-center justify-between gap-6 group transition-all hover:shadow-xl">
              <div className="flex items-center gap-4 text-start">
                 <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                   <Coffee size={28} />
+                   < Coffee size={28} />
                 </div>
                 <div>
                    <h4 className="font-black dark:text-white">{t('buyMeCoffee')}</h4>
@@ -278,7 +281,7 @@ const App: React.FC = () => {
       </footer>
 
       {showShareModal && editingCard && <ShareModal data={editingCard} lang={lang} onClose={() => setShowShareModal(false)} />}
-      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => setShowAuthModal(false)} />}
+      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={handleAuthSuccess} />}
       
       {deleteConfirmation && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">

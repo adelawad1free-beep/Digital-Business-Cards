@@ -4,36 +4,59 @@ import { CardData, Language, SocialLink, CustomTemplate } from '../types';
 import { TRANSLATIONS, THEME_COLORS, THEME_GRADIENTS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
-import { isSlugAvailable, auth, getAllTemplates } from '../services/firebase';
+import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Link as LinkIcon, CheckCircle2, AlertCircle, UploadCloud, Image as ImageIcon, Palette, Layout, User as UserIcon, Camera, Share2, Pipette } from 'lucide-react';
+import { Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Link as LinkIcon, CheckCircle2, AlertCircle, UploadCloud, Image as ImageIcon, Palette, Layout, User as UserIcon, Camera, Share2, Pipette, Type as TypographyIcon } from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
   onSave: (data: CardData, oldId?: string) => void;
   initialData?: CardData;
   isAdminEdit?: boolean;
+  templates: CustomTemplate[]; // استلام القوالب من App
 }
 
-const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit }) => {
-  const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
+const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit, templates }) => {
   const isRtl = lang === 'ar';
+  const t = (key: string, fallback?: string) => {
+    if (fallback && !TRANSLATIONS[key]) return isRtl ? key : fallback;
+    return TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const originalIdRef = useRef<string | null>(initialData?.id || null);
 
-  const [templates, setTemplates] = useState<CustomTemplate[]>([]);
-  const [formData, setFormData] = useState<CardData>(initialData || {
-    id: generateSerialId(),
-    templateId: 'classic',
-    name: '', title: '', company: '', bio: '', email: '', phone: '', whatsapp: '', website: '', location: '', locationUrl: '', profileImage: '',
-    themeType: 'color', themeColor: THEME_COLORS[0], themeGradient: THEME_GRADIENTS[0], backgroundImage: '',
-    isDark: false, socialLinks: [],
-    ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en'])
-  } as CardData);
+  const [formData, setFormData] = useState<CardData>(() => {
+    const data = initialData || {
+      ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']),
+      id: generateSerialId(),
+      templateId: 'classic',
+    } as CardData;
+
+    // محاولة تطبيق إعدادات القالب فوراً عند تهيئة الحالة
+    const selectedTmpl = templates.find(t => t.id === data.templateId);
+    if (selectedTmpl && !data.ownerId) {
+       return {
+         ...data,
+         themeType: selectedTmpl.config.defaultThemeType || data.themeType,
+         themeColor: selectedTmpl.config.defaultThemeColor || data.themeColor,
+         themeGradient: selectedTmpl.config.defaultThemeGradient || data.themeGradient,
+         backgroundImage: selectedTmpl.config.defaultBackgroundImage || data.backgroundImage,
+         // Fix: Added defaultProfileImage override from template
+         profileImage: selectedTmpl.config.defaultProfileImage || data.profileImage,
+         isDark: selectedTmpl.config.defaultIsDark ?? data.isDark,
+         nameColor: selectedTmpl.config.nameColor,
+         titleColor: selectedTmpl.config.titleColor,
+         bioTextColor: selectedTmpl.config.bioTextColor,
+         bioBgColor: selectedTmpl.config.bioBgColor,
+         linksColor: selectedTmpl.config.linksColor
+       };
+    }
+    return data;
+  });
 
   const [activeImgTab, setActiveImgTab] = useState<'upload' | 'link'>('upload');
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
@@ -42,36 +65,34 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
+  // مزامنة البيانات عند تغيير initialData
   useEffect(() => {
-    const fetchTmpl = async () => {
-      const data = await getAllTemplates();
-      setTemplates(data as CustomTemplate[]);
+    if (initialData) {
+      setFormData(initialData);
+      originalIdRef.current = initialData.id;
+      setSlugStatus('available'); 
       
-      // التعديل الأساسي: إذا كانت البطاقة جديدة، نطبق سمات القالب المختار فوراً
-      const selectedTmpl = data.find(t => t.id === formData.templateId);
-      if (selectedTmpl && (!initialData?.ownerId)) {
+      // تطبيق سمات القالب إذا كانت بطاقة جديدة
+      const selectedTmpl = templates.find(t => t.id === initialData.templateId);
+      if (selectedTmpl && !initialData.ownerId) {
         setFormData(prev => ({
           ...prev,
           themeType: selectedTmpl.config.defaultThemeType || prev.themeType,
           themeColor: selectedTmpl.config.defaultThemeColor || prev.themeColor,
           themeGradient: selectedTmpl.config.defaultThemeGradient || prev.themeGradient,
           backgroundImage: selectedTmpl.config.defaultBackgroundImage || prev.backgroundImage,
-          isDark: selectedTmpl.config.defaultIsDark ?? prev.isDark
+          // Fix: Added defaultProfileImage override from template in useEffect
+          profileImage: selectedTmpl.config.defaultProfileImage || prev.profileImage,
+          isDark: selectedTmpl.config.defaultIsDark ?? prev.isDark,
+          nameColor: selectedTmpl.config.nameColor,
+          titleColor: selectedTmpl.config.titleColor,
+          bioTextColor: selectedTmpl.config.bioTextColor,
+          bioBgColor: selectedTmpl.config.bioBgColor,
+          linksColor: selectedTmpl.config.linksColor
         }));
       }
-
-      if (data.length > 0 && (!formData.templateId || !data.find(t => t.id === formData.templateId))) {
-        handleChange('templateId', data[0].id);
-      }
-    };
-    fetchTmpl();
-    
-    if (initialData) {
-      setFormData(initialData);
-      originalIdRef.current = initialData.id;
-      setSlugStatus('available'); 
     }
-  }, [initialData]);
+  }, [initialData, templates]);
 
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') {
@@ -79,7 +100,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
       setSlugStatus('idle');
     }
 
-    // مزامنة السمات عند تغيير القالب يدوياً من داخل المحرر
     if (field === 'templateId') {
       const newTmpl = templates.find(t => t.id === value);
       if (newTmpl) {
@@ -90,7 +110,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
           themeColor: newTmpl.config.defaultThemeColor || prev.themeColor,
           themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
           backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
-          isDark: newTmpl.config.defaultIsDark ?? prev.isDark
+          // Fix: Added defaultProfileImage override from template when template changes
+          profileImage: newTmpl.config.defaultProfileImage || prev.profileImage,
+          isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
+          nameColor: newTmpl.config.nameColor,
+          titleColor: newTmpl.config.titleColor,
+          bioTextColor: newTmpl.config.bioTextColor,
+          bioBgColor: newTmpl.config.bioBgColor,
+          linksColor: newTmpl.config.linksColor
         }));
         return;
       }
@@ -172,14 +199,30 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
   const inputClasses = "w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1a1f] text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all shadow-sm placeholder:text-gray-300 font-medium text-[13px]";
   const labelClasses = "block text-[9px] font-black text-gray-400 dark:text-gray-500 mb-1 px-1 uppercase tracking-widest";
 
+  const ColorPickerField = ({ label, field, value }: { label: string, field: keyof CardData, value?: string }) => (
+    <div className="flex items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+      <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider shrink-0">{label}</span>
+      <div className="flex items-center gap-2">
+         <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+            <input 
+              type="color" 
+              value={value || '#000000'} 
+              onChange={(e) => handleChange(field, e.target.value)} 
+              className="absolute inset-0 opacity-0 cursor-pointer scale-150" 
+            />
+            <div className="w-full h-full" style={{ backgroundColor: value || (isRtl ? '#cccccc' : '#eee') }} />
+         </div>
+         <button onClick={() => handleChange(field, undefined)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"><X size={14}/></button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 md:px-6">
       <div className="flex flex-col lg:flex-row gap-8 pb-10 items-start justify-center">
-        {/* Main Editor Section */}
         <div className="w-full lg:max-w-[960px] flex-1 space-y-6">
           <div className="bg-white dark:bg-[#121215] p-5 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 space-y-6">
             
-            {/* Slug URL Picker */}
             <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/20 flex flex-col sm:flex-row items-center gap-3">
               <div className="relative flex-1 w-full">
                   <input 
@@ -201,7 +244,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
               </button>
             </div>
 
-            {/* Profile Info */}
             <div className="bg-gray-50/50 dark:bg-gray-900/20 p-5 md:p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 grid grid-cols-1 xl:grid-cols-12 gap-8">
               <div className="xl:col-span-3 flex flex-col items-center gap-4">
                   <div className="relative group">
@@ -239,7 +281,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
               </div>
             </div>
 
-            {/* Contact Details and Socials */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="bg-gray-50/50 dark:bg-gray-900/20 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
                   <h4 className="text-[11px] font-black uppercase text-gray-500 flex items-center gap-2 mb-3"><Phone size={16} /> {isRtl ? 'بيانات التواصل' : 'Contact Details'}</h4>
@@ -272,113 +313,110 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
               </div>
             </div>
 
-            {/* Template Selector */}
-            <div className="bg-gray-50/50 dark:bg-gray-900/20 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800">
-              <div className="flex items-center gap-3 mb-5">
-                  <Layout className="text-blue-600" size={20} />
-                  <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'اختر قالب التصميم' : 'Select Layout Template'}</h4>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {templates.map(tmpl => (
-                    <button 
-                      key={tmpl.id} 
-                      onClick={() => handleChange('templateId', tmpl.id)} 
-                      className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 group ${formData.templateId === tmpl.id ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}
-                    >
-                        <Layout size={18} className={formData.templateId === tmpl.id ? 'text-white' : 'group-hover:text-blue-500'} />
-                        <span className="text-[9px] font-black uppercase text-center truncate w-full">{isRtl ? tmpl.nameAr : tmpl.nameEn}</span>
-                    </button>
-                  ))}
-                  {templates.length === 0 && <p className="col-span-full text-xs text-gray-400 p-2">{isRtl ? 'لا توجد قوالب متاحة' : 'No templates available'}</p>}
-              </div>
-            </div>
-
-            {/* Appearance Settings */}
-            <div className="bg-white dark:bg-gray-950 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 flex flex-col items-center gap-6">
-              <div className="flex bg-gray-50 dark:bg-gray-900 p-1 rounded-2xl border border-gray-100 dark:border-gray-800 shrink-0 w-full sm:w-auto">
-                  <button onClick={() => handleChange('themeType', 'color')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'color' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
-                    <Palette size={16} /> {isRtl ? 'لون' : 'Color'}
-                  </button>
-                  <button onClick={() => handleChange('themeType', 'gradient')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'gradient' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
-                    <Sparkles size={16} /> {isRtl ? 'تدرج' : 'Grad'}
-                  </button>
-                  <button onClick={() => handleChange('themeType', 'image')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'image' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
-                    <ImageIcon size={16} /> {isRtl ? 'صورة' : 'Img'}
-                  </button>
+            <div className="bg-white dark:bg-[#121215] p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-10">
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                    <Layout className="text-blue-600" size={20} />
+                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'اختر قالب التصميم' : 'Select Layout Template'}</h4>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {templates.map(tmpl => (
+                      <button 
+                        key={tmpl.id} 
+                        onClick={() => handleChange('templateId', tmpl.id)} 
+                        className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 group ${formData.templateId === tmpl.id ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}
+                      >
+                          <Layout size={18} className={formData.templateId === tmpl.id ? 'text-white' : 'group-hover:text-blue-500'} />
+                          <span className="text-[9px] font-black uppercase text-center truncate w-full">{isRtl ? tmpl.nameAr : tmpl.nameEn}</span>
+                      </button>
+                    ))}
+                </div>
               </div>
 
-              <div className="w-full flex flex-col items-center gap-6">
-                  {formData.themeType === 'color' && (
-                    <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 max-w-lg">
-                      {THEME_COLORS.map(color => (
-                        <button key={color} onClick={() => handleChange('themeColor', color)} className="w-9 h-9 md:w-10 md:h-10 rounded-full shadow-md relative transition-transform hover:scale-110 active:scale-90" style={{ backgroundColor: color }}>
-                          {formData.themeColor === color && <div className="absolute -inset-1.5 border-2 border-blue-600 rounded-full" />}
+              <div className="pt-8 border-t border-gray-50 dark:border-gray-800 space-y-8">
+                 <div className="flex items-center gap-3">
+                    <Palette className="text-blue-600" size={20} />
+                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'المظهر والألوان' : 'Appearance & Colors'}</h4>
+                 </div>
+                 
+                 <div className="flex flex-col items-center gap-6">
+                    <div className="flex bg-gray-50 dark:bg-gray-900 p-1 rounded-2xl border border-gray-100 dark:border-gray-800 shrink-0 w-full sm:w-auto">
+                        <button onClick={() => handleChange('themeType', 'color')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'color' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
+                          <Palette size={16} /> {isRtl ? 'لون' : 'Color'}
                         </button>
-                      ))}
-                      
-                      {/* Custom Color Selector Inline */}
-                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 ml-1">
-                         <div className="relative">
-                            <button 
-                              onClick={() => colorInputRef.current?.click()}
-                              className="w-9 h-9 rounded-full shadow-sm border-2 border-white dark:border-gray-700 flex items-center justify-center bg-white dark:bg-gray-800 overflow-hidden"
-                              style={{ backgroundColor: !THEME_COLORS.includes(formData.themeColor) ? formData.themeColor : undefined }}
-                            >
-                               <Pipette size={14} className={!THEME_COLORS.includes(formData.themeColor) ? 'text-white mix-blend-difference' : 'text-gray-400'} />
-                               <input 
-                                 type="color" ref={colorInputRef} 
-                                 onChange={(e) => handleChange('themeColor', e.target.value)} 
-                                 className="absolute opacity-0 inset-0 cursor-pointer" 
-                               />
-                            </button>
+                        <button onClick={() => handleChange('themeType', 'gradient')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'gradient' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
+                          <Sparkles size={16} /> {isRtl ? 'تدرج' : 'Grad'}
+                        </button>
+                        <button onClick={() => handleChange('themeType', 'image')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'image' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
+                          <ImageIcon size={16} /> {isRtl ? 'صورة' : 'Img'}
+                        </button>
+                    </div>
+
+                    <div className="w-full">
+                       {formData.themeType === 'color' && (
+                         <div className="flex flex-wrap items-center justify-center gap-4 py-4 animate-fade-in">
+                           {THEME_COLORS.map(c => (
+                             <button key={c} onClick={() => handleChange('themeColor', c)} className="w-10 h-10 rounded-full shadow-md relative transition-transform hover:scale-110" style={{ backgroundColor: c }}>
+                               {formData.themeColor === c && <div className="absolute -inset-1.5 border-2 border-blue-600 rounded-full" />}
+                             </button>
+                           ))}
+                           <div className="relative">
+                              <button onClick={() => colorInputRef.current?.click()} className="w-10 h-10 rounded-full border border-dashed border-gray-300 flex items-center justify-center bg-white dark:bg-gray-900" style={{ backgroundColor: !THEME_COLORS.includes(formData.themeColor) ? formData.themeColor : undefined }}>
+                                 <Pipette size={16} className="text-gray-400" />
+                                 <input type="color" ref={colorInputRef} className="absolute inset-0 opacity-0 cursor-pointer" />
+                              </button>
+                           </div>
                          </div>
-                         <input 
-                            type="text" 
-                            value={formData.themeColor} 
-                            onChange={(e) => handleChange('themeColor', e.target.value)} 
-                            className="bg-transparent border-none p-0 text-[10px] font-black text-blue-600 focus:ring-0 uppercase w-16" 
-                          />
-                      </div>
+                       )}
+                       {formData.themeType === 'gradient' && (
+                         <div className="flex flex-wrap items-center justify-center gap-4 py-4 animate-fade-in">
+                           {THEME_GRADIENTS.map((g, i) => (
+                             <button key={i} onClick={() => handleChange('themeGradient', g)} className="w-10 h-10 rounded-full shadow-md relative transition-transform hover:scale-110" style={{ background: g }}>
+                               {formData.themeGradient === g && <div className="absolute -inset-1.5 border-2 border-blue-600 rounded-full" />}
+                             </button>
+                           ))}
+                         </div>
+                       )}
+                       {formData.themeType === 'image' && (
+                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md mx-auto py-4 animate-fade-in">
+                             <button onClick={() => bgFileInputRef.current?.click()} className="flex-1 py-4 px-6 bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl text-[10px] font-black uppercase text-blue-600 flex items-center justify-center gap-3">
+                                {isUploadingBg ? <Loader2 className="animate-spin" size={16}/> : <UploadCloud size={16}/>} {t('رفع خلفية مخصصة', 'Upload Custom Background')}
+                             </button>
+                             <input type="file" ref={bgFileInputRef} onChange={handleBgFileUpload} className="hidden" accept="image/*" />
+                          </div>
+                       )}
                     </div>
-                  )}
-                  {formData.themeType === 'gradient' && (
-                    <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 max-w-lg">
-                      {THEME_GRADIENTS.map((grad, i) => (
-                        <button key={i} onClick={() => handleChange('themeGradient', grad)} className="w-9 h-9 md:w-10 md:h-10 rounded-full shadow-md relative transition-transform hover:scale-110 active:scale-90" style={{ background: grad }}>
-                          {formData.themeGradient === grad && <div className="absolute -inset-1.5 border-2 border-blue-600 rounded-full" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {formData.themeType === 'image' && (
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
-                        <input type="file" ref={bgFileInputRef} onChange={handleBgFileUpload} className="hidden" />
-                        <button onClick={() => bgFileInputRef.current?.click()} className="whitespace-nowrap px-6 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-[10px] font-black uppercase text-blue-600 flex items-center gap-2">
-                          {isUploadingBg ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={16} />} {isRtl ? 'رفع خلفية' : 'Upload BG'}
-                        </button>
-                        <input type="url" value={formData.backgroundImage} onChange={e => handleChange('backgroundImage', e.target.value)} placeholder="URL..." className={`${inputClasses} !py-3 !text-[11px] flex-1`} />
-                    </div>
-                  )}
 
-                  {/* Dark mode toggle - Bottom Centered */}
-                  <div className="pt-2">
-                    <button onClick={() => handleChange('isDark', !formData.isDark)} className={`p-4 rounded-2xl transition-all shadow-md flex items-center gap-3 ${formData.isDark ? 'bg-gray-900 text-yellow-400 border border-gray-700' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
+                    <button onClick={() => handleChange('isDark', !formData.isDark)} className={`p-4 px-8 rounded-2xl transition-all shadow-md flex items-center gap-3 ${formData.isDark ? 'bg-gray-900 text-yellow-400 border border-gray-700' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
                         {formData.isDark ? <Moon size={20}/> : <Sun size={20}/>}
                         <span className="text-[10px] font-black uppercase tracking-widest">{formData.isDark ? (isRtl ? 'ليلي' : 'Dark') : (isRtl ? 'نهاري' : 'Light')}</span>
                     </button>
-                  </div>
+                 </div>
+              </div>
+
+              <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3 mb-6">
+                    <TypographyIcon className="text-blue-600" size={20} />
+                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'تخصيص ألوان النصوص' : 'Custom Text Colors'}</h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <ColorPickerField label={t('اسم المستخدم', 'Name')} field="nameColor" value={formData.nameColor} />
+                    <ColorPickerField label={t('المسمى الوظيفي', 'Title')} field="titleColor" value={formData.titleColor} />
+                    <ColorPickerField label={t('الروابط', 'Links')} field="linksColor" value={formData.linksColor} />
+                    <ColorPickerField label={t('نص النبذة', 'Bio Text')} field="bioTextColor" value={formData.bioTextColor} />
+                    <ColorPickerField label={t('خلفية النبذة', 'Bio Bg')} field="bioBgColor" value={formData.bioBgColor} />
+                </div>
               </div>
             </div>
 
-            {/* Save Button */}
-            <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-blue-500/30 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4">
+            <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black text-xl shadow-2xl shadow-blue-500/30 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4">
               <Save size={24} />
               {t('saveChanges')}
             </button>
           </div>
         </div>
 
-        {/* Live Preview Sidebar */}
         <div className="hidden lg:block w-[360px] sticky top-12 self-start animate-fade-in">
           <div className="p-4 bg-white dark:bg-gray-900 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] scale-[0.95] origin-top">
             <div className="mb-4 px-6 flex items-center gap-3">

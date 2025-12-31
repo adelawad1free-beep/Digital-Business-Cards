@@ -64,7 +64,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
               key={tmpl.id} 
               className="group flex flex-col transition-all duration-500"
             >
-              {/* Card Preview Container - Simplified & Clean */}
+              {/* Card Preview Container */}
               <div className={`relative aspect-[9/16] w-full bg-gray-50 dark:bg-[#0f0f12] rounded-[3rem] border-2 shadow-sm overflow-hidden mb-6 group-hover:shadow-[0_40px_100px_-20px_rgba(59,130,246,0.3)] group-hover:-translate-y-2 transition-all duration-500 ${tmpl.isFeatured ? 'border-amber-400/50' : 'border-gray-100 dark:border-gray-800'}`}>
                 
                 {/* Featured Badge */}
@@ -78,7 +78,24 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
                 <div className="absolute inset-0 p-4 flex items-center justify-center overflow-hidden">
                    <div className="w-full h-full scale-[0.85] origin-top pointer-events-none">
                       <CardPreview 
-                        data={{ ...sampleCardData, templateId: tmpl.id }} 
+                        data={{ 
+                          ...sampleCardData, 
+                          templateId: tmpl.id,
+                          // تحديث البيانات لتطابق إعدادات القالب
+                          themeType: tmpl.config.defaultThemeType || sampleCardData.themeType,
+                          themeColor: tmpl.config.defaultThemeColor || sampleCardData.themeColor,
+                          themeGradient: tmpl.config.defaultThemeGradient || sampleCardData.themeGradient,
+                          backgroundImage: tmpl.config.defaultBackgroundImage || sampleCardData.backgroundImage,
+                          // Fix: Added defaultProfileImage override from template in gallery preview
+                          profileImage: tmpl.config.defaultProfileImage || sampleCardData.profileImage || '',
+                          isDark: tmpl.config.defaultIsDark ?? sampleCardData.isDark,
+                          // ألوان النصوص الافتراضية
+                          nameColor: tmpl.config.nameColor,
+                          titleColor: tmpl.config.titleColor,
+                          bioTextColor: tmpl.config.bioTextColor,
+                          bioBgColor: tmpl.config.bioBgColor,
+                          linksColor: tmpl.config.linksColor
+                        }} 
                         lang={lang} 
                         customConfig={tmpl.config}
                       />

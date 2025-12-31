@@ -9,9 +9,8 @@ export interface SocialLink {
 
 export type ThemeType = 'color' | 'gradient' | 'image';
 
-// إعدادات القالب الديناميكي المتقدمة مع دعم السمات المدمجة
 export interface TemplateConfig {
-  headerType: 'classic' | 'split' | 'overlay' | 'minimal';
+  headerType: 'classic' | 'split' | 'overlay' | 'hero' | 'minimal';
   headerHeight: number;
   avatarStyle: 'circle' | 'squircle' | 'none';
   avatarSize: number;
@@ -30,11 +29,18 @@ export interface TemplateConfig {
   nameSize: number;
   bioSize: number;
   
-  // سمات القالب الافتراضية (جديد)
+  nameColor?: string;
+  titleColor?: string;
+  bioTextColor?: string;
+  bioBgColor?: string;
+  linksColor?: string;
+  
   defaultThemeType?: ThemeType;
   defaultThemeColor?: string;
   defaultThemeGradient?: string;
   defaultBackgroundImage?: string;
+  // Fix: Added missing defaultProfileImage property to TemplateConfig interface
+  defaultProfileImage?: string;
   defaultIsDark?: boolean;
   
   customCss?: string;
@@ -76,6 +82,12 @@ export interface CardData {
   socialLinks: SocialLink[];
   ownerId?: string;
   updatedAt?: string;
+
+  nameColor?: string;
+  titleColor?: string;
+  bioTextColor?: string;
+  bioBgColor?: string;
+  linksColor?: string;
 }
 
 export interface TranslationStrings {
