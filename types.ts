@@ -9,7 +9,7 @@ export interface SocialLink {
 
 export type ThemeType = 'color' | 'gradient' | 'image';
 
-// إعدادات القالب الديناميكي المتقدمة
+// إعدادات القالب الديناميكي المتقدمة مع دعم السمات المدمجة
 export interface TemplateConfig {
   headerType: 'classic' | 'split' | 'overlay' | 'minimal';
   headerHeight: number;
@@ -19,8 +19,8 @@ export interface TemplateConfig {
   avatarOffsetX: number;
   nameOffsetY: number;
   bioOffsetY: number;
-  emailOffsetY: number; // جديد: تحريك البريد
-  websiteOffsetY: number; // جديد: تحريك الموقع
+  emailOffsetY: number;
+  websiteOffsetY: number;
   contactButtonsOffsetY: number;
   socialLinksOffsetY: number;
   contentAlign: 'start' | 'center' | 'end';
@@ -28,7 +28,15 @@ export interface TemplateConfig {
   animations: 'none' | 'fade' | 'slide' | 'bounce';
   spacing: 'compact' | 'normal' | 'relaxed';
   nameSize: number;
-  bioSize: number; // جديد: حجم خط النبذة
+  bioSize: number;
+  
+  // سمات القالب الافتراضية (جديد)
+  defaultThemeType?: ThemeType;
+  defaultThemeColor?: string;
+  defaultThemeGradient?: string;
+  defaultBackgroundImage?: string;
+  defaultIsDark?: boolean;
+  
   customCss?: string;
 }
 
@@ -40,8 +48,8 @@ export interface CustomTemplate {
   descEn: string;
   config: TemplateConfig;
   isActive: boolean;
-  isFeatured: boolean; // جديد: تمييز القالب
-  order: number; // جديد: ترتيب العرض
+  isFeatured: boolean;
+  order: number;
   createdAt: string;
   updatedAt?: string;
 }

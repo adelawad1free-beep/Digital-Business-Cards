@@ -46,6 +46,20 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
     const fetchTmpl = async () => {
       const data = await getAllTemplates();
       setTemplates(data as CustomTemplate[]);
+      
+      // التعديل الأساسي: إذا كانت البطاقة جديدة، نطبق سمات القالب المختار فوراً
+      const selectedTmpl = data.find(t => t.id === formData.templateId);
+      if (selectedTmpl && (!initialData?.ownerId)) {
+        setFormData(prev => ({
+          ...prev,
+          themeType: selectedTmpl.config.defaultThemeType || prev.themeType,
+          themeColor: selectedTmpl.config.defaultThemeColor || prev.themeColor,
+          themeGradient: selectedTmpl.config.defaultThemeGradient || prev.themeGradient,
+          backgroundImage: selectedTmpl.config.defaultBackgroundImage || prev.backgroundImage,
+          isDark: selectedTmpl.config.defaultIsDark ?? prev.isDark
+        }));
+      }
+
       if (data.length > 0 && (!formData.templateId || !data.find(t => t.id === formData.templateId))) {
         handleChange('templateId', data[0].id);
       }
@@ -64,6 +78,24 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
       value = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
       setSlugStatus('idle');
     }
+
+    // مزامنة السمات عند تغيير القالب يدوياً من داخل المحرر
+    if (field === 'templateId') {
+      const newTmpl = templates.find(t => t.id === value);
+      if (newTmpl) {
+        setFormData(prev => ({
+          ...prev,
+          templateId: value,
+          themeType: newTmpl.config.defaultThemeType || prev.themeType,
+          themeColor: newTmpl.config.defaultThemeColor || prev.themeColor,
+          themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
+          backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
+          isDark: newTmpl.config.defaultIsDark ?? prev.isDark
+        }));
+        return;
+      }
+    }
+
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -212,10 +244,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit 
               <div className="bg-gray-50/50 dark:bg-gray-900/20 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 space-y-4">
                   <h4 className="text-[11px] font-black uppercase text-gray-500 flex items-center gap-2 mb-3"><Phone size={16} /> {isRtl ? 'بيانات التواصل' : 'Contact Details'}</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="relative"><Mail className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Email" /></div>
-                    <div className="relative"><Phone className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Phone" /></div>
-                    <div className="relative"><MessageCircle className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="tel" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="WhatsApp" /></div>
-                    <div className="relative"><Globe className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Website" /></div>
+                    <div className="relative"><Mail className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Email" /></div>
+                    <div className="relative"><Phone className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Phone" /></div>
+                    <div className="relative"><MessageCircle className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="tel" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="WhatsApp" /></div>
+                    <div className="relative"><Globe className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={14} /><input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-10' : 'pl-10'}`} placeholder="Website" /></div>
                   </div>
               </div>
 

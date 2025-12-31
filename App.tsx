@@ -50,13 +50,18 @@ const App: React.FC = () => {
   const isRtl = LANGUAGES_CONFIG[lang].dir === 'rtl';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
 
-  const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
+  // دالة ترجمة ذكية تدعم كافة اللغات
+  const t = (key: string) => {
+    if (!TRANSLATIONS[key]) return key;
+    return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
+  };
 
   useEffect(() => {
     const root = window.document.documentElement;
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
     root.dir = LANGUAGES_CONFIG[lang].dir;
     root.lang = lang;
+    localStorage.setItem('preferred_lang', lang);
   }, [isDarkMode, lang]);
 
   useEffect(() => {
@@ -231,7 +236,6 @@ const App: React.FC = () => {
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
-      {/* Footer / Copyright Section */}
       <footer className="w-full py-10 mt-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-4 text-center">
           <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">

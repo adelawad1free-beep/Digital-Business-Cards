@@ -1,7 +1,7 @@
 
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera } from 'lucide-react';
 import React from 'react';
 import { CardData, Language, TemplateConfig } from '../types';
-import { Mail, Phone, Globe, MapPin, MessageCircle, User, UserPlus, ExternalLink, Zap, Star, ShieldCheck, Heart } from 'lucide-react';
 import { TRANSLATIONS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
 import SocialIcon from './SocialIcon';
@@ -14,21 +14,25 @@ interface CardPreviewProps {
 
 const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) => {
   const isRtl = lang === 'ar';
-  const isDark = data.isDark;
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
-  const config = customConfig;
+  // استخدام سمات القالب إذا لم يقم المستخدم بتخصيصها، أو إذا كان القالب يفرض هوية معينة
+  const themeType = customConfig?.defaultThemeType || data.themeType;
+  const themeColor = customConfig?.defaultThemeColor || data.themeColor;
+  const themeGradient = customConfig?.defaultThemeGradient || data.themeGradient;
+  const backgroundImage = customConfig?.defaultBackgroundImage || data.backgroundImage;
+  const isDark = customConfig?.defaultIsDark !== undefined ? customConfig.defaultIsDark : data.isDark;
 
   const getThemeStyles = () => {
-    if (data.themeType === 'image' && data.backgroundImage) return { backgroundImage: `url(${data.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' };
-    if (data.themeType === 'gradient') return { background: data.themeGradient };
-    return { backgroundColor: data.themeColor };
+    if (themeType === 'image' && backgroundImage) return { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+    if (themeType === 'gradient') return { background: themeGradient };
+    return { backgroundColor: themeColor };
   };
 
-  const getThemeColor = () => data.themeType === 'gradient' ? { background: data.themeGradient } : { backgroundColor: data.themeColor };
+  const getAccentBackground = () => themeType === 'gradient' ? { background: themeGradient } : { backgroundColor: themeColor };
 
   const ProfileImage = ({ size = 128, circle = false, squircle = false, offsetY = 0, offsetX = 0 }) => {
-    const accentColor = data.themeType === 'color' ? data.themeColor : (data.themeType === 'gradient' ? data.themeColor : '#3b82f6');
+    const accentColor = themeColor || '#3b82f6';
     const borderRadius = circle ? 'rounded-full' : (squircle ? 'rounded-[20%]' : 'rounded-[25%]');
     
     return (
@@ -44,11 +48,11 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
           className="absolute inset-[-100%] animate-[spin_5s_linear_infinite] opacity-40 group-hover:opacity-100 transition-all duration-700"
           style={{ background: `conic-gradient(from 0deg, transparent, ${accentColor}, transparent 30%, ${accentColor}, transparent)` }}
         />
-        <div className={`relative w-full h-full ${borderRadius} overflow-hidden bg-white dark:bg-gray-950 z-10 flex items-center justify-center`}>
+        <div className={`relative w-full h-full ${borderRadius} overflow-hidden bg-gray-100 dark:bg-gray-800 z-10 flex items-center justify-center`}>
           {data.profileImage ? (
             <img src={data.profileImage} className="w-full h-full object-cover scale-[1.01]" alt={data.name} />
           ) : (
-            <User className="w-full h-full p-6 text-gray-300" />
+            <Camera className="w-1/2 h-1/2 text-gray-400 opacity-40" />
           )}
         </div>
       </div>
@@ -65,7 +69,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
         style={{ transform: `translateY(${offsetY}px)` }}
       >
         {data.phone && (
-          <a href={`tel:${data.phone}`} className={`flex items-center justify-center gap-2 font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-[10px] uppercase ${compact ? 'py-3' : 'py-4'} ${radius} ${bg} ${style !== 'glass' ? 'text-white' : ''}`} style={style !== 'glass' ? getThemeColor() : {}}>
+          <a href={`tel:${data.phone}`} className={`flex items-center justify-center gap-2 font-black shadow-lg transition-all hover:scale-[1.02] active:scale-95 text-[10px] uppercase ${compact ? 'py-3' : 'py-4'} ${radius} ${bg} ${style !== 'glass' ? 'text-white' : ''}`} style={style !== 'glass' ? getAccentBackground() : {}}>
             <Phone size={compact ? 14 : 16} /> <span>{t('call')}</span>
           </a>
         )}
@@ -97,7 +101,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
 
     return (
       <div className={`flex flex-col h-full min-h-[600px] ${spacingClass}`}>
-        {/* Header with Dynamic Height */}
         {cfg.headerType !== 'minimal' && (
            <div 
              className="w-full relative shrink-0" 
@@ -131,24 +134,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
               <p className="font-medium leading-relaxed opacity-70 italic text-center" style={{ fontSize: `${cfg.bioSize || 12}px` }}>"{data.bio}"</p>
            </div>
 
-           {/* Email and Website Rendering */}
            <div className={`w-full flex flex-col gap-2 mt-4 ${alignClass}`}>
               {data.email && (
-                <a 
-                  href={`mailto:${data.email}`} 
-                  className="flex items-center gap-2 text-[11px] font-black text-blue-500 hover:underline"
-                  style={{ transform: `translateY(${cfg.emailOffsetY || 0}px)` }}
-                >
+                <a href={`mailto:${data.email}`} className="flex items-center gap-2 text-[11px] font-black text-blue-500" style={{ transform: `translateY(${cfg.emailOffsetY || 0}px)` }}>
                   <Mail size={14} /> {data.email}
                 </a>
               )}
               {data.website && (
-                <a 
-                  href={data.website.startsWith('http') ? data.website : `https://${data.website}`} 
-                  target="_blank" 
-                  className="flex items-center gap-2 text-[11px] font-black text-gray-500 hover:underline"
-                  style={{ transform: `translateY(${cfg.websiteOffsetY || 0}px)` }}
-                >
+                <a href={data.website.startsWith('http') ? data.website : `https://${data.website}`} target="_blank" className="flex items-center gap-2 text-[11px] font-black text-gray-500" style={{ transform: `translateY(${cfg.websiteOffsetY || 0}px)` }}>
                   <Globe size={14} /> {data.website.replace(/(^\w+:|^)\/\//, '')}
                 </a>
               )}
@@ -164,35 +157,28 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig }) =
     );
   };
 
-  const renderTemplate = () => {
-    if (config) return renderCustomTemplate(config);
-
-    // Default template rendering...
-    return (
-      <div className="flex flex-col h-full">
-        <div className="h-48 w-full relative overflow-hidden" style={getThemeStyles()} />
-        <div className="relative px-8 -mt-24 text-center z-10 pb-12">
-          <ProfileImage />
-          <div className="mt-8 space-y-2">
-            <h2 className="text-3xl font-black truncate dark:text-white">{data.name}</h2>
-            <p className={`font-black text-[11px] tracking-[0.2em] uppercase text-blue-600`}>{data.title}</p>
-          </div>
-          <div className={`mt-8 p-6 rounded-[2.5rem] border ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-            <p className="text-sm font-medium leading-relaxed opacity-80 italic">"{data.bio}"</p>
-          </div>
-          <ContactButtons grid />
-          <button onClick={() => downloadVCard(data)} className="w-full mt-4 py-5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center justify-center gap-3">
-             <UserPlus size={18} /> {t('saveContact')}
-          </button>
-          <SocialLinks />
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className={`w-full max-w-sm mx-auto rounded-[3.5rem] shadow-[0_35px_80px_-15px_rgba(0,0,0,0.3)] overflow-hidden border-4 transition-all duration-500 transform hover:scale-[1.01] ${isDark ? 'bg-gray-950 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-900'} ${isRtl ? 'rtl' : 'ltr'}`}>
-      {renderTemplate()}
+      {customConfig ? renderCustomTemplate(customConfig) : (
+        <div className="flex flex-col h-full">
+          <div className="h-48 w-full relative overflow-hidden" style={getThemeStyles()} />
+          <div className="relative px-8 -mt-24 text-center z-10 pb-12">
+            <ProfileImage />
+            <div className="mt-8 space-y-2">
+              <h2 className="text-3xl font-black truncate dark:text-white">{data.name}</h2>
+              <p className="font-black text-[11px] tracking-[0.2em] uppercase text-blue-600">{data.title}</p>
+            </div>
+            <div className={`mt-8 p-6 rounded-[2.5rem] border ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+              <p className="text-sm font-medium leading-relaxed opacity-80 italic">"{data.bio}"</p>
+            </div>
+            <ContactButtons grid />
+            <button onClick={() => downloadVCard(data)} className="w-full mt-4 py-5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center justify-center gap-3">
+               <UserPlus size={18} /> {t('saveContact')}
+            </button>
+            <SocialLinks />
+          </div>
+        </div>
+      )}
       <div className="pb-6"></div>
     </div>
   );
