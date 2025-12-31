@@ -14,7 +14,7 @@ import AuthModal from './components/AuthModal';
 import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, Home as HomeIcon, ExternalLink, User as UserIcon, Mail } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, Home as HomeIcon, ExternalLink, User as UserIcon, Mail, Coffee, Heart } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -236,18 +236,43 @@ const App: React.FC = () => {
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
-      <footer className="w-full py-10 mt-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-4 text-center">
-          <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-            {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}
-            <span className="mx-2 opacity-30">|</span>
-            <a href="mailto:info@nextid.my" className="flex items-center gap-1.5 text-blue-600 dark:text-blue-500 hover:underline">
-              <Mail size={12} />
-              info@nextid.my
-            </a>
+      <footer className="w-full pt-16 pb-10 mt-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
+          
+          {/* Buy Me a Coffee Section in Footer */}
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 p-8 rounded-[3rem] border border-amber-100 dark:border-amber-900/20 max-w-xl w-full flex flex-col sm:flex-row items-center justify-between gap-6 group transition-all hover:shadow-xl">
+             <div className="flex items-center gap-4 text-start">
+                <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                   <Coffee size={28} />
+                </div>
+                <div>
+                   <h4 className="font-black dark:text-white">{t('buyMeCoffee')}</h4>
+                   <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t('supportProject')}</p>
+                </div>
+             </div>
+             <a 
+               href="https://buymeacoffee.com/guidai" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="px-8 py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+             >
+                <Heart size={16} fill="white" />
+                {t('buyMeCoffee')}
+             </a>
           </div>
-          <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
-            {isRtl ? 'بواسطة هويتي الرقمية' : 'By My Digital Identity'}
+
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+              {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}
+              <span className="mx-2 opacity-30">|</span>
+              <a href="mailto:info@nextid.my" className="flex items-center gap-1.5 text-blue-600 dark:text-blue-500 hover:underline">
+                <Mail size={12} />
+                info@nextid.my
+              </a>
+            </div>
+            <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
+              {isRtl ? 'بواسطة هويتي الرقمية' : 'By My Digital Identity'}
+            </div>
           </div>
         </div>
       </footer>
