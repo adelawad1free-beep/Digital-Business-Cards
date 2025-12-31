@@ -81,15 +81,12 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
                         data={{ 
                           ...sampleCardData, 
                           templateId: tmpl.id,
-                          // تحديث البيانات لتطابق إعدادات القالب
                           themeType: tmpl.config.defaultThemeType || sampleCardData.themeType,
                           themeColor: tmpl.config.defaultThemeColor || sampleCardData.themeColor,
                           themeGradient: tmpl.config.defaultThemeGradient || sampleCardData.themeGradient,
                           backgroundImage: tmpl.config.defaultBackgroundImage || sampleCardData.backgroundImage,
-                          // Fix: Added defaultProfileImage override from template in gallery preview
                           profileImage: tmpl.config.defaultProfileImage || sampleCardData.profileImage || '',
                           isDark: tmpl.config.defaultIsDark ?? sampleCardData.isDark,
-                          // ألوان النصوص الافتراضية
                           nameColor: tmpl.config.nameColor,
                           titleColor: tmpl.config.titleColor,
                           bioTextColor: tmpl.config.bioTextColor,
@@ -98,6 +95,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
                         }} 
                         lang={lang} 
                         customConfig={tmpl.config}
+                        hideSaveButton={true} // إخفاء الزر في المعرض
                       />
                    </div>
                 </div>

@@ -419,6 +419,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                       }} 
                       lang={lang} 
                       customConfig={template.config} 
+                      hideSaveButton={true} // إخفاء الزر في معاينة المنشئ
                    />
                 </div>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/20 rounded-full"></div>

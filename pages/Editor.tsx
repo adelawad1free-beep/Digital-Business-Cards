@@ -402,7 +402,12 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة مباشرة' : 'Live Preview'}</span>
             </div>
             <div className="rounded-[3rem] overflow-hidden border border-gray-50 dark:border-gray-800">
-                <CardPreview data={formData} lang={lang} customConfig={currentTemplate?.config} />
+                <CardPreview 
+                  data={formData} 
+                  lang={lang} 
+                  customConfig={currentTemplate?.config} 
+                  hideSaveButton={true} // إخفاء الزر في معاينة المحرر
+                />
             </div>
           </div>
         </div>

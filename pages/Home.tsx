@@ -42,7 +42,7 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
     ],
     ja: [
       "デジタルアイデンティティ", "スマート名刺", "NFC技術", "QRコードネットワーキング", 
-      "プロフェッショナルプロフィール", "バーチャル名刺", "パーソナルブランディング"
+      "プロフェッショナルプロフィール", "バーチャل名刺", "パーソナルブランディング"
     ],
     pt: [
       "IDENTIDADE DIGITAL", "CARTÕES DE VISITA INTELIGENTES", "TECNOLOGIA NFC", "NETWORKING QR CODE", 
@@ -53,7 +53,7 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
       "ПРОФЕССИОНАЛЬНЫЕ ПРОФИЛИ", "ВИРТУАЛЬНЫЕ КАРТЫ", "ПЕРСОНАЛЬНЫЙ БРЕНДИНГ"
     ],
     hi: [
-      "डिजिटल पहचान", "स्मार्ट बिजनेस कार्ड", "एनएफसी तकनीक", "क्यूआर कोड नेटवर्किंग", 
+      "डिजिटल पहचान", "स्मارت बिजनेस कार्ड", "एनएफसी तकनीक", "क्यूआर कोड नेटवर्किंग", 
       "प्रोफेशनल प्रोफाइल", "वर्चुअल बिजनेस कार्ड", "पर्सनल ब्रांडिंग"
     ]
   };
@@ -73,12 +73,12 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
   };
 
   return (
-    <div className={`min-h-[85vh] flex flex-col items-center justify-between bg-transparent ${isRtl ? 'rtl' : 'ltr'}`}>
+    <main className={`min-h-[85vh] flex flex-col items-center justify-between bg-transparent ${isRtl ? 'rtl' : 'ltr'}`}>
       {/* Hero Section */}
-      <div className="max-w-4xl mx-auto px-6 text-center animate-fade-in-up mt-12 md:mt-20">
+      <section className="max-w-4xl mx-auto px-6 text-center animate-fade-in-up mt-12 md:mt-20">
         <div className="inline-flex items-center px-5 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-sm font-bold mb-12 shadow-sm border border-blue-100 dark:border-blue-800/30">
           <span className={isRtl ? 'order-2' : 'order-1'}>{t('heroBadge')}</span>
-          <Sparkles size={16} className={`${isRtl ? 'mr-2 order-1' : 'ml-2 order-2'}`} />
+          <Sparkles size={16} className={`${isRtl ? 'mr-2 order-1' : 'ml-2 order-2'}`} aria-hidden="true" />
         </div>
 
         <h1 className="text-4xl md:text-[5.5rem] font-black text-[#1e293b] dark:text-white mb-8 tracking-tight leading-[1.1] md:leading-[1.1]">
@@ -87,9 +87,9 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
           </span>
         </h1>
 
-        <p className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-16 leading-relaxed font-medium">
+        <h2 className="text-xl md:text-2xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-16 leading-relaxed font-medium">
           {t('heroDesc')}
-        </p>
+        </h2>
 
         <div className="flex justify-center items-center mb-24">
           <button 
@@ -99,14 +99,14 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
             {t('createBtn')}
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* SEO Keywords Block (Optimized for Search Engines) */}
-      <div className="w-full max-w-6xl mx-auto px-6 py-12 border-t border-gray-100 dark:border-gray-800/50 mt-auto">
+      {/* SEO Keywords Block */}
+      <footer className="w-full max-w-6xl mx-auto px-6 py-12 border-t border-gray-100 dark:border-gray-800/50 mt-auto">
         <div className="flex flex-col items-center gap-6">
-          <h5 className="text-[10px] md:text-[11px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] text-center">
+          <h3 className="text-[10px] md:text-[11px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] text-center">
             {seoHeader[lang] || seoHeader['en']}
-          </h5>
+          </h3>
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 max-w-5xl opacity-50 dark:opacity-40">
             {currentKeywords.map((keyword, index) => (
               <React.Fragment key={index}>
@@ -114,14 +114,14 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
                   {keyword}
                 </span>
                 {index < currentKeywords.length - 1 && (
-                  <span className="text-gray-200 dark:text-gray-800 select-none">•</span>
+                  <span className="text-gray-200 dark:text-gray-800 select-none" aria-hidden="true">•</span>
                 )}
               </React.Fragment>
             ))}
           </div>
         </div>
-      </div>
-    </div>
+      </footer>
+    </main>
   );
 };
 
