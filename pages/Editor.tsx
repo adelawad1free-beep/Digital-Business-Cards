@@ -23,9 +23,10 @@ interface EditorProps {
   initialData?: CardData;
   isAdminEdit?: boolean;
   templates: CustomTemplate[];
+  forcedTemplateId?: string; // خاصية جديدة لاستلام القالب المختار من المعرض
 }
 
-const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates }) => {
+const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates, forcedTemplateId }) => {
   const isRtl = lang === 'ar';
   const t = (key: string, fallback?: string) => {
     if (fallback && !TRANSLATIONS[key]) return isRtl ? key : fallback;
@@ -40,33 +41,38 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   const [formData, setFormData] = useState<CardData>(() => {
-    const data = initialData || {
+    // تحديد القالب الابتدائي: إما من البيانات السابقة، أو المختار من المعرض، أو الأول في القائمة
+    const targetTemplateId = initialData?.templateId || forcedTemplateId || templates[0]?.id || 'classic';
+    const selectedTmpl = templates.find(t => t.id === targetTemplateId);
+
+    const baseData = initialData || {
       ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']),
       id: generateSerialId(),
-      templateId: templates[0]?.id || 'classic',
+      templateId: targetTemplateId,
       showQrCode: true,
       showBio: true,
     } as CardData;
 
-    const selectedTmpl = templates.find(t => t.id === data.templateId);
     if (selectedTmpl) {
        return {
-         ...data,
-         themeType: data.themeType || selectedTmpl.config.defaultThemeType || 'gradient',
-         themeColor: data.themeColor || selectedTmpl.config.defaultThemeColor || THEME_COLORS[0],
-         themeGradient: data.themeGradient || selectedTmpl.config.defaultThemeGradient || THEME_GRADIENTS[0],
-         isDark: data.isDark ?? selectedTmpl.config.defaultIsDark ?? false,
-         nameColor: data.nameColor || selectedTmpl.config.nameColor || null,
-         titleColor: data.titleColor || selectedTmpl.config.titleColor || null,
-         bioTextColor: data.bioTextColor || selectedTmpl.config.bioTextColor || null,
-         bioBgColor: data.bioBgColor || selectedTmpl.config.bioBgColor || null,
-         linksColor: data.linksColor || selectedTmpl.config.linksColor || null,
-         qrColor: data.qrColor || selectedTmpl.config.qrColor || null,
-         showBio: data.showBio ?? selectedTmpl.config.showBioByDefault ?? true,
-         showQrCode: data.showQrCode ?? selectedTmpl.config.showQrCodeByDefault ?? true
+         ...baseData,
+         templateId: targetTemplateId,
+         themeType: baseData.themeType || selectedTmpl.config.defaultThemeType || 'gradient',
+         themeColor: baseData.themeColor || selectedTmpl.config.defaultThemeColor || THEME_COLORS[0],
+         themeGradient: baseData.themeGradient || selectedTmpl.config.defaultThemeGradient || THEME_GRADIENTS[0],
+         backgroundImage: baseData.backgroundImage || selectedTmpl.config.defaultBackgroundImage || '',
+         isDark: baseData.isDark ?? selectedTmpl.config.defaultIsDark ?? false,
+         nameColor: baseData.nameColor || selectedTmpl.config.nameColor || null,
+         titleColor: baseData.titleColor || selectedTmpl.config.titleColor || null,
+         bioTextColor: baseData.bioTextColor || selectedTmpl.config.bioTextColor || null,
+         bioBgColor: baseData.bioBgColor || selectedTmpl.config.bioBgColor || null,
+         linksColor: baseData.linksColor || selectedTmpl.config.linksColor || null,
+         qrColor: baseData.qrColor || selectedTmpl.config.qrColor || null,
+         showBio: baseData.showBio ?? selectedTmpl.config.showBioByDefault ?? true,
+         showQrCode: baseData.showQrCode ?? selectedTmpl.config.showQrCodeByDefault ?? true
        } as CardData;
     }
-    return data;
+    return baseData;
   });
 
   const [activeImgTab, setActiveImgTab] = useState<'upload' | 'link'>('upload');
@@ -98,6 +104,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           linksColor: newTmpl.config.linksColor || prev.linksColor,
           qrColor: newTmpl.config.qrColor || prev.qrColor,
           themeType: newTmpl.config.defaultThemeType || prev.themeType,
+          themeColor: newTmpl.config.defaultThemeColor || prev.themeColor,
+          themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
+          backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
           showBio: newTmpl.config.showBioByDefault ?? prev.showBio,
           showQrCode: newTmpl.config.showQrCodeByDefault ?? prev.showQrCode
@@ -122,6 +131,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       themeType: currentTemplate.config.defaultThemeType || prev.themeType,
       themeColor: currentTemplate.config.defaultThemeColor || prev.themeColor,
       themeGradient: currentTemplate.config.defaultThemeGradient || prev.themeGradient,
+      backgroundImage: currentTemplate.config.defaultBackgroundImage || prev.backgroundImage,
       isDark: currentTemplate.config.defaultIsDark ?? prev.isDark,
       showBio: currentTemplate.config.showBioByDefault ?? prev.showBio,
       showQrCode: currentTemplate.config.showQrCodeByDefault ?? prev.showQrCode

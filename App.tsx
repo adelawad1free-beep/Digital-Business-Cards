@@ -27,12 +27,13 @@ const App: React.FC = () => {
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [cardNotFoundError, setCardNotFoundError] = useState(false); // حالة جديدة للتعامل مع الروابط الخاطئة
+  const [cardNotFoundError, setCardNotFoundError] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account' | 'templates'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, ownerId: string } | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   
   const [siteConfig, setSiteConfig] = useState({ 
     siteNameAr: 'هويتي الرقمية', 
@@ -57,21 +58,6 @@ const App: React.FC = () => {
     if (fallback && !TRANSLATIONS[key]) return fallback;
     if (!TRANSLATIONS[key]) return key;
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
-  };
-
-  const updateMetaTags = (title: string, desc: string, image: string, url: string) => {
-    document.title = title;
-    const selectors = {
-      'meta[name="description"]': desc,
-      'meta[property="og:title"]': title,
-      'meta[property="og:description"]': desc,
-      'meta[property="og:image"]': image,
-      'meta[property="og:url"]': url,
-    };
-    Object.entries(selectors).forEach(([selector, content]) => {
-      const el = document.querySelector(selector);
-      if (el) el.setAttribute('content', content);
-    });
   };
 
   useEffect(() => {
@@ -102,11 +88,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const bootstrap = async () => {
-      // 1. تحديد المعرّف من الرابط فوراً
       const params = new URLSearchParams(window.location.search);
       const slug = params.get('u')?.trim().toLowerCase();
 
-      // 2. تحميل الإعدادات الأساسية (دائماً أولاً)
       try {
         const [settings, templates] = await Promise.all([
           getSiteSettings().catch(() => null),
@@ -116,7 +100,6 @@ const App: React.FC = () => {
         if (templates) setCustomTemplates(templates as CustomTemplate[]);
       } catch (e) {}
 
-      // 3. المسار الحرج: إذا كان هناك slug، لا تظهر شيئاً حتى ينتهي البحث
       if (slug) {
         try {
           const card = await getCardBySerial(slug);
@@ -124,9 +107,8 @@ const App: React.FC = () => {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
             setIsInitializing(false);
-            return; // نجاح: تم العثور على البطاقة
+            return;
           } else {
-            // فشل: البطاقة غير موجودة
             setCardNotFoundError(true);
             setIsInitializing(false);
             return;
@@ -138,17 +120,14 @@ const App: React.FC = () => {
         }
       }
 
-      // 4. المسار العادي: التحقق من تسجيل الدخول
       onAuthStateChanged(auth, async (user) => {
         setCurrentUser(user);
         if (user) {
           try {
             const cards = await getUserCards(user.uid);
             setUserCards(cards as CardData[]);
-            setActiveTab('manager');
+            if (activeTab === 'home') setActiveTab('manager');
           } catch (e) {}
-        } else {
-          setActiveTab('home');
         }
         setIsInitializing(false);
       });
@@ -180,7 +159,6 @@ const App: React.FC = () => {
     });
   };
 
-  // شاشة التحميل الأولية
   if (isInitializing) return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[999]">
       <Loader2 className="animate-spin text-blue-600 mb-6" size={64} />
@@ -191,7 +169,6 @@ const App: React.FC = () => {
     </div>
   );
 
-  // شاشة "البطاقة غير موجودة"
   if (cardNotFoundError) return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center transition-colors ${isDarkMode ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
       <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl animate-bounce-in">
@@ -219,13 +196,11 @@ const App: React.FC = () => {
     </div>
   );
   
-  // إذا وجدت البطاقة العامة
   if (publicCard) {
     const customTmpl = customTemplates.find(t => t.id === publicCard.templateId);
     return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} siteIcon={siteConfig.siteIcon} />;
   }
 
-  // الواجهة الرئيسية للتطبيق
   return (
     <div 
       className={`min-h-screen flex flex-col transition-colors duration-300 w-full ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}
@@ -272,7 +247,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-4 md:p-12 pb-32 md:pb-12">
         {activeTab === 'home' && <Home lang={lang} onStart={() => setActiveTab('templates')} />}
-        {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={(id) => { setEditingCard(null); setActiveTab('editor'); }} />}
+        {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={(id) => { setSelectedTemplateId(id); setEditingCard(null); setActiveTab('editor'); }} />}
         {activeTab === 'manager' && (
           <div className="max-w-6xl mx-auto space-y-12 animate-fade-in-up">
             <div className="flex items-center justify-between">
@@ -292,7 +267,7 @@ const App: React.FC = () => {
                         </div>
                      </div>
                      <div className="grid grid-cols-3 gap-4">
-                        <button onClick={() => { setEditingCard(card); setActiveTab('editor'); }} className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex justify-center"><Edit2 size={22} /></button>
+                        <button onClick={() => { setEditingCard(card); setSelectedTemplateId(card.templateId); setActiveTab('editor'); }} className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex justify-center"><Edit2 size={22} /></button>
                         <a href={`?u=${card.id}`} target="_blank" className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all flex justify-center"><ExternalLink size={22} /></a>
                         <button onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || '' })} className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex justify-center"><Trash2 size={22} /></button>
                      </div>
@@ -302,8 +277,18 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} templates={customTemplates} onCancel={() => setActiveTab('manager')} />}
-        {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); setActiveTab('editor'); }} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
+        {activeTab === 'editor' && (
+          <Editor 
+            lang={lang} 
+            onSave={handleSave} 
+            initialData={editingCard || undefined} 
+            isAdminEdit={isAdmin} 
+            templates={customTemplates} 
+            onCancel={() => setActiveTab('manager')}
+            forcedTemplateId={selectedTemplateId || undefined}
+          />
+        )}
+        {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); setSelectedTemplateId(c.templateId); setActiveTab('editor'); }} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
