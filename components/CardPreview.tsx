@@ -30,9 +30,12 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const bioTextColor = data.bioTextColor || customConfig?.bioTextColor || (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)');
   const bioBgColor = data.bioBgColor || customConfig?.bioBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)');
   const linksColor = data.linksColor || customConfig?.linksColor || '#3b82f6';
+  
+  // تحديد لون الـ QR: الأولوية لبيانات البطاقة، ثم القالب، ثم لون السمة
+  const qrColor = (data.qrColor || customConfig?.qrColor || themeColor || '#000000').replace('#', '');
 
   const cardUrl = generateShareUrl(data);
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(cardUrl)}&bgcolor=${isDark ? '111115' : 'ffffff'}&color=${(themeColor || '#3b82f6').replace('#', '')}&margin=2`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(cardUrl)}&bgcolor=${isDark ? '111115' : 'ffffff'}&color=${qrColor}&margin=2`;
 
   const getThemeStyles = () => {
     const opacity = (customConfig?.headerOpacity ?? 100) / 100;

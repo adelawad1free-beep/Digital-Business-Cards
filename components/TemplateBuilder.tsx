@@ -71,6 +71,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       nameSize: 26,
       bioSize: 13,
       qrSize: 90,
+      qrColor: '#2563eb',
       qrOffsetY: 0,
       showQrCodeByDefault: true,
       showBioByDefault: true,
@@ -208,6 +209,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 bioTextColor: template.config.bioTextColor,
                 bioBgColor: template.config.bioBgColor,
                 linksColor: template.config.linksColor,
+                qrColor: template.config.qrColor,
                 showQrCode: template.config.showQrCodeByDefault,
                 showBio: template.config.showBioByDefault
               }} 
@@ -287,7 +289,20 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                       </div>
                     </div>
 
-                    <div className="pt-10 border-t border-gray-50 dark:border-gray-800 space-y-6">
+                    <div className="pt-10 border-t border-gray-50 dark:border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             {template.config.defaultIsDark ? <Moon className="text-blue-600" size={24} /> : <Sun className="text-amber-500" size={24} />}
+                             <h4 className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('الوضع الليلي افتراضياً', 'Default Dark Mode')}</h4>
+                          </div>
+                          <button 
+                            onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)}
+                            className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                          >
+                             <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} />
+                          </button>
+                       </div>
+
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                              <GlassWater className="text-blue-600" size={24} />
@@ -300,16 +315,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.bodyGlassy ? 'right-8' : 'right-1') : (template.config.bodyGlassy ? 'left-8' : 'left-1')}`} />
                           </button>
                        </div>
-                       
-                       {template.config.bodyGlassy && (
-                          <div className="animate-fade-in">
-                             <RangeControl label={t('شفافية المحتوى الأبيض', 'Body White Opacity')} min={0} max={100} value={template.config.bodyOpacity ?? 100} onChange={(v: number) => updateConfig('bodyOpacity', v)} unit="%" icon={Sun} />
-                             <p className="mt-4 text-[9px] font-bold text-gray-400 leading-relaxed uppercase tracking-wider">
-                                {isRtl ? '* يؤثر هذا الخيار على القسم الأبيض الذي يحتوي على اسمك وبياناتك فوق الترويسة.' : '* This affects the white section containing your name and details over the header.'}
-                             </p>
-                          </div>
-                       )}
                     </div>
+
+                    {template.config.bodyGlassy && (
+                      <div className="pt-6 animate-fade-in">
+                          <RangeControl label={t('شفافية المحتوى الأبيض', 'Body White Opacity')} min={0} max={100} value={template.config.bodyOpacity ?? 100} onChange={(v: number) => updateConfig('bodyOpacity', v)} unit="%" icon={Sun} />
+                      </div>
+                    )}
                     
                     <div className="mt-8 pt-10 border-t border-gray-50 dark:border-gray-800 space-y-8">
                        {template.config.defaultThemeType === 'color' && (
@@ -540,9 +552,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.showQrCodeByDefault ? 'right-8' : 'right-1') : (template.config.showQrCodeByDefault ? 'left-8' : 'left-1')}`} />
                        </button>
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 leading-relaxed">
-                       {t('تحكم في كيفية ظهور رمز الـ QR في هذا القالب بشكل افتراضي.', 'Control how the QR code appears in this template by default.')}
-                    </p>
+                    <ColorPicker label={t('اللون الافتراضي للباركود', 'Default QR Color')} value={template.config.qrColor} onChange={(v: string) => updateConfig('qrColor', v)} compact />
                  </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -39,6 +39,7 @@ export interface TemplateConfig {
 
   // خصائص الـ QR الجديدة في القالب
   qrSize?: number;
+  qrColor?: string; // لون الـ QR المخصص
   qrOffsetY?: number;
   showQrCodeByDefault?: boolean;
   showBioByDefault?: boolean; // خاصية جديدة للأدمن
@@ -98,6 +99,7 @@ export interface CardData {
   viewCount?: number;
   socialLinks: SocialLink[];
   showQrCode?: boolean;
+  qrColor?: string; // لون الـ QR المخصص للبطاقة
   ownerId?: string;
   updatedAt?: string;
 

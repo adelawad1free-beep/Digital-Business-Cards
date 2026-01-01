@@ -61,6 +61,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          bioTextColor: data.bioTextColor || selectedTmpl.config.bioTextColor || null,
          bioBgColor: data.bioBgColor || selectedTmpl.config.bioBgColor || null,
          linksColor: data.linksColor || selectedTmpl.config.linksColor || null,
+         qrColor: data.qrColor || selectedTmpl.config.qrColor || null,
          showBio: data.showBio ?? selectedTmpl.config.showBioByDefault ?? true,
          showQrCode: data.showQrCode ?? selectedTmpl.config.showQrCodeByDefault ?? true
        } as CardData;
@@ -95,6 +96,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           bioTextColor: newTmpl.config.bioTextColor || prev.bioTextColor,
           bioBgColor: newTmpl.config.bioBgColor || prev.bioBgColor,
           linksColor: newTmpl.config.linksColor || prev.linksColor,
+          qrColor: newTmpl.config.qrColor || prev.qrColor,
           themeType: newTmpl.config.defaultThemeType || prev.themeType,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
           showBio: newTmpl.config.showBioByDefault ?? prev.showBio,
@@ -116,6 +118,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       bioTextColor: currentTemplate.config.bioTextColor || null,
       bioBgColor: currentTemplate.config.bioBgColor || null,
       linksColor: currentTemplate.config.linksColor || null,
+      qrColor: currentTemplate.config.qrColor || null,
       themeType: currentTemplate.config.defaultThemeType || prev.themeType,
       themeColor: currentTemplate.config.defaultThemeColor || prev.themeColor,
       themeGradient: currentTemplate.config.defaultThemeGradient || prev.themeGradient,
@@ -207,7 +210,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
               onChange={(e) => handleChange(field, e.target.value)} 
               className="absolute inset-0 opacity-0 cursor-pointer scale-150" 
             />
-            <div className="w-full h-full" style={{ backgroundColor: value || (isRtl ? '#cccccc' : '#eee') }} />
+            <div className="w-full h-full" style={{ backgroundColor: value || (formData.isDark ? '#333333' : '#eeeeee') }} />
          </div>
          <button onClick={() => handleChange(field, null)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"><X size={14}/></button>
       </div>
@@ -489,7 +492,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
               <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-3 mb-6">
                     <TypographyIcon className="text-blue-600" size={20} />
-                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'تخصيص ألوان النصوص' : 'Custom Text Colors'}</h4>
+                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'تخصيص ألوان النصوص والباركود' : 'Custom Colors'}</h4>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <ColorPickerField label={t('اسم المستخدم', 'Name')} field="nameColor" value={formData.nameColor} />
@@ -497,6 +500,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                     <ColorPickerField label={t('الروابط', 'Links')} field="linksColor" value={formData.linksColor} />
                     <ColorPickerField label={t('نص النبذة', 'Bio Text')} field="bioTextColor" value={formData.bioTextColor} />
                     <ColorPickerField label={t('خلفية النبذة', 'Bio Bg')} field="bioBgColor" value={formData.bioBgColor} />
+                    <ColorPickerField label={t('لون الباركود', 'QR Color')} field="qrColor" value={formData.qrColor} />
                 </div>
               </div>
             </div>
