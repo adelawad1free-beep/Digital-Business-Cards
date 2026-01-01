@@ -15,7 +15,7 @@ import AuthModal from './components/AuthModal';
 import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, Mail, Coffee, Heart } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, Mail, Coffee, Heart, Layout, Home as HomeIcon, CreditCard, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -171,6 +171,9 @@ const App: React.FC = () => {
     return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} />;
   }
 
+  // تحديد ما إذا كان يجب إخفاء المنيو السفلي العام
+  const isEditing = activeTab === 'editor';
+
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
       <header className="sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
@@ -203,7 +206,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-12">
+      <main className={`flex-1 p-4 md:p-12 ${isEditing ? 'pb-32' : 'pb-32'} md:pb-12`}>
         {activeTab === 'home' && <Home lang={lang} onStart={() => setActiveTab('templates')} />}
         {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={handleCreateNew} />}
         {activeTab === 'manager' && (
@@ -235,10 +238,50 @@ const App: React.FC = () => {
               </div>
            </div>
         )}
-        {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} templates={customTemplates} />}
+        {activeTab === 'editor' && <Editor lang={lang} onSave={handleSave} initialData={editingCard || undefined} isAdminEdit={isAdmin} templates={customTemplates} onCancel={() => setActiveTab('manager')} />}
         {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); setActiveTab('editor'); }} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
+
+      {/* شريط التنقل السفلي للجوال - يختفي عند التحرير */}
+      {!isEditing && (
+        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] z-[150] animate-fade-in-up">
+          <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] flex items-center justify-around">
+            <button 
+              onClick={() => setActiveTab('home')} 
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+            >
+              <HomeIcon size={20} />
+              <span className="text-[8px] font-black uppercase">{t('home')}</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('templates')} 
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+            >
+              <Layout size={20} />
+              <span className="text-[8px] font-black uppercase">{t('templates')}</span>
+            </button>
+            {currentUser && (
+              <button 
+                onClick={() => setActiveTab('manager')} 
+                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+              >
+                <CreditCard size={20} />
+                <span className="text-[8px] font-black uppercase">{t('myCards')}</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button 
+                onClick={() => setActiveTab('admin')} 
+                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
+              >
+                <ShieldCheck size={20} />
+                <span className="text-[8px] font-black uppercase">{t('admin')}</span>
+              </button>
+            )}
+          </div>
+        </nav>
+      )}
 
       <footer className="w-full pt-16 pb-10 mt-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">

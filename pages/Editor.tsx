@@ -8,17 +8,24 @@ import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
-import { Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, Mail, Phone, Globe, MessageCircle, Link as LinkIcon, CheckCircle2, AlertCircle, UploadCloud, Image as ImageIcon, Palette, Layout, User as UserIcon, Camera, Share2, Pipette, Type as TypographyIcon } from 'lucide-react';
+import { 
+  Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, 
+  Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
+  CheckCircle2, AlertCircle, UploadCloud, Image as ImageIcon, 
+  Palette, Layout, User as UserIcon, Camera, Share2, 
+  Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, ArrowLeft
+} from 'lucide-react';
 
 interface EditorProps {
   lang: Language;
   onSave: (data: CardData, oldId?: string) => void;
+  onCancel: () => void;
   initialData?: CardData;
   isAdminEdit?: boolean;
-  templates: CustomTemplate[]; // استلام القوالب من App
+  templates: CustomTemplate[];
 }
 
-const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit, templates }) => {
+const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates }) => {
   const isRtl = lang === 'ar';
   const t = (key: string, fallback?: string) => {
     if (fallback && !TRANSLATIONS[key]) return isRtl ? key : fallback;
@@ -29,6 +36,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
   const colorInputRef = useRef<HTMLInputElement>(null);
   const originalIdRef = useRef<string | null>(initialData?.id || null);
 
+  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+
   const [formData, setFormData] = useState<CardData>(() => {
     const data = initialData || {
       ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']),
@@ -36,7 +46,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
       templateId: 'classic',
     } as CardData;
 
-    // محاولة تطبيق إعدادات القالب فوراً عند تهيئة الحالة
     const selectedTmpl = templates.find(t => t.id === data.templateId);
     if (selectedTmpl && !data.ownerId) {
        return {
@@ -64,7 +73,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  // مزامنة البيانات عند تغيير initialData
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -195,9 +203,36 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
     </div>
   );
 
+  const PreviewContent = () => (
+    <div className="flex flex-col items-center">
+      <div className="mb-4 w-full flex items-center justify-between px-6">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</span>
+        </div>
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+           <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
+           <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
+           <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={16}/></button>
+        </div>
+      </div>
+      
+      <div className={`transition-all duration-500 ease-in-out origin-top border-4 border-gray-900 dark:border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[360px]'}`}>
+        <div className="h-[600px] overflow-y-auto no-scrollbar">
+          <CardPreview 
+            data={formData} 
+            lang={lang} 
+            customConfig={currentTemplate?.config} 
+            hideSaveButton={true}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 md:px-6">
-      <div className="flex flex-col lg:flex-row gap-8 pb-10 items-start justify-center">
+      <div className="flex flex-col lg:flex-row gap-8 pb-32 items-start justify-center">
         <div className="w-full lg:max-w-[960px] flex-1 space-y-6">
           <div className="bg-white dark:bg-[#121215] p-5 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 space-y-6">
             
@@ -292,7 +327,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
             </div>
 
             <div className="bg-white dark:bg-[#121215] p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-10">
-              
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                     <Layout className="text-blue-600" size={20} />
@@ -388,30 +422,66 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, initialData, isAdminEdit,
               </div>
             </div>
 
-            <button onClick={handleFinalSave} className="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black text-xl shadow-2xl shadow-blue-500/30 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4">
+            <button onClick={handleFinalSave} className="hidden lg:flex w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black text-xl shadow-2xl shadow-blue-500/30 hover:scale-[1.01] active:scale-95 transition-all items-center justify-center gap-4">
               <Save size={24} />
               {t('saveChanges')}
             </button>
           </div>
         </div>
 
-        <div className="hidden lg:block w-[360px] sticky top-12 self-start animate-fade-in">
-          <div className="p-4 bg-white dark:bg-gray-900 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] scale-[0.95] origin-top">
-            <div className="mb-4 px-6 flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة مباشرة' : 'Live Preview'}</span>
-            </div>
-            <div className="rounded-[3rem] overflow-hidden border border-gray-50 dark:border-gray-800">
-                <CardPreview 
-                  data={formData} 
-                  lang={lang} 
-                  customConfig={currentTemplate?.config} 
-                  hideSaveButton={true} // إخفاء الزر في معاينة المحرر
-                />
-            </div>
+        {/* Desktop Preview Panel */}
+        <div className="hidden lg:block w-[480px] sticky top-12 self-start animate-fade-in">
+          <div className="p-4 bg-white dark:bg-gray-900 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] origin-top">
+            <PreviewContent />
           </div>
         </div>
       </div>
+
+      {/* شريط الإجراءات السفلي ممتد للجوال */}
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
+        <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 px-8 py-5 pb-10 flex items-center justify-between shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
+          <button 
+            onClick={onCancel} 
+            className="flex flex-col items-center gap-1.5 p-2 text-gray-400 hover:text-red-500 transition-all"
+          >
+            <ArrowLeft size={22} className={isRtl ? 'rotate-0' : 'rotate-180'} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'رجوع' : 'Back'}</span>
+          </button>
+          
+          <button 
+            onClick={() => setShowMobilePreview(true)}
+            className="flex flex-col items-center gap-1.5 px-10 py-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+          >
+            <Eye size={22} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'معاينة' : 'Preview'}</span>
+          </button>
+
+          <button 
+            onClick={handleFinalSave}
+            className="flex flex-col items-center gap-1.5 p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
+          >
+            <Save size={22} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'حفظ' : 'Save'}</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Preview Modal */}
+      {showMobilePreview && (
+        <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-xl flex flex-col animate-fade-in lg:hidden">
+           <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <h3 className="text-white font-black uppercase text-sm tracking-widest">{isRtl ? 'معاينة البطاقة' : 'Card Preview'}</h3>
+              <button onClick={() => setShowMobilePreview(false)} className="p-3 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all"><X size={24}/></button>
+           </div>
+           <div className="flex-1 p-6 flex flex-col items-center justify-center overflow-y-auto">
+              <PreviewContent />
+           </div>
+           <div className="p-6 bg-white/5 border-t border-white/10 flex justify-center gap-4 pb-12">
+              <button onClick={() => setPreviewDevice('mobile')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'mobile' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Smartphone size={24}/></button>
+              <button onClick={() => setPreviewDevice('tablet')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'tablet' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Tablet size={24}/></button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

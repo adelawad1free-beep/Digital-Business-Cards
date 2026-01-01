@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /?u=*
+
+# Sitemaps
+Sitemap: https://nextid.my/sitemap.xml

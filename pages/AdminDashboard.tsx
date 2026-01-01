@@ -15,7 +15,7 @@ import {
   ShieldCheck, Trash2, Edit3, Eye, Settings, 
   Globe, Power, Save, Search, LayoutGrid,
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, 
-  Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle
+  Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle, Pin, PinOff, ArrowUpAZ
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -33,7 +33,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | undefined>(undefined);
   
-  // حالة جديدة للتحكم في نافذة الحذف المخصصة بدلاً من confirm
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   
   const [settings, setSettings] = useState({ 
@@ -78,10 +77,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
 
   const handleSaveTemplate = async (template: CustomTemplate) => {
     await saveCustomTemplate(template);
-    alert(isRtl ? "تم الحفظ بنجاح" : "Template saved");
     const tData = await getAllTemplates();
     setCustomTemplates(tData as CustomTemplate[]);
     setActiveTab('templates');
+  };
+
+  const handleTogglePin = async (tmpl: CustomTemplate) => {
+    const updated = { ...tmpl, isFeatured: !tmpl.isFeatured };
+    await saveCustomTemplate(updated);
+    const tData = await getAllTemplates();
+    setCustomTemplates(tData as CustomTemplate[]);
+  };
+
+  const handleUpdateOrder = async (tmpl: CustomTemplate, newOrder: number) => {
+    const updated = { ...tmpl, order: newOrder };
+    await saveCustomTemplate(updated);
+    const tData = await getAllTemplates();
+    setCustomTemplates(tData as CustomTemplate[]);
   };
 
   const confirmDeleteTemplate = async () => {
@@ -93,7 +105,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
       setCustomTemplates(prev => prev.filter(t => t.id !== templateToDelete));
       setTemplateToDelete(null);
     } catch (error: any) {
-      console.error("Delete Template Error:", error);
       alert(isRtl ? `فشل الحذف: ${error.message}` : `Delete failed: ${error.message}`);
     } finally {
       setLoading(false);
@@ -151,48 +162,99 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
         {activeTab === 'templates' && (
            <div className="space-y-8 animate-fade-in">
               <div className="flex items-center justify-between">
-                 <h2 className="text-2xl font-black dark:text-white">{t('إدارة القوالب', 'Templates Manager')}</h2>
+                 <div className="flex items-center gap-4">
+                    <Layout className="text-blue-600" size={32} />
+                    <h2 className="text-3xl font-black dark:text-white">{t('إدارة القوالب', 'Templates Manager')}</h2>
+                 </div>
                  <button onClick={() => { setEditingTemplate(undefined); setActiveTab('builder'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl flex items-center gap-3 active:scale-95 transition-all">
                     <Plus size={18} /> {t('قالب جديد', 'New Template')}
                  </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                 {customTemplates.map(tmpl => (
-                    <div key={tmpl.id} className={`bg-white dark:bg-[#121215] p-8 rounded-[3rem] border shadow-xl group hover:shadow-2xl transition-all relative ${tmpl.isFeatured ? 'border-amber-400 shadow-amber-500/5' : 'border-gray-100 dark:border-gray-800'}`}>
-                       {tmpl.isFeatured && (
-                         <div className="absolute -top-3 -right-3 bg-amber-500 text-white p-2.5 rounded-2xl shadow-lg z-10">
-                           <Star size={20} fill="currentColor" />
-                         </div>
-                       )}
-                       <div className="flex items-center justify-between mb-8">
-                          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl group-hover:rotate-6 transition-transform"><Palette size={24} /></div>
-                          <div className="flex items-center gap-2">
-                             <div className="px-3 py-1 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-lg text-[9px] font-black flex items-center gap-1.5">
-                               <Hash size={10} /> {tmpl.order || 0}
-                             </div>
-                             <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${tmpl.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
-                                {tmpl.isActive ? t('نشط', 'Active') : t('معطل', 'Disabled')}
-                             </div>
-                          </div>
-                       </div>
-                       <h3 className="text-xl font-black dark:text-white mb-2">{isRtl ? tmpl.nameAr : tmpl.nameEn}</h3>
-                       <p className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-10 truncate">{isRtl ? tmpl.descAr : tmpl.descEn}</p>
-                       <div className={`flex items-center gap-3 ${isRtl ? 'flex-row-reverse' : 'flex-row'}`}>
-                          <button 
-                            onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} 
-                            className="flex-1 py-4 bg-blue-500 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 transition-all hover:bg-blue-600 shadow-md active:scale-95"
-                          >
-                            <Edit3 size={16}/> {t('تعديل', 'Edit')}
-                          </button>
-                          <button 
-                            onClick={() => setTemplateToDelete(tmpl.id)} 
-                            className="p-4 bg-gray-50 dark:bg-gray-800 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all border border-gray-100 dark:border-gray-700 active:scale-95"
-                          >
-                            <Trash2 size={20}/>
-                          </button>
-                       </div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-2xl">
+                 <div className="overflow-x-auto">
+                    <table className={`w-full text-${isRtl ? 'right' : 'left'}`}>
+                       <thead>
+                          <tr className="bg-gray-50 dark:bg-gray-800/50 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
+                             <td className="px-8 py-5">{t('القالب', 'Template')}</td>
+                             <td className="px-8 py-5">{t('الحالة', 'Status')}</td>
+                             <td className="px-8 py-5 text-center">{t('التثبيت', 'Featured')}</td>
+                             <td className="px-8 py-5 text-center">{t('الترتيب', 'Order')}</td>
+                             <td className="px-8 py-5 text-center">{t('الإجراءات', 'Actions')}</td>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {customTemplates.map((tmpl) => (
+                             <tr key={tmpl.id} className={`hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors ${tmpl.isFeatured ? 'bg-amber-50/20 dark:bg-amber-900/5' : ''}`}>
+                                <td className="px-8 py-6">
+                                   <div className="flex items-center gap-4">
+                                      <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-700 shadow-sm">
+                                         {tmpl.config.defaultBackgroundImage ? (
+                                            <img src={tmpl.config.defaultBackgroundImage} className="w-full h-full object-cover" />
+                                         ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-400">
+                                               <Palette size={20} />
+                                            </div>
+                                         )}
+                                      </div>
+                                      <div>
+                                         <p className="font-black text-sm dark:text-white leading-tight">{isRtl ? tmpl.nameAr : tmpl.nameEn}</p>
+                                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{tmpl.id}</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                   <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${tmpl.isActive ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-gray-100 text-gray-400 dark:bg-gray-800'}`}>
+                                      {tmpl.isActive ? t('نشط', 'Active') : t('معطل', 'Disabled')}
+                                   </span>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                   <button 
+                                      onClick={() => handleTogglePin(tmpl)}
+                                      className={`p-3 rounded-xl transition-all ${tmpl.isFeatured ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'}`}
+                                      title={t('تثبيت في البداية', 'Pin to top')}
+                                   >
+                                      {tmpl.isFeatured ? <Pin size={18} fill="currentColor" /> : <Pin size={18} />}
+                                   </button>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                   <div className="flex items-center justify-center gap-2">
+                                      <ArrowUpAZ size={14} className="text-gray-300" />
+                                      <input 
+                                         type="number" 
+                                         value={tmpl.order || 0}
+                                         onChange={(e) => handleUpdateOrder(tmpl, parseInt(e.target.value))}
+                                         className="w-16 px-2 py-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-[11px] font-black text-center focus:ring-2 focus:ring-blue-100 outline-none"
+                                      />
+                                   </div>
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                   <div className="flex justify-center gap-2">
+                                      <button 
+                                         onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} 
+                                         className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                                      >
+                                         <Edit3 size={18} />
+                                      </button>
+                                      <button 
+                                         onClick={() => setTemplateToDelete(tmpl.id)} 
+                                         className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                      >
+                                         <Trash2 size={18} />
+                                      </button>
+                                   </div>
+                                </td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+                 {customTemplates.length === 0 && (
+                    <div className="py-20 text-center">
+                       <Layout className="mx-auto text-gray-200 mb-4" size={48} />
+                       <p className="text-gray-400 font-bold">{t('لا توجد قوالب حالياً', 'No templates found')}</p>
                     </div>
-                 ))}
+                 )}
               </div>
            </div>
         )}
@@ -212,7 +274,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                    <div className="relative w-full md:w-80"><Search className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('ابحث...', 'Search...')} className={`${isRtl ? 'pr-12' : 'pl-12'} w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 font-bold text-sm`} /></div>
                 </div>
                 <div className="overflow-x-auto">
-                   <table className="w-full text-right">
+                   <table className={`w-full text-${isRtl ? 'right' : 'left'}`}>
                       <thead>
                         <tr className="bg-gray-50/50 dark:bg-gray-800/20 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
                           <td className="px-8 py-4">{t('البطاقة', 'Card')}</td>
@@ -256,8 +318,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                    </div>
                 </div>
                 <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
-                   <input type="text" value={settings.siteNameAr} onChange={(e) => setSettings({...settings, siteNameAr: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="اسم الموقع (عربي)" />
-                   <input type="text" value={settings.siteNameEn} onChange={(e) => setSettings({...settings, siteNameEn: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-left" placeholder="Site Name (EN)" />
+                   <input type="text" value={settings.siteNameAr} onChange={(e) => setSettings({...settings, siteNameAr: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'right' : 'left'}`} placeholder="اسم الموقع (عربي)" />
+                   <input type="text" value={settings.siteNameEn} onChange={(e) => setSettings({...settings, siteNameEn: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'left' : 'right'}`} placeholder="Site Name (EN)" />
                    <div className="pt-4 flex items-center justify-between">
                       <div className="flex items-center gap-4"><div className={`p-4 rounded-2xl ${settings.maintenanceMode ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}><Power size={24} /></div><p className="font-black dark:text-white text-lg">{t('وضع الصيانة', 'Maintenance')}</p></div>
                       <button onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-16 h-8 rounded-full relative transition-all ${settings.maintenanceMode ? 'bg-red-500' : 'bg-gray-200'}`}><div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${isRtl ? (settings.maintenanceMode ? 'right-9' : 'right-1') : (settings.maintenanceMode ? 'left-9' : 'left-1')}`} /></button>
@@ -301,21 +363,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                 <div className="space-y-6">
                    <div className="space-y-2">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('كلمة المرور الحالية', 'Current Password')}</label>
-                      <input type="password" required value={securityData.currentPassword} onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                      <input type="password" required value={securityData.currentPassword} onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'right' : 'left'}`} placeholder="••••••••" />
                    </div>
                    <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-4">
                       <div className="space-y-2">
                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('البريد الإلكتروني', 'Email')}</label>
-                         <input type="email" value={securityData.newEmail} onChange={(e) => setSecurityData({...securityData, newEmail: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" />
+                         <input type="email" value={securityData.newEmail} onChange={(e) => setSecurityData({...securityData, newEmail: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'right' : 'left'}`} />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('كلمة سر جديدة', 'New Password')}</label>
-                            <input type="password" value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                            <input type="password" value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'right' : 'left'}`} placeholder="••••••••" />
                          </div>
                          <div className="space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('تأكيد كلمة السر', 'Confirm')}</label>
-                            <input type="password" value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-right" placeholder="••••••••" />
+                            <input type="password" value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className={`w-full px-6 py-4 bg-gray-50 dark:bg-gray-800 border rounded-2xl font-bold text-sm text-${isRtl ? 'right' : 'left'}`} placeholder="••••••••" />
                          </div>
                       </div>
                    </div>
@@ -326,7 +388,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
         )}
       </div>
 
-      {/* نافذة تأكيد الحذف المخصصة */}
       {templateToDelete && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">

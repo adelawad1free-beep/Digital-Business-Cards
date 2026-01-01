@@ -12,7 +12,7 @@ import {
   Type as TypographyIcon, Ruler,
   Star, Hash, ArrowLeft, Palette, Sparkles, Image as ImageIcon, UploadCloud, Sun, Moon, Pipette,
   Settings, FileText, AlignLeft, AlignRight, LayoutTemplate, Info, Maximize2, UserCircle,
-  Mail, Phone, Globe, MessageCircle, Camera, Download
+  Mail, Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, Eye
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -35,6 +35,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   };
   
   const [activeTab, setActiveTab] = useState<BuilderTab>('info');
+  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
   
@@ -164,12 +166,52 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     </button>
   );
 
+  const PreviewContent = () => (
+    <div className="flex flex-col items-center w-full">
+      <div className="mb-4 w-full flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('معاينة حية', 'Live Preview')}</span>
+        </div>
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+           <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
+           <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
+           <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={16}/></button>
+        </div>
+      </div>
+      
+      <div className={`transition-all duration-500 ease-in-out origin-top border-[10px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden bg-white dark:bg-gray-950 ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`}>
+        <div className="h-[580px] overflow-y-auto no-scrollbar">
+           <CardPreview 
+              data={{ 
+                ...sampleCardData, 
+                templateId: template.id,
+                themeType: template.config.defaultThemeType || 'gradient',
+                themeColor: template.config.defaultThemeColor || THEME_COLORS[0],
+                themeGradient: template.config.defaultThemeGradient || THEME_GRADIENTS[0],
+                backgroundImage: template.config.defaultBackgroundImage || '',
+                profileImage: template.config.defaultProfileImage || '',
+                isDark: template.config.defaultIsDark || false,
+                nameColor: template.config.nameColor,
+                titleColor: template.config.titleColor,
+                bioTextColor: template.config.bioTextColor,
+                bioBgColor: template.config.bioBgColor,
+                linksColor: template.config.linksColor
+              }} 
+              lang={lang} 
+              customConfig={template.config} 
+              hideSaveButton={true}
+           />
+        </div>
+      </div>
+    </div>
+  );
+
   const inputClasses = "w-full px-5 py-3.5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl text-[13px] font-bold dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all shadow-sm";
   const labelTextClasses = "text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1 block mb-2";
 
   return (
     <div className="bg-white dark:bg-[#0a0a0c] rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col h-[calc(100vh-100px)] min-h-[850px]">
-      {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-4 bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10 shrink-0">
         <div className="flex items-center gap-5">
           <button type="button" onClick={onCancel} className="p-2 bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl border border-gray-100 dark:border-gray-700 transition-all shadow-sm">
@@ -196,7 +238,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       </div>
 
       <div className="flex flex-col lg:flex-row flex-1 overflow-hidden bg-white dark:bg-[#0a0a0c]">
-        {/* Left Sidebar Menu */}
         <div className="w-full lg:w-64 border-b lg:border-b-0 lg:border-l dark:border-gray-800 p-6 flex flex-col gap-1 overflow-y-auto no-scrollbar shrink-0 bg-gray-50/30 dark:bg-transparent">
           <NavItem id="info" label={t('معلومات عامة', 'Basic Info')} icon={Info} />
           <NavItem id="visuals" label={t('المظهر العام', 'Visual Style')} icon={Palette} />
@@ -206,7 +247,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="layout" label={t('التموضع', 'Positioning')} icon={Move} />
         </div>
 
-        {/* Main Work Area */}
         <div className="flex-1 p-8 overflow-y-auto no-scrollbar bg-gray-50/20 dark:bg-transparent">
           <div className="max-w-3xl mx-auto space-y-10 animate-fade-in pb-32">
             
@@ -386,47 +426,57 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           </div>
         </div>
 
-        {/* Right Preview Side */}
-        <div className="w-full lg:w-[480px] bg-gray-50/50 dark:bg-black/40 border-r lg:border-r-0 lg:border-l dark:border-gray-800 p-6 flex flex-col items-center relative overflow-y-auto no-scrollbar scroll-smooth">
-          <div className="w-full max-w-[320px] mx-auto animate-fade-in pt-4 pb-48 flex flex-col items-center">
-             <div className="w-full flex items-center justify-between mb-5 px-4">
-                <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('معاينة حية', 'Live Preview')}</span>
-                </div>
-                <div className="flex gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-800"></div>
-                </div>
-             </div>
-             
-             <div className="relative bg-[#0a0a0c] rounded-[3.5rem] p-2.5 border-[10px] border-[#0a0a0c] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] mx-auto w-full shrink-0">
-                <div className="bg-white dark:bg-gray-950 rounded-[2.8rem] overflow-hidden h-[580px] overflow-y-auto no-scrollbar">
-                   <CardPreview 
-                      data={{ 
-                        ...sampleCardData, 
-                        templateId: template.id,
-                        themeType: template.config.defaultThemeType || 'gradient',
-                        themeColor: template.config.defaultThemeColor || THEME_COLORS[0],
-                        themeGradient: template.config.defaultThemeGradient || THEME_GRADIENTS[0],
-                        backgroundImage: template.config.defaultBackgroundImage || '',
-                        profileImage: template.config.defaultProfileImage || '',
-                        isDark: template.config.defaultIsDark || false,
-                        nameColor: template.config.nameColor,
-                        titleColor: template.config.titleColor,
-                        bioTextColor: template.config.bioTextColor,
-                        bioBgColor: template.config.bioBgColor,
-                        linksColor: template.config.linksColor
-                      }} 
-                      lang={lang} 
-                      customConfig={template.config} 
-                      hideSaveButton={true} // إخفاء الزر في معاينة المنشئ
-                   />
-                </div>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-white/20 rounded-full"></div>
-             </div>
-          </div>
+        {/* Desktop Preview Panel */}
+        <div className="hidden lg:flex w-full lg:w-[480px] bg-gray-50/50 dark:bg-black/40 border-r lg:border-r-0 lg:border-l dark:border-gray-800 p-6 flex-col items-center relative overflow-y-auto no-scrollbar scroll-smooth">
+           <PreviewContent />
         </div>
       </div>
+
+      {/* شريط الإجراءات السفلي ممتد للجوال - منشئ القوالب */}
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
+        <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 px-8 py-5 pb-10 flex items-center justify-between shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
+          <button 
+            onClick={onCancel} 
+            className="flex flex-col items-center gap-1.5 p-2 text-gray-400 hover:text-red-500 transition-all"
+          >
+            <ArrowLeft size={22} className={isRtl ? 'rotate-0' : 'rotate-180'} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'رجوع' : 'Back'}</span>
+          </button>
+          
+          <button 
+            onClick={() => setShowMobilePreview(true)}
+            className="flex flex-col items-center gap-1.5 px-10 py-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+          >
+            <Eye size={22} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'معاينة' : 'Preview'}</span>
+          </button>
+
+          <button 
+            onClick={() => onSave(template)}
+            className="flex flex-col items-center gap-1.5 p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
+          >
+            <Save size={22} />
+            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'حفظ' : 'Save'}</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Preview Modal */}
+      {showMobilePreview && (
+        <div className="fixed inset-0 z-[250] bg-black/95 backdrop-blur-2xl flex flex-col animate-fade-in lg:hidden">
+           <div className="flex items-center justify-between p-6 border-b border-white/10">
+              <h3 className="text-white font-black uppercase text-sm tracking-widest">{isRtl ? 'معاينة القالب' : 'Template Preview'}</h3>
+              <button onClick={() => setShowMobilePreview(false)} className="p-3 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all"><X size={24}/></button>
+           </div>
+           <div className="flex-1 p-6 flex flex-col items-center justify-center overflow-y-auto">
+              <PreviewContent />
+           </div>
+           <div className="p-6 bg-white/5 border-t border-white/10 flex justify-center gap-4 pb-12">
+              <button onClick={() => setPreviewDevice('mobile')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'mobile' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Smartphone size={24}/></button>
+              <button onClick={() => setPreviewDevice('tablet')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'tablet' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Tablet size={24}/></button>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
