@@ -25,7 +25,6 @@ import {
   where,
   increment,
   updateDoc,
-  Timestamp,
   getAggregateFromServer,
   sum
 } from "firebase/firestore";
@@ -115,7 +114,6 @@ export const getAllTemplates = async () => {
       return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
     });
   } catch (error: any) {
-    console.error("Fetch templates error:", error);
     return [];
   }
 };
@@ -126,7 +124,6 @@ export const deleteTemplate = async (id: string) => {
   await deleteDoc(doc(db, "custom_templates", id));
 };
 
-// Fixed: Explicitly defining SaveCardParams to ensure saveCardToDB takes exactly 1 argument (an object)
 export interface SaveCardParams {
   cardData: CardData;
   oldId?: string;
@@ -182,16 +179,34 @@ export const toggleCardStatus = async (cardId: string, ownerId: string, isActive
   ]);
 };
 
+/**
+ * وظيفة جلب البطاقة المحسنة:
+ * 1. تجلب البيانات فوراً لضمان سرعة التحميل.
+ * 2. تزيد العداد وتسجل وقت الزيارة في الخلفية (يدعم الزوار الآن بفضل القواعد الجديدة).
+ * 3. لا تتعطل أبداً في حال وجود خطأ تقني في العداد.
+ */
 export const getCardBySerial = async (serialId: string) => {
   try {
     const cardRef = doc(db, "public_cards", serialId.toLowerCase());
     const snap = await getDoc(cardRef);
+    
     if (snap.exists()) {
-      await updateDoc(cardRef, { viewCount: increment(1) });
+      // تحديث العداد ووقت الزيارة - مسموح للجميع الآن
+      updateDoc(cardRef, { 
+        viewCount: increment(1),
+        lastViewedAt: new Date().toISOString()
+      }).catch(err => {
+        // فشل صامت فقط لمنع ظهور أخطاء للمستخدم النهائي
+        console.debug("Analytics check failed:", err.message);
+      });
+      
       return snap.data();
     }
     return null;
-  } catch (error) { return null; }
+  } catch (error) { 
+    console.error("Firebase card fetch error:", error);
+    return null; 
+  }
 };
 
 export const getUserCards = async (userId: string) => {
@@ -253,7 +268,6 @@ export const getAdminStats = async () => {
       recentCards: recentDocs.docs.map(doc => doc.data()) 
     };
   } catch (error) { 
-    console.error("Stats Error:", error);
     return { totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] }; 
   }
 };

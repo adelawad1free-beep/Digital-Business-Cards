@@ -13,7 +13,7 @@ import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
+  const [cardNotFoundError, setCardNotFoundError] = useState(false); // حالة جديدة للتعامل مع الروابط الخاطئة
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account' | 'templates'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -97,21 +98,15 @@ const App: React.FC = () => {
 
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
     if (favicon && siteConfig.siteIcon) favicon.href = siteConfig.siteIcon;
-
-    if (!publicCard) {
-      const siteTitle = `${siteConfig.siteNameAr} | ${siteConfig.siteNameEn}`;
-      const siteDesc = isRtl ? "بطاقتك الرقمية بلمسة واحدة." : "Your digital identity in one touch.";
-      updateMetaTags(siteTitle, siteDesc, siteConfig.siteLogo || '', window.location.origin);
-    }
-  }, [isDarkMode, lang, siteConfig, publicCard]);
+  }, [isDarkMode, lang, siteConfig]);
 
   useEffect(() => {
-    const bootstrapApp = async () => {
+    const bootstrap = async () => {
       // 1. تحديد المعرّف من الرابط فوراً
       const params = new URLSearchParams(window.location.search);
-      const slug = params.get('u')?.trim();
+      const slug = params.get('u')?.trim().toLowerCase();
 
-      // 2. تحميل إعدادات الموقع الأساسية (مهمة لكل الأوضاع)
+      // 2. تحميل الإعدادات الأساسية (دائماً أولاً)
       try {
         const [settings, templates] = await Promise.all([
           getSiteSettings().catch(() => null),
@@ -119,9 +114,9 @@ const App: React.FC = () => {
         ]);
         if (settings) setSiteConfig(prev => ({ ...prev, ...settings }));
         if (templates) setCustomTemplates(templates as CustomTemplate[]);
-      } catch (e) { console.error("Config fetch failed"); }
+      } catch (e) {}
 
-      // 3. الأولوية للبطاقة العامة
+      // 3. المسار الحرج: إذا كان هناك slug، لا تظهر شيئاً حتى ينتهي البحث
       if (slug) {
         try {
           const card = await getCardBySerial(slug);
@@ -129,36 +124,37 @@ const App: React.FC = () => {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
             setIsInitializing(false);
-            return; // خروج نهائي: سنعرض ملف الشخص فقط
+            return; // نجاح: تم العثور على البطاقة
+          } else {
+            // فشل: البطاقة غير موجودة
+            setCardNotFoundError(true);
+            setIsInitializing(false);
+            return;
           }
-        } catch (e) { console.error("Card fetch failed", e); }
+        } catch (e) {
+          setCardNotFoundError(true);
+          setIsInitializing(false);
+          return;
+        }
       }
 
-      // 4. إذا لم توجد بطاقة في الرابط، نتحقق من حالة المستخدم
-      // نستخدم وعد (Promise) لانتظار رد Firebase Auth بشكل قطعي
-      const user = await new Promise<User | null>((resolve) => {
-        const unsubscribe = onAuthStateChanged(auth, (u) => {
-          unsubscribe();
-          resolve(u);
-        });
+      // 4. المسار العادي: التحقق من تسجيل الدخول
+      onAuthStateChanged(auth, async (user) => {
+        setCurrentUser(user);
+        if (user) {
+          try {
+            const cards = await getUserCards(user.uid);
+            setUserCards(cards as CardData[]);
+            setActiveTab('manager');
+          } catch (e) {}
+        } else {
+          setActiveTab('home');
+        }
+        setIsInitializing(false);
       });
-
-      setCurrentUser(user);
-
-      if (user) {
-        try {
-          const cards = await getUserCards(user.uid);
-          setUserCards(cards as CardData[]);
-          setActiveTab('manager'); // التوجه لبطاقاتي إذا كان مسجلاً
-        } catch (e) { console.error("User cards fetch failed"); }
-      } else {
-        setActiveTab('home'); // التوجه للرئيسية إذا لم يكن مسجلاً
-      }
-
-      setIsInitializing(false);
     };
 
-    bootstrapApp();
+    bootstrap();
   }, []);
 
   const handleSave = async (data: CardData, oldId?: string) => {
@@ -184,21 +180,52 @@ const App: React.FC = () => {
     });
   };
 
+  // شاشة التحميل الأولية
   if (isInitializing) return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[999]">
-      <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-      <div className="flex flex-col items-center gap-1">
-        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">{t('هويتي الرقمية', 'NextID Identity')}</p>
-        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('جاري مزامنة البيانات...', 'Syncing Data...')}</p>
+      <Loader2 className="animate-spin text-blue-600 mb-6" size={64} />
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-[12px] font-black text-blue-600 uppercase tracking-[0.4em] animate-pulse">{t('هويتي الرقمية', 'NextID Identity')}</p>
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest opacity-60">{t('جاري التحقق من الهوية...', 'Verifying Identity...')}</p>
       </div>
     </div>
   );
+
+  // شاشة "البطاقة غير موجودة"
+  if (cardNotFoundError) return (
+    <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center transition-colors ${isDarkMode ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
+      <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl animate-bounce-in">
+        <AlertCircle size={48} />
+      </div>
+      <h1 className="text-3xl font-black mb-4">
+        {isRtl ? 'عذراً، البطاقة غير موجودة' : 'Card Not Found'}
+      </h1>
+      <p className="text-gray-500 dark:text-gray-400 max-w-xs font-bold leading-relaxed mb-12">
+        {isRtl 
+          ? 'يبدو أن الرابط الذي اتبعته غير صحيح أو أن البطاقة قد تم حذفها بواسطة صاحبها.' 
+          : 'The link you followed is incorrect or the card has been deleted by its owner.'}
+      </p>
+      <button 
+        onClick={() => {
+          setCardNotFoundError(false);
+          setActiveTab('home');
+          window.history.replaceState({}, '', window.location.pathname);
+        }}
+        className="px-12 py-5 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+      >
+        <HomeIcon size={18} />
+        {isRtl ? 'العودة للرئيسية' : 'Back to Home'}
+      </button>
+    </div>
+  );
   
+  // إذا وجدت البطاقة العامة
   if (publicCard) {
     const customTmpl = customTemplates.find(t => t.id === publicCard.templateId);
     return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} siteIcon={siteConfig.siteIcon} />;
   }
 
+  // الواجهة الرئيسية للتطبيق
   return (
     <div 
       className={`min-h-screen flex flex-col transition-colors duration-300 w-full ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}
