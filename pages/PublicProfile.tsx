@@ -10,9 +10,10 @@ interface PublicProfileProps {
   data: CardData;
   lang: Language;
   customConfig?: TemplateConfig; 
+  siteIcon?: string; // إضافة تمرير أيقونة الموقع
 }
 
-const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig }) => {
+const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig, siteIcon }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
@@ -23,7 +24,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
     const cardTitle = data.name ? `${data.name} | ${data.title}` : (lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID');
     const cardDesc = data.bio || (lang === 'ar' ? `تفضل بزيارة بطاقة أعمالي الرقمية وتواصل معي.` : `Connect with me via my Digital ID.`);
     // استخدام صورة البروفايل كصورة معاينة للمشاركة
-    const cardImg = data.profileImage || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
+    const cardImg = data.profileImage || siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
 
     // تحديث عنوان التبويب
     document.title = cardTitle;
@@ -34,7 +35,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
       if (el) {
         el.setAttribute(attr, value);
       } else {
-        // إذا لم يكن موجوداً، نقوم بإنشائه (اختياري، يفضل وجوده مسبقاً في index.html)
         const newMeta = document.createElement('meta');
         if (selector.includes('property')) {
           newMeta.setAttribute('property', selector.split('"')[1]);
@@ -57,39 +57,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
     updateMeta('meta[name="twitter:description"]', 'content', cardDesc);
     updateMeta('meta[name="twitter:image"]', 'content', cardImg);
 
-    // Schema.org for Google Search
-    const schemaData = {
-      "@context": "https://schema.org/",
-      "@type": "Person",
-      "name": data.name,
-      "jobTitle": data.title,
-      "worksFor": {
-        "@type": "Organization",
-        "name": data.company
-      },
-      "url": window.location.href,
-      "image": cardImg,
-      "description": data.bio,
-      "telephone": data.phone,
-      "email": data.email,
-      "sameAs": (data.socialLinks || []).map(l => l.url)
-    };
-
-    const scriptId = 'structured-data-script';
-    let scriptTag = document.getElementById(scriptId) as HTMLScriptElement;
-    if (!scriptTag) {
-      scriptTag = document.createElement('script');
-      scriptTag.id = scriptId;
-      scriptTag.type = 'application/ld+json';
-      document.head.appendChild(scriptTag);
-    }
-    scriptTag.text = JSON.stringify(schemaData);
-
-    // تحديث الفافيكون ليكون صورة الشخص
+    // تحديث الفافيكون (Favicon) ليكون صورة الشخص أو أيقونة الموقع
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    if (favicon && data.profileImage) favicon.href = data.profileImage;
+    if (favicon) {
+      favicon.href = data.profileImage || siteIcon || favicon.href;
+    }
 
-  }, [data, lang]);
+  }, [data, lang, siteIcon]);
 
   if (data.isActive === false) {
     return (

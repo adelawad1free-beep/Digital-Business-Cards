@@ -57,6 +57,13 @@ const App: React.FC = () => {
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
   };
 
+  // وظيفة مساعدة لتحديث وسوم الميتا
+  const updateMeta = (selector: string, attr: string, value: string) => {
+    const el = document.querySelector(selector);
+    if (el) el.setAttribute(attr, value);
+  };
+
+  // التأثير المسؤول عن تحديث الثيم والأيقونات والعنوان والميتا تاجز
   useEffect(() => {
     const root = window.document.documentElement;
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
@@ -64,10 +71,12 @@ const App: React.FC = () => {
     root.lang = lang;
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
 
+    // تحديث الألوان والخطوط في CSS Variables
     root.style.setProperty('--brand-primary', siteConfig.primaryColor);
     root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
     root.style.setProperty('--site-font', siteConfig.fontFamily);
     
+    // تحديث الخط ديناميكياً
     const fontId = 'dynamic-google-font';
     let linkEl = document.getElementById(fontId) as HTMLLinkElement;
     if (!linkEl) {
@@ -78,10 +87,39 @@ const App: React.FC = () => {
     }
     linkEl.href = `https://fonts.googleapis.com/css2?family=${siteConfig.fontFamily.replace(/\s+/g, '+')}:wght@300;400;700;900&display=swap`;
 
+    // تحديث أيقونة الموقع (Favicon) بشكل قطعي
+    const favicons = document.querySelectorAll('link[rel*="icon"]');
+    const iconUrl = siteConfig.siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
+    
+    if (favicons.length > 0) {
+      favicons.forEach(el => (el as HTMLLinkElement).href = iconUrl);
+    } else {
+      const newIcon = document.createElement('link');
+      newIcon.rel = 'icon';
+      newIcon.id = 'site-favicon';
+      newIcon.href = iconUrl;
+      document.head.appendChild(newIcon);
+    }
+
+    // تحديث بيانات الميتا للموقع الرئيسي (Meta Tags)
+    if (!publicCard) {
+      const siteTitle = `${siteConfig.siteNameAr} | ${siteConfig.siteNameEn}`;
+      const siteDesc = isRtl 
+        ? "المنصة المتكاملة لإنشاء ومشاركة بطاقات الأعمال الرقمية الذكية بتقنيات NFC و QR."
+        : "Professional platform to create and share smart digital business cards using NFC & QR technology.";
+      
+      document.title = siteTitle;
+      updateMeta('meta[name="description"]', 'content', siteDesc);
+      updateMeta('meta[property="og:title"]', 'content', siteTitle);
+      updateMeta('meta[property="og:description"]', 'content', siteDesc);
+      updateMeta('meta[property="og:image"]', 'content', siteConfig.siteLogo || iconUrl);
+      updateMeta('meta[property="og:url"]', 'content', window.location.origin);
+    }
+
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) metaTheme.setAttribute('content', isDarkMode ? '#0a0a0c' : siteConfig.primaryColor);
 
-  }, [isDarkMode, lang, siteConfig]);
+  }, [isDarkMode, lang, siteConfig, publicCard, displaySiteName]);
 
   useEffect(() => {
     const initializeAppData = async () => {
@@ -134,12 +172,12 @@ const App: React.FC = () => {
     initializeAppData();
   }, []);
 
+  // Fixed: handleSave correctly calls saveCardToDB with a single object argument { cardData, oldId }
   const handleSave = async (data: CardData, oldId?: string) => {
     if (!auth.currentUser) { setShowAuthModal(true); return; }
     setSaveLoading(true);
     try {
-      // Fix: Ensure saveCardToDB is called with correct 2 arguments matching its defined signature in services/firebase.ts.
-      await saveCardToDB(data, oldId);
+      await saveCardToDB({ cardData: data, oldId });
       const cards = await getUserCards(auth.currentUser.uid);
       setUserCards(cards as CardData[]);
       setEditingCard(data);
@@ -165,10 +203,8 @@ const App: React.FC = () => {
   
   if (publicCard) {
     const customTmpl = customTemplates.find(t => t.id === publicCard.templateId);
-    return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} />;
+    return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} siteIcon={siteConfig.siteIcon} />;
   }
-
-  const isEditing = activeTab === 'editor';
 
   return (
     <div 

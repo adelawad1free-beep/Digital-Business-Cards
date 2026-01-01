@@ -126,8 +126,13 @@ export const deleteTemplate = async (id: string) => {
   await deleteDoc(doc(db, "custom_templates", id));
 };
 
-// Fix: Use a standard function declaration to ensure the signature (cardData, oldId) is robustly exported and correctly matched in consumers.
-export async function saveCardToDB(cardData: CardData, oldId?: string) {
+// Fixed: Explicitly defining SaveCardParams to ensure saveCardToDB takes exactly 1 argument (an object)
+export interface SaveCardParams {
+  cardData: CardData;
+  oldId?: string;
+}
+
+export async function saveCardToDB({ cardData, oldId }: SaveCardParams) {
   const currentUid = auth.currentUser?.uid;
   if (!currentUid) throw new Error("Auth required");
   
