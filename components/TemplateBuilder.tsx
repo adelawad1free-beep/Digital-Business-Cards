@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData } from '../types';
-import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS } from '../constants';
+import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from './CardPreview';
 import { 
@@ -35,6 +35,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   };
   
   const [activeTab, setActiveTab] = useState<BuilderTab>('info');
+  const [activeBgImgTab, setActiveBgImgTab] = useState<'presets' | 'upload' | 'link'>('presets');
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -331,19 +332,41 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          </div>
                        )}
                        {template.config.defaultThemeType === 'image' && (
-                         <div className="space-y-6 animate-fade-in">
-                            <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-3xl border border-dashed border-gray-200 flex flex-col items-center gap-4">
-                               <div className="w-full h-40 bg-white dark:bg-gray-950 rounded-2xl border shadow-inner flex items-center justify-center overflow-hidden">
-                                  {template.config.defaultBackgroundImage ? <img src={template.config.defaultBackgroundImage} className="w-full h-full object-cover" /> : <ImageIcon size={48} className="text-gray-200" />}
+                         <div className="space-y-8 animate-fade-in">
+                            <div className="flex flex-col items-center gap-6">
+                               <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full">
+                                  <button onClick={() => setActiveBgImgTab('presets')} className={`flex-1 px-6 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeBgImgTab === 'presets' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}>{isRtl ? 'المكتبة' : 'Gallery'}</button>
+                                  <button onClick={() => setActiveBgImgTab('upload')} className={`flex-1 px-6 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeBgImgTab === 'upload' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}>{isRtl ? 'رفع مخصص' : 'Upload'}</button>
                                </div>
-                               <input type="file" ref={logoInputRef} onChange={(e) => handleFileUpload(e, 'defaultBackgroundImage')} className="hidden" accept="image/*" />
-                               <div className="flex gap-2 w-full">
-                                  <button onClick={() => logoInputRef.current?.click()} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg flex items-center justify-center gap-2">
-                                     {uploadingImg ? <Loader2 className="animate-spin" size={16}/> : <UploadCloud size={16}/>} {t('رفع خلفية', 'Upload BG')}
-                                  </button>
-                                  <button onClick={() => downloadImage(template.config.defaultBackgroundImage, 'template-bg')} className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-600 rounded-2xl"><Download size={18}/></button>
-                                  <button onClick={() => updateConfig('defaultBackgroundImage', '')} className="p-4 bg-white dark:bg-gray-800 border text-red-500 rounded-2xl"><X size={18}/></button>
-                               </div>
+
+                               {activeBgImgTab === 'presets' && (
+                                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 w-full animate-fade-in">
+                                     {BACKGROUND_PRESETS.map((url, i) => (
+                                        <button 
+                                          key={i} 
+                                          onClick={() => updateConfig('defaultBackgroundImage', url)}
+                                          className={`aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${template.config.defaultBackgroundImage === url ? 'border-blue-600 shadow-lg' : 'border-transparent'}`}
+                                        >
+                                           <img src={url} className="w-full h-full object-cover" alt="preset" />
+                                        </button>
+                                     ))}
+                                  </div>
+                               )}
+
+                               {activeBgImgTab === 'upload' && (
+                                  <div className="bg-gray-50 dark:bg-gray-800 p-8 rounded-3xl border border-dashed border-gray-200 w-full flex flex-col items-center gap-4">
+                                     <div className="w-full h-32 bg-white dark:bg-gray-950 rounded-2xl border shadow-inner flex items-center justify-center overflow-hidden">
+                                        {template.config.defaultBackgroundImage && !BACKGROUND_PRESETS.includes(template.config.defaultBackgroundImage) ? <img src={template.config.defaultBackgroundImage} className="w-full h-full object-cover" /> : <ImageIcon size={40} className="text-gray-200" />}
+                                     </div>
+                                     <input type="file" ref={logoInputRef} onChange={(e) => handleFileUpload(e, 'defaultBackgroundImage')} className="hidden" accept="image/*" />
+                                     <div className="flex gap-2 w-full">
+                                        <button onClick={() => logoInputRef.current?.click()} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg flex items-center justify-center gap-2">
+                                           {uploadingImg ? <Loader2 className="animate-spin" size={16}/> : <UploadCloud size={16}/>} {t('رفع ملف', 'Upload File')}
+                                        </button>
+                                        <button onClick={() => updateConfig('defaultBackgroundImage', '')} className="p-4 bg-white dark:bg-gray-800 border text-red-500 rounded-2xl"><X size={18}/></button>
+                                     </div>
+                                  </div>
+                               )}
                             </div>
                          </div>
                        )}
@@ -421,7 +444,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <div className="flex-1 space-y-3">
                           <input type="file" ref={avatarInputRef} onChange={(e) => handleFileUpload(e, 'defaultProfileImage')} className="hidden" accept="image/*" />
                           <div className="flex gap-2">
-                             <button onClick={() => avatarInputRef.current?.click()} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-95 transition-all">
+                             <button onClick={() => avatarInputRef.current?.click()} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 active:scale-95 transition-all">
                                 <UploadCloud size={16}/> {t('رفع', 'Upload')}
                              </button>
                              <button onClick={() => downloadImage(template.config.defaultProfileImage, 'default-avatar')} className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-600 rounded-2xl hover:bg-gray-200 transition-all">

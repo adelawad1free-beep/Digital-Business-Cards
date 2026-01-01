@@ -22,16 +22,16 @@ export const TRANSLATIONS: TranslationStrings = {
   admin: { en: 'Admin', ar: 'الإدارة', es: 'Admin', fr: 'Admin', de: 'Admin', zh: '管理', ja: '管理', pt: 'Admin', ru: 'Админ', hi: 'प्रशासन' },
   account: { en: 'Account', ar: 'الحساب', es: 'Cuenta', fr: 'Compte', de: 'Konto', zh: '账户', ja: 'アカウント', pt: 'Conta', ru: 'Аккаунт', hi: 'खाता' },
   login: { en: 'Login', ar: 'دخول', es: 'Iniciar sesión', fr: 'Connexion', de: 'Anmelden', zh: '登录', ja: 'ログイン', pt: 'Entrar', ru: 'Вход', hi: 'لॉगين' },
-  logout: { en: 'Logout', ar: 'خروج', es: 'Cerrar sesión', fr: 'Déconnexion', de: 'Abmelden', zh: '退出', ja: 'ログアウト', pt: 'Sair', ru: 'Выход', hi: 'لॉगआउट' },
+  logout: { en: 'Logout', ar: 'خروج', es: 'Cerrar sesión', fr: 'Déconnexion', de: 'Abmelden', zh: '退出', ja: 'ログアウト', pt: 'Sair', ru: 'Выход', hi: 'لॉगأوت' },
   saveChanges: { en: 'Save Changes', ar: 'حفظ التعديلات', es: 'Guardar', fr: 'Enregistrer', de: 'Speichern', zh: '保存更改', ja: '変更を保存', pt: 'Salvar', ru: 'Сохранить', hi: 'परिवर्तन सहेजें' },
   fullName: { en: 'Full Name', ar: 'الاسم الكامل', es: 'Nombre completo', fr: 'Nom complet', de: 'Vollständiger Name', zh: '全名', ja: 'フルネーム', pt: 'Nome Completo', ru: 'Полное имя', hi: 'पूरा नाम' },
   placeholderName: { en: 'Enter your name', ar: 'أدخل اسمك الكامل', es: 'Ingresa tu nombre', fr: 'Entrez votre nom', de: 'Name eingeben', zh: '输入姓名', ja: '名前を入力', pt: 'Digite seu nome', ru: 'Введите имя', hi: 'अपना नाम दर्ज करें' },
-  theme: { en: 'Theme', ar: 'السمة', es: 'Tema', fr: 'Thème', de: 'Thema', zh: '主题', ja: 'テーマ', pt: 'Tema', ru: 'Тема', hi: 'थीम' },
+  theme: { en: 'Theme', ar: 'السمة', es: 'Tema', fr: 'Thème', de: 'Theما', zh: '主题', ja: 'テーマ', pt: 'Tema', ru: 'Тема', hi: 'थीम' },
   saveContact: { en: 'Save Contact', ar: 'حفظ جهة الاتصال', es: 'Guardar contacto', fr: 'Enregistrer le contact', de: 'Kontakt speichern', zh: '保存联系人', ja: '連絡先を保存', pt: 'Salvar contato', ru: 'Сохранить контакт', hi: 'संपर्क सहेजें' },
-  call: { en: 'Call', ar: 'اتصال', es: 'Llamar', fr: 'Appeler', de: 'Anrufen', zh: '呼叫', ja: '電話', pt: 'Ligar', ru: 'Позвонить', hi: 'كॉल करें' },
+  call: { en: 'Call', ar: 'اتصال', es: 'Llamar', fr: 'Appeler', de: 'Anrufen', zh: '呼叫', ja: '電話', pt: 'Ligar', ru: 'Позвонить', hi: 'कॉल करें' },
   whatsappBtn: { en: 'WhatsApp', ar: 'واتساب', es: 'WhatsApp', fr: 'WhatsApp', de: 'WhatsApp', zh: 'WhatsApp', ja: 'WhatsApp', pt: 'WhatsApp', ru: 'WhatsApp', hi: 'WhatsApp' },
   heroBadge: { en: 'Create your digital identity', ar: 'أنشئ هويتك الرقمية الآن', es: 'Crea tu identidad digital', fr: 'Créez votre identité numérique', de: 'Erstellen Sie Ihre digitale Identität', zh: '创建您的数字身份', ja: 'デジタルアイデンティティを作成', pt: 'Crie sua identidade digital', ru: 'Создайте цифровую личность', hi: 'अपनी डिजिटल पहचान बनाएं' },
-  heroTitle: { en: 'Professional Digital Business Cards', ar: 'بطاقات أعمال رقمية احترافية', es: 'Tarjetas de visita digitales', fr: 'Cartes de visite numériques', de: 'Digitale Visitenkarten', zh: '专业数字名片', ja: 'プロフェッショナルな名片', pt: 'Cartões de Visita Digitais', ru: 'Цифровые визитки', hi: 'पेशेور डिजिटल बिजनेस कार्ड' },
+  heroTitle: { en: 'Professional Digital Business Cards', ar: 'بطاقات أعمال رقمية احترافية', es: 'Tarjetas de visita digitales', fr: 'Cartes de visite numériques', de: 'Digitale Visitenكarten', zh: '专业数字名片', ja: 'プロフェッショナルな名片', pt: 'Cartões de Visita Digitais', ru: 'Цифровые визитки', hi: 'पेशेवर डिजिटल बिजनेस कार्ड' },
   heroDesc: { en: 'The easiest way to share your professional profile with the world.', ar: 'الطريقة الأسهل لمشاركة ملفك المهني مع العالم.', es: 'La forma más fácil de compartir tu perfil.', fr: 'Le moyen le plus simple de partager votre profil.', de: 'Der einfachste Weg, Ihr Profil zu teilen.', zh: '分享您的个人资料的最简单方法。', ja: 'プロフィールを共有する最も簡単な方法。', pt: 'A maneira mais fácil de compartilhar seu perfil.', ru: 'Самый простой способ поделиться своим профилем.', hi: 'अपनी प्रोफ़ाइल साझा करने का सबसे आसान तरीका।' },
   createBtn: { en: 'Create Now', ar: 'ابدأ الآن', es: 'Crear ahora', fr: 'Créer maintenant', de: 'Jetzt erstellen', zh: '立即创建', ja: '今すぐ作成', pt: 'Criar agora', ru: 'Создать сейчас', hi: 'अभी बनाएं' },
   template: { en: 'Layout Template', ar: 'قالب التوزيع', es: 'Plantilla', fr: 'Modèle', de: 'Layout', zh: '布局模板', ja: 'レイアウト', pt: 'Modelo de Layout', ru: 'Шаблон макета', hi: 'लेआउट टेम्पलेट' },
@@ -57,7 +57,7 @@ export const TRANSLATIONS: TranslationStrings = {
   appearance: { en: 'Appearance', ar: 'المظهر', es: 'Apariencia', fr: 'Apparence', de: 'Aussehen', zh: '外观', ja: '外観', pt: 'Aparência', ru: 'Внешний вид', hi: 'دिखاवट' },
   color: { en: 'Color', ar: 'لون', es: 'Color', fr: 'Couleur', de: 'Farbe', zh: '颜色', ja: '色', pt: 'Cor', ru: 'Цвет', hi: 'رنگ' },
   gradient: { en: 'Gradient', ar: 'تدرج', es: 'Degradado', fr: 'Dégradé', de: 'Verlauf', zh: '渐变', ja: 'グラデーション', pt: 'Gradiente', ru: 'Гراضيانت', hi: 'تدرج' },
-  image: { en: 'Image', ar: 'صورة', es: 'Imagen', fr: 'Image', de: 'Bild', zh: '图片', ja: '画像', pt: 'Imagem', ru: 'Изображение', hi: 'छवि' },
+  image: { en: 'Image', ar: 'صورة', es: 'Imagen', fr: 'Image', de: 'Bild', zh: '图片', ja: '画像', pt: 'Imagem', ru: 'Изображение', hi: 'छви' },
   upload: { en: 'Upload', ar: 'رفع', es: 'Subir', fr: 'Télécharger', de: 'Hochladen', zh: '上传', ja: 'アップロード', pt: 'Carregar', ru: 'Загрузить', hi: 'अपलोड' },
   header: { en: 'Header', ar: 'الترويسة', es: 'Encabezado', fr: 'En-tête', de: 'Header', zh: '页眉', ja: 'ヘッダー', pt: 'Cabeçalho', ru: 'Шапка', hi: 'हेडर' },
   avatar: { en: 'Avatar', ar: 'الصورة الشخصية', es: 'Avatar', fr: 'Avatar', de: 'Avatar', zh: '头像', ja: 'アバター', pt: 'Avatar', ru: 'Аватар', hi: 'अवतार' },
@@ -74,7 +74,7 @@ export const TRANSLATIONS: TranslationStrings = {
   minimal: { en: 'Minimal', ar: 'بسيط', es: 'Mínimo', fr: 'Minimal', de: 'Minimal', zh: '极简', ja: 'ミニمال', pt: 'Mínimo', ru: 'Минимализм', hi: 'نظام بسيط' },
   circle: { en: 'Circle', ar: 'دائري', es: 'Círculo', fr: 'Cercle', de: 'Kreis', zh: '圆形', ja: 'サークル', pt: 'Círculo', ru: 'Круг', hi: 'وريت' },
   squircle: { en: 'Squircle', ar: 'منحنٍ', es: 'Squircle', fr: 'Squircle', de: 'Squircle', zh: '圆角', ja: 'スクワークル', pt: 'Squircle', ru: 'سكويركل', hi: 'اسكويكل' },
-  hidden: { en: 'Hidden', ar: 'إخفاء', es: 'Oculto', fr: 'Caché', de: 'Verborgen', zh: '隐藏', ja: '非表示', pt: 'Oculto', ru: 'Скрыто', hi: 'छिपा हुआ' },
+  hidden: { en: 'Hidden', ar: 'إخفاء', es: 'Oculto', fr: 'Caché', de: 'Verborgen', zh: '隐藏', ja: '非表示', pt: 'Oculto', ru: 'Скрыتو', hi: 'छिپا ہوا' },
   showQrCode: { en: 'Show QR Code', ar: 'إظهار رمز الـ QR', es: 'Mostrar código QR', fr: 'Afficher le code QR', de: 'QR-Code anzeigen' }
 };
 
@@ -127,6 +127,21 @@ export const SOCIAL_PLATFORMS = [
   { id: 'discord', name: 'Discord' },
   { id: 'twitch', name: 'Twitch' },
   { id: 'spotify', name: 'Spotify' }
+];
+
+export const BACKGROUND_PRESETS = [
+  'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=600&auto=format&fit=crop', // Abstract Blue
+  'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format&fit=crop', // Multi Gradient
+  'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format&fit=crop', // Clean White
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600&auto=format&fit=crop', // Ocean Minimal
+  'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=600&auto=format&fit=crop', // Office Minimal
+  'https://images.unsplash.com/photo-1516550893923-42d28e5677af?q=80&w=600&auto=format&fit=crop', // Geometric
+  'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=600&auto=format&fit=crop', // Soft Texture
+  'https://images.unsplash.com/photo-1541450805268-4822a3a774ca?q=80&w=600&auto=format&fit=crop', // Dark Carbon
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop', // Digital Abstract
+  'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format&fit=crop', // Vibrant Glass
+  'https://images.unsplash.com/photo-1533035353720-f1c6a75cd8ab?q=80&w=600&auto=format&fit=crop', // Marble White
+  'https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=600&auto=format&fit=crop', // Galaxy
 ];
 
 export const SAMPLE_DATA: Record<string, Partial<CardData>> = {

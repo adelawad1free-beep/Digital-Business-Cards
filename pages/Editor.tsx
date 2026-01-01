@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { CardData, Language, SocialLink, CustomTemplate } from '../types';
-import { TRANSLATIONS, THEME_COLORS, THEME_GRADIENTS, SOCIAL_PLATFORMS, SAMPLE_DATA } from '../constants';
+import { TRANSLATIONS, THEME_COLORS, THEME_GRADIENTS, SOCIAL_PLATFORMS, SAMPLE_DATA, BACKGROUND_PRESETS } from '../constants';
 import { generateProfessionalBio } from '../services/geminiService';
 import { generateSerialId } from '../utils/share';
 import { isSlugAvailable, auth } from '../services/firebase';
@@ -69,6 +69,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   });
 
   const [activeImgTab, setActiveImgTab] = useState<'upload' | 'link'>('upload');
+  const [activeBgImgTab, setActiveBgImgTab] = useState<'presets' | 'upload' | 'link'>('presets');
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
@@ -447,10 +448,37 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                          </div>
                        )}
                        {formData.themeType === 'image' && (
-                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md mx-auto py-4 animate-fade-in">
-                             <button onClick={() => bgFileInputRef.current?.click()} className="flex-1 py-4 px-6 bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl text-[10px] font-black uppercase text-blue-600 flex items-center justify-center gap-3">
-                                {isUploadingBg ? <Loader2 className="animate-spin" size={16}/> : <UploadCloud size={16}/>} {t('رفع خلفية مخصصة', 'Upload Custom Background')}
-                             </button>
+                          <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto py-4 animate-fade-in">
+                             <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-full sm:w-auto">
+                                <button onClick={() => setActiveBgImgTab('presets')} className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeBgImgTab === 'presets' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}>{isRtl ? 'المكتبة' : 'Gallery'}</button>
+                                <button onClick={() => setActiveBgImgTab('upload')} className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeBgImgTab === 'upload' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}>{isRtl ? 'رفع' : 'Upload'}</button>
+                                <button onClick={() => setActiveBgImgTab('link')} className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeBgImgTab === 'link' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}>{isRtl ? 'رابط' : 'Link'}</button>
+                             </div>
+
+                             {activeBgImgTab === 'presets' && (
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 w-full animate-fade-in">
+                                   {BACKGROUND_PRESETS.map((url, i) => (
+                                      <button 
+                                        key={i} 
+                                        onClick={() => handleChange('backgroundImage', url)}
+                                        className={`aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${formData.backgroundImage === url ? 'border-blue-600 shadow-lg' : 'border-transparent'}`}
+                                      >
+                                         <img src={url} className="w-full h-full object-cover" alt="preset" />
+                                      </button>
+                                   ))}
+                                </div>
+                             )}
+
+                             {activeBgImgTab === 'upload' && (
+                                <button onClick={() => bgFileInputRef.current?.click()} className="w-full py-6 bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl text-[10px] font-black uppercase text-blue-600 flex items-center justify-center gap-3">
+                                   {isUploadingBg ? <Loader2 className="animate-spin" size={20}/> : <UploadCloud size={20}/>} {t('رفع خلفية من جهازك', 'Upload Custom Background')}
+                                </button>
+                             )}
+
+                             {activeBgImgTab === 'link' && (
+                                <input type="url" value={formData.backgroundImage} onChange={e => handleChange('backgroundImage', e.target.value)} placeholder="https://image-url.com/photo.jpg" className={inputClasses + " !py-4"} />
+                             )}
+                             
                              <input type="file" ref={bgFileInputRef} onChange={handleBgFileUpload} className="hidden" accept="image/*" />
                           </div>
                        )}
