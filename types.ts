@@ -29,6 +29,20 @@ export interface TemplateConfig {
   nameSize: number;
   bioSize: number;
   
+  // خصائص النمط الزجاجي للترويسة
+  headerGlassy?: boolean;
+  headerOpacity?: number;
+
+  // خصائص النمط الزجاجي للجسم الأبيض (المحتوى)
+  bodyGlassy?: boolean;
+  bodyOpacity?: number; // 0 to 100
+
+  // خصائص الـ QR الجديدة في القالب
+  qrSize?: number;
+  qrOffsetY?: number;
+  showQrCodeByDefault?: boolean;
+  showBioByDefault?: boolean; // خاصية جديدة للأدمن
+
   nameColor?: string;
   titleColor?: string;
   bioTextColor?: string;
@@ -39,7 +53,6 @@ export interface TemplateConfig {
   defaultThemeColor?: string;
   defaultThemeGradient?: string;
   defaultBackgroundImage?: string;
-  // Fix: Added missing defaultProfileImage property to TemplateConfig interface
   defaultProfileImage?: string;
   defaultIsDark?: boolean;
   
@@ -56,6 +69,7 @@ export interface CustomTemplate {
   isActive: boolean;
   isFeatured: boolean;
   order: number;
+  usageCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -67,6 +81,7 @@ export interface CardData {
   title: string;
   company: string;
   bio: string;
+  showBio?: boolean; // خاصية للتحكم في ظهور النبذة
   email: string;
   phone: string;
   whatsapp: string;
@@ -79,7 +94,10 @@ export interface CardData {
   themeGradient: string;
   backgroundImage: string;
   isDark: boolean;
+  isActive?: boolean;
+  viewCount?: number;
   socialLinks: SocialLink[];
+  showQrCode?: boolean;
   ownerId?: string;
   updatedAt?: string;
 

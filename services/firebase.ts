@@ -22,8 +22,14 @@ import {
   limit, 
   orderBy,
   getCountFromServer,
-  where
+  where,
+  increment,
+  updateDoc,
+  Timestamp,
+  getAggregateFromServer,
+  sum
 } from "firebase/firestore";
+import { CardData } from "../types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
@@ -41,7 +47,6 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
-// وظيفة مساعدة لتنظيف البيانات من قيم undefined التي تسبب فشل الحفظ في Firestore
 const sanitizeData = (data: any) => {
   const clean: any = {};
   Object.keys(data).forEach(key => {
@@ -121,16 +126,26 @@ export const deleteTemplate = async (id: string) => {
   await deleteDoc(doc(db, "custom_templates", id));
 };
 
-export const saveCardToDB = async (userId: string, cardData: any, oldId?: string) => {
+// Fix: Redefined as standard function export to resolve potential hoisting/typing issues in the consumer
+export async function saveCardToDB(cardData: CardData, oldId?: string) {
   const currentUid = auth.currentUser?.uid;
   if (!currentUid) throw new Error("Auth required");
-  const finalOwnerId = cardData.ownerId || userId || currentUid;
   
-  // تنظيف البيانات من أي قيم undefined قبل الحفظ
+  const finalOwnerId = cardData.ownerId || currentUid;
   const cleanCardData = sanitizeData(cardData);
-  const dataToSave = { ...cleanCardData, ownerId: finalOwnerId, updatedAt: new Date().toISOString() };
+  const dataToSave = { 
+    ...cleanCardData, 
+    ownerId: finalOwnerId, 
+    updatedAt: new Date().toISOString(),
+    isActive: cardData.isActive ?? true, 
+    viewCount: cardData.viewCount || 0   
+  };
   const newId = cardData.id.toLowerCase();
   
+  const isNewCard = !oldId;
+  const oldCardSnap = oldId ? await getDoc(doc(db, "public_cards", oldId.toLowerCase())) : null;
+  const oldTemplateId = oldCardSnap?.exists() ? oldCardSnap.data().templateId : null;
+
   if (oldId && oldId.toLowerCase() !== newId) {
     await deleteDoc(doc(db, "public_cards", oldId.toLowerCase()));
     await deleteDoc(doc(db, "users", finalOwnerId, "cards", oldId.toLowerCase()));
@@ -140,12 +155,37 @@ export const saveCardToDB = async (userId: string, cardData: any, oldId?: string
     setDoc(doc(db, "public_cards", newId), dataToSave),
     setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
   ]);
+
+  if (cardData.templateId) {
+    try {
+      if (isNewCard) {
+        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
+      } else if (oldTemplateId && oldTemplateId !== cardData.templateId) {
+        await updateDoc(doc(db, "custom_templates", oldTemplateId), { usageCount: increment(-1) });
+        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
+      }
+    } catch (e) {}
+  }
+}
+
+export const toggleCardStatus = async (cardId: string, ownerId: string, isActive: boolean) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const updateData = { isActive };
+  await Promise.all([
+    updateDoc(doc(db, "public_cards", cardId.toLowerCase()), updateData),
+    updateDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()), updateData)
+  ]);
 };
 
 export const getCardBySerial = async (serialId: string) => {
   try {
-    const snap = await getDoc(doc(db, "public_cards", serialId.toLowerCase()));
-    return snap.exists() ? snap.data() : null;
+    const cardRef = doc(db, "public_cards", serialId.toLowerCase());
+    const snap = await getDoc(cardRef);
+    if (snap.exists()) {
+      await updateDoc(cardRef, { viewCount: increment(1) });
+      return snap.data();
+    }
+    return null;
   } catch (error) { return null; }
 };
 
@@ -157,10 +197,19 @@ export const getUserCards = async (userId: string) => {
 };
 
 export const deleteUserCard = async (ownerId: string, cardId: string) => {
+  const cardSnap = await getDoc(doc(db, "public_cards", cardId.toLowerCase()));
+  const templateId = cardSnap.exists() ? cardSnap.data().templateId : null;
+
   await Promise.all([
     deleteDoc(doc(db, "public_cards", cardId.toLowerCase())),
     deleteDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()))
   ]);
+
+  if (templateId) {
+    try {
+      await updateDoc(doc(db, "custom_templates", templateId), { usageCount: increment(-1) });
+    } catch (e) {}
+  }
 };
 
 export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
@@ -175,10 +224,33 @@ export const isSlugAvailable = async (slug: string, currentUserId?: string): Pro
 export const getAdminStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
   try {
-    const snapshot = await getCountFromServer(collection(db, "public_cards"));
-    const querySnapshot = await getDocs(query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(50)));
-    return { totalCards: snapshot.data().count, recentCards: querySnapshot.docs.map(doc => doc.data()) };
-  } catch (error) { return { totalCards: 0, recentCards: [] }; }
+    const totalSnap = await getCountFromServer(collection(db, "public_cards"));
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const activeQuery = query(
+      collection(db, "public_cards"), 
+      where("updatedAt", ">=", thirtyDaysAgo.toISOString())
+    );
+    const activeSnap = await getCountFromServer(activeQuery);
+
+    const viewSumSnap = await getAggregateFromServer(collection(db, "public_cards"), {
+      totalViews: sum('viewCount')
+    });
+
+    const recentQuery = query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(100));
+    const recentDocs = await getDocs(recentQuery);
+    
+    return { 
+      totalCards: totalSnap.data().count, 
+      activeCards: activeSnap.data().count,
+      totalViews: viewSumSnap.data().totalViews || 0,
+      recentCards: recentDocs.docs.map(doc => doc.data()) 
+    };
+  } catch (error) { 
+    console.error("Stats Error:", error);
+    return { totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] }; 
+  }
 };
 
 export const signInWithGoogle = async () => {

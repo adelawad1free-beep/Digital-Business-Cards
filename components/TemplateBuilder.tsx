@@ -12,7 +12,7 @@ import {
   Type as TypographyIcon, Ruler,
   Star, Hash, ArrowLeft, Palette, Sparkles, Image as ImageIcon, UploadCloud, Sun, Moon, Pipette,
   Settings, FileText, AlignLeft, AlignRight, LayoutTemplate, Info, Maximize2, UserCircle,
-  Mail, Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, Eye
+  Mail, Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, Eye, QrCode, Wind, GlassWater
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -22,7 +22,7 @@ interface TemplateBuilderProps {
   initialTemplate?: CustomTemplate;
 }
 
-type BuilderTab = 'info' | 'visuals' | 'header' | 'avatar' | 'typography' | 'layout';
+type BuilderTab = 'info' | 'visuals' | 'header' | 'avatar' | 'typography' | 'layout' | 'qrcode';
 
 const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCancel, initialTemplate }) => {
   const isRtl = lang === 'ar';
@@ -69,6 +69,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       spacing: 'normal',
       nameSize: 26,
       bioSize: 13,
+      qrSize: 90,
+      qrOffsetY: 0,
+      showQrCodeByDefault: true,
+      showBioByDefault: true,
+      headerGlassy: false,
+      headerOpacity: 100,
+      bodyGlassy: false,
+      bodyOpacity: 100,
       nameColor: '#111827',
       titleColor: '#2563eb',
       bioTextColor: 'rgba(0,0,0,0.65)',
@@ -167,9 +175,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   );
 
   const PreviewContent = ({ isMobileView = false }) => (
-    <div className={`flex flex-col items-center w-full ${isMobileView ? 'scale-[0.8] sm:scale-100' : ''}`}>
+    <div className={`flex flex-col items-center w-full ${isMobileView ? '' : ''}`}>
       {!isMobileView && (
-        <div className="mb-4 w-full flex items-center justify-between px-4">
+        <div className="mb-6 w-full flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('معاينة حية', 'Live Preview')}</span>
@@ -183,7 +191,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       )}
       
       <div className={`transition-all duration-500 ease-in-out origin-top border-[10px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden bg-white dark:bg-gray-950 ${isMobileView ? 'w-[280px]' : previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`}>
-        <div className={`${isMobileView ? 'h-[520px]' : 'h-[580px]'} overflow-y-auto no-scrollbar`}>
+        <div className={`no-scrollbar overflow-x-hidden ${isMobileView ? 'h-[520px]' : 'h-[620px]'} overflow-y-auto`}>
            <CardPreview 
               data={{ 
                 ...sampleCardData, 
@@ -198,7 +206,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 titleColor: template.config.titleColor,
                 bioTextColor: template.config.bioTextColor,
                 bioBgColor: template.config.bioBgColor,
-                linksColor: template.config.linksColor
+                linksColor: template.config.linksColor,
+                showQrCode: template.config.showQrCodeByDefault,
+                showBio: template.config.showBioByDefault
               }} 
               lang={lang} 
               customConfig={template.config} 
@@ -246,7 +256,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="header" label={t('الترويسة', 'Header')} icon={Layout} />
           <NavItem id="avatar" label={t('الصورة الشخصية', 'Avatar')} icon={Circle} />
           <NavItem id="typography" label={t('النصوص والخطوط', 'Typography')} icon={TypographyIcon} />
-          <NavItem id="layout" label={t('التموضع', 'Positioning')} icon={Move} />
+          <NavItem id="layout" label={t('التموضع والخيارات', 'Layout & Options')} icon={Move} />
+          <NavItem id="qrcode" label={t('رمز الـ QR', 'QR Code')} icon={QrCode} />
         </div>
 
         <div className="flex-1 p-8 overflow-y-auto no-scrollbar bg-gray-50/20 dark:bg-transparent">
@@ -265,15 +276,41 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
             {activeTab === 'visuals' && (
               <div className="space-y-10 animate-fade-in">
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
-                    <label className={labelTextClasses + " mb-6"}>{t('نوع الخلفية الافتراضية', 'Default Background Type')}</label>
-                    <div className="grid grid-cols-3 gap-4">
-                       <button onClick={() => updateConfig('defaultThemeType', 'color')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'color' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><Palette size={20}/> <span className="text-[10px] font-black uppercase">{t('color')}</span></button>
-                       <button onClick={() => updateConfig('defaultThemeType', 'gradient')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'gradient' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><Sparkles size={20}/> <span className="text-[10px] font-black uppercase">{t('gradient')}</span></button>
-                       <button onClick={() => updateConfig('defaultThemeType', 'image')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'image' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><ImageIcon size={20}/> <span className="text-[10px] font-black uppercase">{t('image')}</span></button>
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-10">
+                    <div>
+                      <label className={labelTextClasses + " mb-6"}>{t('نوع الخلفية الافتراضية', 'Default Background Type')}</label>
+                      <div className="grid grid-cols-3 gap-4">
+                         <button onClick={() => updateConfig('defaultThemeType', 'color')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'color' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><Palette size={20}/> <span className="text-[10px] font-black uppercase">{t('color')}</span></button>
+                         <button onClick={() => updateConfig('defaultThemeType', 'gradient')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'gradient' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><Sparkles size={20}/> <span className="text-[10px] font-black uppercase">{t('gradient')}</span></button>
+                         <button onClick={() => updateConfig('defaultThemeType', 'image')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${template.config.defaultThemeType === 'image' ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}><ImageIcon size={20}/> <span className="text-[10px] font-black uppercase">{t('image')}</span></button>
+                      </div>
+                    </div>
+
+                    <div className="pt-10 border-t border-gray-50 dark:border-gray-800 space-y-6">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             <GlassWater className="text-blue-600" size={24} />
+                             <h4 className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('زجاجية محتوى البطاقة', 'Card Body Glassy')}</h4>
+                          </div>
+                          <button 
+                            onClick={() => updateConfig('bodyGlassy', !template.config.bodyGlassy)}
+                            className={`w-14 h-7 rounded-full relative transition-all ${template.config.bodyGlassy ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                          >
+                             <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.bodyGlassy ? 'right-8' : 'right-1') : (template.config.bodyGlassy ? 'left-8' : 'left-1')}`} />
+                          </button>
+                       </div>
+                       
+                       {template.config.bodyGlassy && (
+                          <div className="animate-fade-in">
+                             <RangeControl label={t('شفافية المحتوى الأبيض', 'Body White Opacity')} min={0} max={100} value={template.config.bodyOpacity ?? 100} onChange={(v: number) => updateConfig('bodyOpacity', v)} unit="%" icon={Sun} />
+                             <p className="mt-4 text-[9px] font-bold text-gray-400 leading-relaxed uppercase tracking-wider">
+                                {isRtl ? '* يؤثر هذا الخيار على القسم الأبيض الذي يحتوي على اسمك وبياناتك فوق الترويسة.' : '* This affects the white section containing your name and details over the header.'}
+                             </p>
+                          </div>
+                       )}
                     </div>
                     
-                    <div className="mt-8 pt-8 border-t border-gray-50 dark:border-gray-800 space-y-8">
+                    <div className="mt-8 pt-10 border-t border-gray-50 dark:border-gray-800 space-y-8">
                        {template.config.defaultThemeType === 'color' && (
                          <div className="space-y-6 animate-fade-in">
                             <div className="flex flex-wrap justify-center gap-4">
@@ -317,24 +354,47 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
             {activeTab === 'header' && (
                <div className="space-y-8 animate-fade-in">
-                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
-                    <label className={labelTextClasses + " mb-6"}>{t('نمط الترويسة', 'Header Style')}</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                       <button onClick={() => updateConfig('headerType', 'classic')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'classic' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <LayoutTemplate size={20}/> <span className="text-[8px] font-black uppercase">{t('كلاسيك', 'Classic')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('headerType', 'split')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'split' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <Smartphone size={20}/> <span className="text-[8px] font-black uppercase">{t('منقسم', 'Split')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('headerType', 'overlay')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'overlay' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <Layers size={20}/> <span className="text-[8px] font-black uppercase">{t('متداخل', 'Overlay')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('headerType', 'hero')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'hero' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <UserCircle size={20}/> <span className="text-[8px] font-black uppercase">{t('البانورامي', 'Hero')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('headerType', 'minimal')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'minimal' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <Zap size={20}/> <span className="text-[8px] font-black uppercase">{t('بسيط', 'Minimal')}</span>
-                       </button>
+                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
+                    <div>
+                      <label className={labelTextClasses + " mb-6"}>{t('نمط الترويسة', 'Header Style')}</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                         <button onClick={() => updateConfig('headerType', 'classic')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'classic' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <LayoutTemplate size={20}/> <span className="text-[8px] font-black uppercase">{t('كلاسيك', 'Classic')}</span>
+                         </button>
+                         <button onClick={() => updateConfig('headerType', 'split')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'split' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <Smartphone size={20}/> <span className="text-[8px] font-black uppercase">{t('منقسم', 'Split')}</span>
+                         </button>
+                         <button onClick={() => updateConfig('headerType', 'overlay')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'overlay' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <Layers size={20}/> <span className="text-[8px] font-black uppercase">{t('متداخل', 'Overlay')}</span>
+                         </button>
+                         <button onClick={() => updateConfig('headerType', 'hero')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'hero' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <UserCircle size={20}/> <span className="text-[8px] font-black uppercase">{t('البانورامي', 'Hero')}</span>
+                         </button>
+                         <button onClick={() => updateConfig('headerType', 'minimal')} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === 'minimal' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <Zap size={20}/> <span className="text-[8px] font-black uppercase">{t('بسيط', 'Minimal')}</span>
+                         </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-50 dark:border-gray-800">
+                       <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                             <Wind className="text-blue-600" size={20} />
+                             <h4 className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('نمط زجاجي للترويسة', 'Header Glassy')}</h4>
+                          </div>
+                          <button 
+                            onClick={() => updateConfig('headerGlassy', !template.config.headerGlassy)}
+                            className={`w-14 h-7 rounded-full relative transition-all ${template.config.headerGlassy ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                          >
+                             <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.headerGlassy ? 'right-8' : 'right-1') : (template.config.headerGlassy ? 'left-8' : 'left-1')}`} />
+                          </button>
+                       </div>
+                       
+                       {template.config.headerGlassy && (
+                          <div className="mt-4 animate-fade-in">
+                             <RangeControl label={t('شفافية الترويسة', 'Opacity')} min={0} max={100} value={template.config.headerOpacity ?? 100} onChange={(v: number) => updateConfig('headerOpacity', v)} unit="%" />
+                          </div>
+                       )}
                     </div>
                   </div>
                   <RangeControl label={t('ارتفاع الترويسة', 'Header Height')} min={60} max={450} value={template.config.headerHeight} onChange={(v: number) => updateConfig('headerHeight', v)} />
@@ -399,18 +459,35 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
             {activeTab === 'layout' && (
               <div className="space-y-8 animate-fade-in">
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm">
-                    <label className={labelTextClasses + " mb-6"}>{t('محاذاة المحتوى', 'Content Alignment')}</label>
-                    <div className="flex gap-4">
-                       <button onClick={() => updateConfig('contentAlign', isRtl ? 'end' : 'start')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${((isRtl && template.config.contentAlign === 'end') || (!isRtl && template.config.contentAlign === 'start')) ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <AlignLeft size={18}/> <span className="text-[10px] font-black uppercase">{t('يسار', 'Left')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('contentAlign', 'center')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.contentAlign === 'center' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <AlignCenter size={18}/> <span className="text-[10px] font-black uppercase">{t('وسط', 'Center')}</span>
-                       </button>
-                       <button onClick={() => updateConfig('contentAlign', isRtl ? 'start' : 'end')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${((isRtl && template.config.contentAlign === 'start') || (!isRtl && template.config.contentAlign === 'end')) ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
-                         <AlignRight size={18}/> <span className="text-[10px] font-black uppercase">{t('يمين', 'Right')}</span>
-                       </button>
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
+                    <div>
+                       <label className={labelTextClasses + " mb-6"}>{t('محاذاة المحتوى', 'Content Alignment')}</label>
+                       <div className="flex gap-4">
+                          <button onClick={() => updateConfig('contentAlign', isRtl ? 'end' : 'start')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${((isRtl && template.config.contentAlign === 'end') || (!isRtl && template.config.contentAlign === 'start')) ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                            <AlignLeft size={18}/> <span className="text-[10px] font-black uppercase">{t('يسار', 'Left')}</span>
+                          </button>
+                          <button onClick={() => updateConfig('contentAlign', 'center')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.contentAlign === 'center' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                            <AlignCenter size={18}/> <span className="text-[10px] font-black uppercase">{t('وسط', 'Center')}</span>
+                          </button>
+                          <button onClick={() => updateConfig('contentAlign', isRtl ? 'start' : 'end')} className={`flex-1 py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${((isRtl && template.config.contentAlign === 'start') || (!isRtl && template.config.contentAlign === 'end')) ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                            <AlignRight size={18}/> <span className="text-[10px] font-black uppercase">{t('يمين', 'Right')}</span>
+                          </button>
+                       </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             <FileText className="text-blue-600" size={20} />
+                             <h4 className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('إظهار النبذة افتراضياً', 'Show Bio by Default')}</h4>
+                          </div>
+                          <button 
+                            onClick={() => updateConfig('showBioByDefault', !template.config.showBioByDefault)}
+                            className={`w-14 h-7 rounded-full relative transition-all ${template.config.showBioByDefault ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                          >
+                             <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.showBioByDefault ? 'right-8' : 'right-1') : (template.config.showBioByDefault ? 'left-8' : 'left-1')}`} />
+                          </button>
+                       </div>
                     </div>
                  </div>
 
@@ -425,16 +502,41 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
               </div>
             )}
 
+            {activeTab === 'qrcode' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                          <QrCode className="text-blue-600" size={24} />
+                          <h3 className="font-black dark:text-white uppercase text-xs tracking-wider">{t('إعدادات رمز الـ QR', 'QR Code Settings')}</h3>
+                       </div>
+                       <button 
+                         onClick={() => updateConfig('showQrCodeByDefault', !template.config.showQrCodeByDefault)}
+                         className={`w-14 h-7 rounded-full relative transition-all ${template.config.showQrCodeByDefault ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                       >
+                          <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${isRtl ? (template.config.showQrCodeByDefault ? 'right-8' : 'right-1') : (template.config.showQrCodeByDefault ? 'left-8' : 'left-1')}`} />
+                       </button>
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-400 leading-relaxed">
+                       {t('تحكم في كيفية ظهور رمز الـ QR في هذا القالب بشكل افتراضي.', 'Control how the QR code appears in this template by default.')}
+                    </p>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <RangeControl label={t('حجم الرمز', 'QR Size')} min={40} max={150} value={template.config.qrSize || 90} onChange={(v: number) => updateConfig('qrSize', v)} icon={Maximize2} />
+                    <RangeControl label={t('إزاحة الرمز Y', 'QR Offset Y')} min={-150} max={150} value={template.config.qrOffsetY || 0} onChange={(v: number) => updateConfig('qrOffsetY', v)} icon={Move} />
+                 </div>
+              </div>
+            )}
+
           </div>
         </div>
 
-        {/* Desktop Preview Panel */}
-        <div className="hidden lg:flex w-full lg:w-[480px] bg-gray-50/50 dark:bg-black/40 border-r lg:border-r-0 lg:border-l dark:border-gray-800 p-6 flex-col items-center relative overflow-y-auto no-scrollbar scroll-smooth">
+        <div className="hidden lg:flex w-full lg:w-[480px] bg-gray-50/50 dark:bg-black/40 border-r lg:border-r-0 lg:border-l dark:border-gray-800 p-6 flex flex-col items-center relative overflow-y-auto no-scrollbar scroll-smooth">
            <PreviewContent />
         </div>
       </div>
 
-      {/* شريط الإجراءات السفلي ممتد للجوال - منشئ القوالب */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
         <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 px-8 py-5 pb-10 flex items-center justify-between shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
           <button 
@@ -463,7 +565,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
         </div>
       </nav>
 
-      {/* Mobile Preview Modal - Framed Center View */}
       {showMobilePreview && (
         <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in lg:hidden">
            <div className="absolute inset-0" onClick={() => setShowMobilePreview(false)}></div>
@@ -472,7 +573,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                  <h3 className="text-gray-900 dark:text-white font-black uppercase text-[10px] tracking-[0.2em]">{isRtl ? 'معاينة القالب' : 'Template Preview'}</h3>
                  <button onClick={() => setShowMobilePreview(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
               </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-2">
+              <div className="flex-1 no-scrollbar overflow-y-auto overflow-x-hidden py-4 px-2">
                  <PreviewContent isMobileView={true} />
               </div>
            </div>

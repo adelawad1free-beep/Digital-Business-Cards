@@ -4,7 +4,7 @@ import { CardData, Language, TemplateConfig } from '../types';
 import CardPreview from '../components/CardPreview';
 import { TRANSLATIONS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
-import { Plus, UserPlus, Share2 } from 'lucide-react';
+import { Plus, UserPlus, Share2, AlertCircle } from 'lucide-react';
 
 interface PublicProfileProps {
   data: CardData;
@@ -17,13 +17,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
   useEffect(() => {
+    if (data.isActive === false) return; // لا نحدث الـ Meta إذا كانت البطاقة معطلة
+
     const cardTitle = data.name ? `${data.name} | ${data.title}` : (lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID');
     const cardDesc = data.bio || (lang === 'ar' ? `تفضل بزيارة بطاقة أعمالي الرقمية وتواصل معي.` : `Connect with me via my Digital ID.`);
     const cardImg = data.profileImage || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
 
     document.title = cardTitle;
 
-    // تحديث الوسوم الوصفية (Meta Tags)
     const updateOrCreateMeta = (attribute: string, attrValue: string, content: string) => {
       let el = document.querySelector(`meta[${attribute}="${attrValue}"]`);
       if (!el) {
@@ -42,7 +43,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
     updateOrCreateMeta('name', 'twitter:card', 'summary_large_image');
     updateOrCreateMeta('name', 'description', cardDesc);
 
-    // إضافة البيانات المنظمة لمحركات البحث (Structured Data - JSON-LD)
     const schemaData = {
       "@context": "https://schema.org/",
       "@type": "Person",
@@ -57,7 +57,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
       "description": data.bio,
       "telephone": data.phone,
       "email": data.email,
-      "sameAs": data.socialLinks.map(l => l.url)
+      "sameAs": (data.socialLinks || []).map(l => l.url)
     };
 
     const scriptId = 'structured-data-script';
@@ -74,11 +74,29 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
     if (favicon && data.profileImage) favicon.href = data.profileImage;
 
     return () => {
-      // تنظيف السكريبت عند مغادرة الصفحة
       const oldScript = document.getElementById(scriptId);
       if (oldScript) oldScript.remove();
     };
   }, [data, lang]);
+
+  if (data.isActive === false) {
+    return (
+      <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${data.isDark ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
+         <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-xl">
+            <AlertCircle size={48} />
+         </div>
+         <h1 className="text-3xl font-black mb-4">
+            {isRtl ? 'البطاقة غير متاحة حالياً' : 'Card Currently Unavailable'}
+         </h1>
+         <p className="text-gray-500 dark:text-gray-400 max-w-xs font-bold leading-relaxed mb-10">
+            {isRtl ? 'تم تعطيل هذه البطاقة مؤقتاً بواسطة المسؤول أو صاحب البطاقة. يرجى المحاولة لاحقاً.' : 'This card has been temporarily disabled. Please try again later.'}
+         </p>
+         <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">
+            {isRtl ? 'أنشئ بطاقتك الخاصة' : 'Create Your Own Card'}
+         </a>
+      </div>
+    );
+  }
 
   const getPageBackgroundStyle = () => {
     if (data.themeType === 'gradient') return { background: `${data.themeGradient}15` }; 

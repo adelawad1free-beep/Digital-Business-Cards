@@ -13,7 +13,7 @@ import {
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
   CheckCircle2, AlertCircle, UploadCloud, Image as ImageIcon, 
   Palette, Layout, User as UserIcon, Camera, Share2, 
-  Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, ArrowLeft
+  Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, ArrowLeft, QrCode, RefreshCcw, FileText
 } from 'lucide-react';
 
 interface EditorProps {
@@ -43,24 +43,26 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const data = initialData || {
       ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']),
       id: generateSerialId(),
-      templateId: 'classic',
+      templateId: templates[0]?.id || 'classic',
+      showQrCode: true,
+      showBio: true,
     } as CardData;
 
     const selectedTmpl = templates.find(t => t.id === data.templateId);
-    if (selectedTmpl && !data.ownerId) {
+    if (selectedTmpl) {
        return {
          ...data,
-         themeType: selectedTmpl.config.defaultThemeType || data.themeType,
-         themeColor: selectedTmpl.config.defaultThemeColor || data.themeColor,
-         themeGradient: selectedTmpl.config.defaultThemeGradient || data.themeGradient,
-         backgroundImage: selectedTmpl.config.defaultBackgroundImage || data.backgroundImage,
-         profileImage: selectedTmpl.config.defaultProfileImage || data.profileImage,
-         isDark: selectedTmpl.config.defaultIsDark ?? data.isDark,
-         nameColor: selectedTmpl.config.nameColor || null,
-         titleColor: selectedTmpl.config.titleColor || null,
-         bioTextColor: selectedTmpl.config.bioTextColor || null,
-         bioBgColor: selectedTmpl.config.bioBgColor || null,
-         linksColor: selectedTmpl.config.linksColor || null
+         themeType: data.themeType || selectedTmpl.config.defaultThemeType || 'gradient',
+         themeColor: data.themeColor || selectedTmpl.config.defaultThemeColor || THEME_COLORS[0],
+         themeGradient: data.themeGradient || selectedTmpl.config.defaultThemeGradient || THEME_GRADIENTS[0],
+         isDark: data.isDark ?? selectedTmpl.config.defaultIsDark ?? false,
+         nameColor: data.nameColor || selectedTmpl.config.nameColor || null,
+         titleColor: data.titleColor || selectedTmpl.config.titleColor || null,
+         bioTextColor: data.bioTextColor || selectedTmpl.config.bioTextColor || null,
+         bioBgColor: data.bioBgColor || selectedTmpl.config.bioBgColor || null,
+         linksColor: data.linksColor || selectedTmpl.config.linksColor || null,
+         showBio: data.showBio ?? selectedTmpl.config.showBioByDefault ?? true,
+         showQrCode: data.showQrCode ?? selectedTmpl.config.showQrCodeByDefault ?? true
        } as CardData;
     }
     return data;
@@ -73,17 +75,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-      originalIdRef.current = initialData.id;
-      setSlugStatus('available'); 
-    }
-  }, [initialData]);
+  const currentTemplate = templates.find(t => t.id === formData.templateId);
 
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') {
-      value = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+      value = (value || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
       setSlugStatus('idle');
     }
 
@@ -93,17 +89,15 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
         setFormData(prev => ({
           ...prev,
           templateId: value,
+          nameColor: newTmpl.config.nameColor || prev.nameColor,
+          titleColor: newTmpl.config.titleColor || prev.titleColor,
+          bioTextColor: newTmpl.config.bioTextColor || prev.bioTextColor,
+          bioBgColor: newTmpl.config.bioBgColor || prev.bioBgColor,
+          linksColor: newTmpl.config.linksColor || prev.linksColor,
           themeType: newTmpl.config.defaultThemeType || prev.themeType,
-          themeColor: newTmpl.config.defaultThemeColor || prev.themeColor,
-          themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
-          backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
-          profileImage: newTmpl.config.defaultProfileImage || prev.profileImage,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
-          nameColor: newTmpl.config.nameColor || prev.nameColor || null,
-          titleColor: newTmpl.config.titleColor || prev.titleColor || null,
-          bioTextColor: newTmpl.config.bioTextColor || prev.bioTextColor || null,
-          bioBgColor: newTmpl.config.bioBgColor || prev.bioBgColor || null,
-          linksColor: newTmpl.config.linksColor || prev.linksColor || null
+          showBio: newTmpl.config.showBioByDefault ?? prev.showBio,
+          showQrCode: newTmpl.config.showQrCodeByDefault ?? prev.showQrCode
         }));
         return;
       }
@@ -112,7 +106,23 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const currentTemplate = templates.find(t => t.id === formData.templateId);
+  const resetToTemplateColors = () => {
+    if (!currentTemplate) return;
+    setFormData(prev => ({
+      ...prev,
+      nameColor: currentTemplate.config.nameColor || null,
+      titleColor: currentTemplate.config.titleColor || null,
+      bioTextColor: currentTemplate.config.bioTextColor || null,
+      bioBgColor: currentTemplate.config.bioBgColor || null,
+      linksColor: currentTemplate.config.linksColor || null,
+      themeType: currentTemplate.config.defaultThemeType || prev.themeType,
+      themeColor: currentTemplate.config.defaultThemeColor || prev.themeColor,
+      themeGradient: currentTemplate.config.defaultThemeGradient || prev.themeGradient,
+      isDark: currentTemplate.config.defaultIsDark ?? prev.isDark,
+      showBio: currentTemplate.config.showBioByDefault ?? prev.showBio,
+      showQrCode: currentTemplate.config.showQrCodeByDefault ?? prev.showQrCode
+    }));
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,9 +214,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   );
 
   const PreviewContent = ({ isMobileView = false }) => (
-    <div className={`flex flex-col items-center w-full ${isMobileView ? 'scale-[0.85] sm:scale-100' : ''}`}>
+    <div className={`flex flex-col items-center w-full ${isMobileView ? '' : ''}`}>
       {!isMobileView && (
-        <div className="mb-4 w-full flex items-center justify-between px-6">
+        <div className="mb-6 w-full flex items-center justify-between px-6">
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</span>
@@ -220,7 +230,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       )}
       
       <div className={`transition-all duration-500 ease-in-out origin-top border-[8px] border-gray-900 dark:border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 ${isMobileView ? 'w-[280px]' : previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[360px]'}`}>
-        <div className={`${isMobileView ? 'h-[500px]' : 'h-[600px]'} overflow-y-auto no-scrollbar`}>
+        <div className={`no-scrollbar overflow-x-hidden ${isMobileView ? 'h-[500px]' : 'h-[640px]'} overflow-y-auto`}>
           <CardPreview 
             data={formData} 
             lang={lang} 
@@ -286,12 +296,34 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                        <label className={labelClasses}>{t('bio')}</label>
+                        <div className="flex items-center gap-3">
+                          <label className={labelClasses}>{t('bio')}</label>
+                          <button 
+                            onClick={() => handleChange('showBio', !formData.showBio)}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all ${formData.showBio !== false ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}
+                          >
+                             {formData.showBio !== false ? <Eye size={12} /> : <X size={12} />}
+                             {formData.showBio !== false ? (isRtl ? 'نشط' : 'Enabled') : (isRtl ? 'معطل' : 'Disabled')}
+                          </button>
+                        </div>
                         <button onClick={handleGenerateAIBio} disabled={isGeneratingBio} className="text-[9px] font-black text-blue-600 uppercase flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-md">
                           {isGeneratingBio ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} {isRtl ? 'ذكاء اصطناعي' : 'AI Bio'}
                         </button>
                     </div>
-                    <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} rows={3} className={`${inputClasses} !py-3 resize-none min-h-[80px]`} />
+                    <div className="relative">
+                      <textarea 
+                        value={formData.bio} 
+                        onChange={e => handleChange('bio', e.target.value)} 
+                        rows={3} 
+                        disabled={formData.showBio === false}
+                        className={`${inputClasses} !py-3 resize-none min-h-[80px] ${formData.showBio === false ? 'opacity-30 grayscale pointer-events-none' : ''}`} 
+                      />
+                      {formData.showBio === false && (
+                         <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 dark:bg-black/20 rounded-xl backdrop-blur-[1px]">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isRtl ? 'النبذة معطلة' : 'Bio is disabled'}</span>
+                         </div>
+                      )}
+                    </div>
                   </div>
               </div>
             </div>
@@ -330,9 +362,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
             <div className="bg-white dark:bg-[#121215] p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-10">
               <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                    <Layout className="text-blue-600" size={20} />
-                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'اختر قالب التصميم' : 'Select Layout Template'}</h4>
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                       <Layout className="text-blue-600" size={20} />
+                       <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'اختر قالب التصميم' : 'Select Layout Template'}</h4>
+                   </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {templates.map(tmpl => (
@@ -349,9 +383,17 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
               </div>
 
               <div className="pt-8 border-t border-gray-50 dark:border-gray-800 space-y-8">
-                 <div className="flex items-center gap-3">
-                    <Palette className="text-blue-600" size={20} />
-                    <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'المظهر والألوان' : 'Appearance & Colors'}</h4>
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <Palette className="text-blue-600" size={20} />
+                       <h4 className="text-[12px] font-black uppercase text-gray-700 dark:text-gray-300 tracking-widest">{isRtl ? 'المظهر والألوان' : 'Appearance & Colors'}</h4>
+                    </div>
+                    <button 
+                      onClick={resetToTemplateColors}
+                      className="text-[9px] font-black text-blue-600 uppercase flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                       <RefreshCcw size={12} /> {isRtl ? 'استعادة ألوان القالب' : 'Reset Colors'}
+                    </button>
                  </div>
                  
                  <div className="flex flex-col items-center gap-6">
@@ -365,6 +407,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                         <button onClick={() => handleChange('themeType', 'image')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2 ${formData.themeType === 'image' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}>
                           <ImageIcon size={16} /> {isRtl ? 'صورة' : 'Img'}
                         </button>
+                    </div>
+
+                    <div className="w-full flex flex-wrap justify-center gap-4">
+                       <button onClick={() => handleChange('isDark', !formData.isDark)} className={`p-4 px-8 rounded-2xl transition-all shadow-md flex items-center gap-3 ${formData.isDark ? 'bg-gray-900 text-yellow-400 border border-gray-700' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
+                          {formData.isDark ? <Moon size={20}/> : <Sun size={20}/>}
+                          <span className="text-[10px] font-black uppercase tracking-widest">{formData.isDark ? (isRtl ? 'ليلي' : 'Dark') : (isRtl ? 'نهاري' : 'Light')}</span>
+                       </button>
+
+                       <button onClick={() => handleChange('showQrCode', !formData.showQrCode)} className={`p-4 px-8 rounded-2xl transition-all shadow-md flex items-center gap-3 ${formData.showQrCode !== false ? 'bg-blue-600 text-white border border-blue-500 shadow-blue-200/50' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
+                          <QrCode size={20}/>
+                          <span className="text-[10px] font-black uppercase tracking-widest">{formData.showQrCode !== false ? (isRtl ? 'إخفاء الرمز' : 'Hide QR') : (isRtl ? 'إظهار الرمز' : 'Show QR')}</span>
+                       </button>
                     </div>
 
                     <div className="w-full">
@@ -401,11 +455,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                           </div>
                        )}
                     </div>
-
-                    <button onClick={() => handleChange('isDark', !formData.isDark)} className={`p-4 px-8 rounded-2xl transition-all shadow-md flex items-center gap-3 ${formData.isDark ? 'bg-gray-900 text-yellow-400 border border-gray-700' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
-                        {formData.isDark ? <Moon size={20}/> : <Sun size={20}/>}
-                        <span className="text-[10px] font-black uppercase tracking-widest">{formData.isDark ? (isRtl ? 'ليلي' : 'Dark') : (isRtl ? 'نهاري' : 'Light')}</span>
-                    </button>
                  </div>
               </div>
 
@@ -431,15 +480,13 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           </div>
         </div>
 
-        {/* Desktop Preview Panel */}
         <div className="hidden lg:block w-[480px] sticky top-12 self-start animate-fade-in">
-          <div className="p-4 bg-white dark:bg-gray-900 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] origin-top">
+          <div className="p-4 bg-white dark:bg-gray-900 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] origin-top overflow-hidden">
             <PreviewContent />
           </div>
         </div>
       </div>
 
-      {/* شريط الإجراءات السفلي ممتد للجوال - المحرر (تصميم زجاجي بسيط) */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
         <div className="bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-t border-gray-100/30 dark:border-white/5 px-8 py-5 pb-8 flex items-center justify-between">
           <button 
@@ -468,7 +515,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
         </div>
       </nav>
 
-      {/* Mobile Preview Modal - Enhanced Framing */}
       {showMobilePreview && (
         <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in lg:hidden">
            <div className="absolute inset-0" onClick={() => setShowMobilePreview(false)}></div>
@@ -477,7 +523,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                  <h3 className="text-gray-900 dark:text-white font-black uppercase text-[10px] tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</h3>
                  <button onClick={() => setShowMobilePreview(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
               </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-2">
+              <div className="flex-1 no-scrollbar overflow-y-auto overflow-x-hidden py-4 px-2">
                  <PreviewContent isMobileView={true} />
               </div>
            </div>
