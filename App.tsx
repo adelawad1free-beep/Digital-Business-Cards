@@ -11,16 +11,16 @@ import TemplatesGallery from './pages/TemplatesGallery';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
-import { generateSerialId } from './utils/share';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, Mail, Coffee, Heart, Layout, Home as HomeIcon, CreditCard, ShieldCheck, LogIn } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
     const savedLang = localStorage.getItem('preferred_lang');
-    if (Object.keys(LANGUAGES_CONFIG).includes(savedLang as string)) return savedLang as Language;
-    return 'ar';
+    if (savedLang && Object.keys(LANGUAGES_CONFIG).includes(savedLang)) return savedLang as Language;
+    const browserLang = navigator.language.split('-')[0];
+    return Object.keys(LANGUAGES_CONFIG).includes(browserLang) ? (browserLang as Language) : 'ar';
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -52,31 +52,39 @@ const App: React.FC = () => {
   const isRtl = LANGUAGES_CONFIG[lang].dir === 'rtl';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
 
-  const t = (key: string) => {
+  const t = (key: string, fallback?: string) => {
+    if (fallback && !TRANSLATIONS[key]) return fallback;
     if (!TRANSLATIONS[key]) return key;
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
   };
 
-  // وظيفة مساعدة لتحديث وسوم الميتا
-  const updateMeta = (selector: string, attr: string, value: string) => {
-    const el = document.querySelector(selector);
-    if (el) el.setAttribute(attr, value);
+  const updateMetaTags = (title: string, desc: string, image: string, url: string) => {
+    document.title = title;
+    const selectors = {
+      'meta[name="description"]': desc,
+      'meta[property="og:title"]': title,
+      'meta[property="og:description"]': desc,
+      'meta[property="og:image"]': image,
+      'meta[property="og:url"]': url,
+    };
+    Object.entries(selectors).forEach(([selector, content]) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute('content', content);
+    });
   };
 
-  // التأثير المسؤول عن تحديث الثيم والأيقونات والعنوان والميتا تاجز
   useEffect(() => {
     const root = window.document.documentElement;
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
     root.dir = LANGUAGES_CONFIG[lang].dir;
     root.lang = lang;
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    localStorage.setItem('preferred_lang', lang);
 
-    // تحديث الألوان والخطوط في CSS Variables
     root.style.setProperty('--brand-primary', siteConfig.primaryColor);
     root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
     root.style.setProperty('--site-font', siteConfig.fontFamily);
     
-    // تحديث الخط ديناميكياً
     const fontId = 'dynamic-google-font';
     let linkEl = document.getElementById(fontId) as HTMLLinkElement;
     if (!linkEl) {
@@ -87,65 +95,33 @@ const App: React.FC = () => {
     }
     linkEl.href = `https://fonts.googleapis.com/css2?family=${siteConfig.fontFamily.replace(/\s+/g, '+')}:wght@300;400;700;900&display=swap`;
 
-    // تحديث أيقونة الموقع (Favicon) بشكل قطعي
-    const favicons = document.querySelectorAll('link[rel*="icon"]');
-    const iconUrl = siteConfig.siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
-    
-    if (favicons.length > 0) {
-      favicons.forEach(el => (el as HTMLLinkElement).href = iconUrl);
-    } else {
-      const newIcon = document.createElement('link');
-      newIcon.rel = 'icon';
-      newIcon.id = 'site-favicon';
-      newIcon.href = iconUrl;
-      document.head.appendChild(newIcon);
-    }
+    const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+    if (favicon && siteConfig.siteIcon) favicon.href = siteConfig.siteIcon;
 
-    // تحديث بيانات الميتا للموقع الرئيسي (Meta Tags)
     if (!publicCard) {
       const siteTitle = `${siteConfig.siteNameAr} | ${siteConfig.siteNameEn}`;
-      const siteDesc = isRtl 
-        ? "المنصة المتكاملة لإنشاء ومشاركة بطاقات الأعمال الرقمية الذكية بتقنيات NFC و QR."
-        : "Professional platform to create and share smart digital business cards using NFC & QR technology.";
-      
-      document.title = siteTitle;
-      updateMeta('meta[name="description"]', 'content', siteDesc);
-      updateMeta('meta[property="og:title"]', 'content', siteTitle);
-      updateMeta('meta[property="og:description"]', 'content', siteDesc);
-      updateMeta('meta[property="og:image"]', 'content', siteConfig.siteLogo || iconUrl);
-      updateMeta('meta[property="og:url"]', 'content', window.location.origin);
+      const siteDesc = isRtl ? "بطاقتك الرقمية بلمسة واحدة." : "Your digital identity in one touch.";
+      updateMetaTags(siteTitle, siteDesc, siteConfig.siteLogo || '', window.location.origin);
     }
-
-    const metaTheme = document.getElementById('meta-theme-color');
-    if (metaTheme) metaTheme.setAttribute('content', isDarkMode ? '#0a0a0c' : siteConfig.primaryColor);
-
-  }, [isDarkMode, lang, siteConfig, publicCard, displaySiteName]);
+  }, [isDarkMode, lang, siteConfig, publicCard]);
 
   useEffect(() => {
-    const initializeAppData = async () => {
-      try {
-        const settings = await getSiteSettings();
-        if (settings) {
-          setSiteConfig({
-            siteNameAr: settings.siteNameAr || 'هويتي الرقمية',
-            siteNameEn: settings.siteNameEn || 'My Digital Identity',
-            siteLogo: settings.siteLogo || '',
-            siteIcon: settings.siteIcon || '',
-            maintenanceMode: settings.maintenanceMode || false,
-            primaryColor: settings.primaryColor || '#3b82f6',
-            secondaryColor: settings.secondaryColor || '#8b5cf6',
-            fontFamily: settings.fontFamily || 'Cairo'
-          });
-        }
-      } catch (e) { console.warn("Notice: Site settings fetch issue."); }
-
-      try {
-        const templates = await getAllTemplates();
-        if (templates) setCustomTemplates(templates as CustomTemplate[]);
-      } catch (e) { console.warn("Notice: Templates fetch issue."); }
-
+    const bootstrapApp = async () => {
+      // 1. تحديد المعرّف من الرابط فوراً
       const params = new URLSearchParams(window.location.search);
-      const slug = params.get('u');
+      const slug = params.get('u')?.trim();
+
+      // 2. تحميل إعدادات الموقع الأساسية (مهمة لكل الأوضاع)
+      try {
+        const [settings, templates] = await Promise.all([
+          getSiteSettings().catch(() => null),
+          getAllTemplates().catch(() => [])
+        ]);
+        if (settings) setSiteConfig(prev => ({ ...prev, ...settings }));
+        if (templates) setCustomTemplates(templates as CustomTemplate[]);
+      } catch (e) { console.error("Config fetch failed"); }
+
+      // 3. الأولوية للبطاقة العامة
       if (slug) {
         try {
           const card = await getCardBySerial(slug);
@@ -153,26 +129,38 @@ const App: React.FC = () => {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
             setIsInitializing(false);
-            return;
+            return; // خروج نهائي: سنعرض ملف الشخص فقط
           }
-        } catch (e) { console.error("Profile view error:", e); }
+        } catch (e) { console.error("Card fetch failed", e); }
       }
 
-      onAuthStateChanged(auth, async (user) => {
-        setCurrentUser(user);
-        if (user) {
-          try {
-            const cards = await getUserCards(user.uid);
-            setUserCards(cards as CardData[]);
-          } catch (e) {}
-        }
-        setIsInitializing(false);
+      // 4. إذا لم توجد بطاقة في الرابط، نتحقق من حالة المستخدم
+      // نستخدم وعد (Promise) لانتظار رد Firebase Auth بشكل قطعي
+      const user = await new Promise<User | null>((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+          unsubscribe();
+          resolve(u);
+        });
       });
+
+      setCurrentUser(user);
+
+      if (user) {
+        try {
+          const cards = await getUserCards(user.uid);
+          setUserCards(cards as CardData[]);
+          setActiveTab('manager'); // التوجه لبطاقاتي إذا كان مسجلاً
+        } catch (e) { console.error("User cards fetch failed"); }
+      } else {
+        setActiveTab('home'); // التوجه للرئيسية إذا لم يكن مسجلاً
+      }
+
+      setIsInitializing(false);
     };
-    initializeAppData();
+
+    bootstrapApp();
   }, []);
 
-  // Fixed: handleSave correctly calls saveCardToDB with a single object argument { cardData, oldId }
   const handleSave = async (data: CardData, oldId?: string) => {
     if (!auth.currentUser) { setShowAuthModal(true); return; }
     setSaveLoading(true);
@@ -184,20 +172,25 @@ const App: React.FC = () => {
       setShowShareModal(true);
       setActiveTab('manager');
     } catch (e) {
-      alert(isRtl ? "فشل حفظ البطاقة" : "Failed to save card");
+      alert(isRtl ? "فشل الحفظ" : "Save failed");
     } finally { setSaveLoading(false); }
   };
 
   const handleAuthSuccess = (userId: string) => {
     setShowAuthModal(false);
-    getUserCards(userId).then(cards => setUserCards(cards as CardData[]));
-    setActiveTab('manager');
+    getUserCards(userId).then(cards => {
+      setUserCards(cards as CardData[]);
+      setActiveTab('manager');
+    });
   };
 
   if (isInitializing) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[999]">
       <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('جاري التحميل...', 'Initializing...')}</p>
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">{t('هويتي الرقمية', 'NextID Identity')}</p>
+        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('جاري مزامنة البيانات...', 'Syncing Data...')}</p>
+      </div>
     </div>
   );
   
@@ -338,7 +331,6 @@ const App: React.FC = () => {
         .border-blue-600 { border-color: var(--brand-primary) !important; }
         .hover\\:bg-blue-600:hover { background-color: var(--brand-primary) !important; }
         .hover\\:text-blue-600:hover { color: var(--brand-primary) !important; }
-        .focus\\:ring-blue-100:focus { --tw-ring-color: var(--brand-primary); opacity: 0.2; }
         
         .mesh-1 { background: var(--brand-primary); }
         .mesh-2 { background: var(--brand-secondary); }
