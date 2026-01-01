@@ -180,7 +180,7 @@ const App: React.FC = () => {
   const isEditing = activeTab === 'editor';
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 overflow-x-hidden w-full ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}>
       <header className="sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-10">
@@ -211,7 +211,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className={`flex-1 p-4 md:p-12 ${isEditing ? 'pb-32' : 'pb-32'} md:pb-12`}>
+      <main className={`flex-1 p-4 md:p-12 ${isEditing ? 'pb-32' : 'pb-32'} md:pb-12 max-w-full overflow-hidden`}>
         {activeTab === 'home' && <Home lang={lang} onStart={() => setActiveTab('templates')} />}
         {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={handleCreateNew} />}
         {activeTab === 'manager' && (

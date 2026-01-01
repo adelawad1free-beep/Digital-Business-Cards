@@ -203,22 +203,24 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     </div>
   );
 
-  const PreviewContent = () => (
-    <div className="flex flex-col items-center">
-      <div className="mb-4 w-full flex items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</span>
+  const PreviewContent = ({ isMobileView = false }) => (
+    <div className={`flex flex-col items-center w-full ${isMobileView ? 'scale-[0.85] sm:scale-100' : ''}`}>
+      {!isMobileView && (
+        <div className="mb-4 w-full flex items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</span>
+          </div>
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+             <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
+             <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
+             <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={16}/></button>
+          </div>
         </div>
-        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-           <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
-           <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
-           <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={16}/></button>
-        </div>
-      </div>
+      )}
       
-      <div className={`transition-all duration-500 ease-in-out origin-top border-4 border-gray-900 dark:border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[360px]'}`}>
-        <div className="h-[600px] overflow-y-auto no-scrollbar">
+      <div className={`transition-all duration-500 ease-in-out origin-top border-[8px] border-gray-900 dark:border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 ${isMobileView ? 'w-[280px]' : previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[360px]'}`}>
+        <div className={`${isMobileView ? 'h-[500px]' : 'h-[600px]'} overflow-y-auto no-scrollbar`}>
           <CardPreview 
             data={formData} 
             lang={lang} 
@@ -466,19 +468,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
         </div>
       </nav>
 
-      {/* Mobile Preview Modal */}
+      {/* Mobile Preview Modal - Enhanced Framing */}
       {showMobilePreview && (
-        <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-xl flex flex-col animate-fade-in lg:hidden">
-           <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <h3 className="text-white font-black uppercase text-sm tracking-widest">{isRtl ? 'معاينة البطاقة' : 'Card Preview'}</h3>
-              <button onClick={() => setShowMobilePreview(false)} className="p-3 bg-white/10 text-white rounded-2xl hover:bg-white/20 transition-all"><X size={24}/></button>
-           </div>
-           <div className="flex-1 p-6 flex flex-col items-center justify-center overflow-y-auto">
-              <PreviewContent />
-           </div>
-           <div className="p-6 bg-white/5 border-t border-white/10 flex justify-center gap-4 pb-12">
-              <button onClick={() => setPreviewDevice('mobile')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'mobile' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Smartphone size={24}/></button>
-              <button onClick={() => setPreviewDevice('tablet')} className={`p-4 rounded-2xl transition-all ${previewDevice === 'tablet' ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-400'}`}><Tablet size={24}/></button>
+        <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in lg:hidden">
+           <div className="absolute inset-0" onClick={() => setShowMobilePreview(false)}></div>
+           <div className="relative w-full max-w-[320px] bg-white dark:bg-gray-900 rounded-[4rem] shadow-2xl flex flex-col overflow-hidden animate-bounce-in border-[4px] border-white dark:border-gray-800">
+              <div className="flex items-center justify-between p-6 pb-2 border-b border-gray-100 dark:border-white/5">
+                 <h3 className="text-gray-900 dark:text-white font-black uppercase text-[10px] tracking-[0.2em]">{isRtl ? 'معاينة حية' : 'Live Preview'}</h3>
+                 <button onClick={() => setShowMobilePreview(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={20}/></button>
+              </div>
+              <div className="flex-1 overflow-y-auto no-scrollbar py-4 px-2">
+                 <PreviewContent isMobileView={true} />
+              </div>
            </div>
         </div>
       )}

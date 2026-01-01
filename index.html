@@ -3,7 +3,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="dynamic-title">هويتي الرقمية | أنشئ بطاقة أعمالك الذكية مجاناً</title>
     
     <!-- Favicon -->
@@ -66,9 +66,16 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+            position: relative;
+            touch-action: manipulation;
+        }
         body {
             font-family: "Segoe UI Variable Display", "Segoe UI", segoeui, "Helvetica Neue", helvetica, arial, "Noto Kufi Arabic", sans-serif;
             overflow-x: hidden;
+            width: 100vw;
         }
         .rtl { direction: rtl; }
         .ltr { direction: ltr; }
@@ -104,6 +111,8 @@
         .marquee-container {
             mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            width: 100%;
+            overflow: hidden;
         }
     </style>
 <script type="importmap">
