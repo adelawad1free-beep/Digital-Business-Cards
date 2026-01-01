@@ -13,64 +13,93 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
   const isRtl = lang === 'ar';
 
-  const seoKeywords: Record<Language, string[]> = {
+  // دمج المجموعات في سطرين فقط لضمان حجم أكبر وتصميم أضيق
+  const row1Logos = [
+    { name: 'Google', url: 'https://www.vectorlogo.zone/logos/google/google-ar21.svg' },
+    { name: 'Apple', url: 'https://www.vectorlogo.zone/logos/apple/apple-ar21.svg' },
+    { name: 'Microsoft', url: 'https://www.vectorlogo.zone/logos/microsoft/microsoft-ar21.svg' },
+    { name: 'Meta', url: 'https://www.vectorlogo.zone/logos/facebook/facebook-ar21.svg' },
+    { name: 'LinkedIn', url: 'https://www.vectorlogo.zone/logos/linkedin/linkedin-ar21.svg' },
+    { name: 'Amazon', url: 'https://www.vectorlogo.zone/logos/amazon/amazon-ar21.svg' },
+    { name: 'Aramco', url: 'https://upload.wikimedia.org/wikipedia/en/b/be/Saudi_Aramco_logo.svg' },
+    { name: 'STC', url: 'https://upload.wikimedia.org/wikipedia/commons/c/c3/STC_Logo.svg' },
+    { name: 'Alibaba', url: 'https://www.vectorlogo.zone/logos/alibaba/alibaba-ar21.svg' },
+    { name: 'Samsung', url: 'https://www.vectorlogo.zone/logos/samsung/samsung-ar21.svg' },
+    { name: 'Tesla', url: 'https://www.vectorlogo.zone/logos/tesla/tesla-ar21.svg' },
+    { name: 'Adobe', url: 'https://www.vectorlogo.zone/logos/adobe/adobe-ar21.svg' },
+  ];
+
+  const row2Logos = [
+    { name: 'Emirates', url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Emirates_logo.svg' },
+    { name: 'Almarai', url: 'https://upload.wikimedia.org/wikipedia/en/d/df/Almarai_logo.svg' },
+    { name: 'Zain', url: 'https://upload.wikimedia.org/wikipedia/commons/b/b3/Zain_logo.svg' },
+    { name: 'Etisalat', url: 'https://upload.wikimedia.org/wikipedia/commons/1/14/Etisalat_Logo.svg' },
+    { name: 'SABIC', url: 'https://upload.wikimedia.org/wikipedia/commons/6/64/SABIC_Logo.svg' },
+    { name: 'NEOM', url: 'https://upload.wikimedia.org/wikipedia/en/d/de/Neom_logo.svg' },
+    { name: 'Tencent', url: 'https://www.vectorlogo.zone/logos/tencent/tencent-ar21.svg' },
+    { name: 'Xiaomi', url: 'https://www.vectorlogo.zone/logos/xiaomi/xiaomi-ar21.svg' },
+    { name: 'Sony', url: 'https://www.vectorlogo.zone/logos/sony/sony-ar21.svg' },
+    { name: 'Toyota', url: 'https://www.vectorlogo.zone/logos/toyota/toyota-ar21.svg' },
+    { name: 'Huawei', url: 'https://www.vectorlogo.zone/logos/huawei/huawei-ar21.svg' },
+    { name: 'TikTok', url: 'https://www.vectorlogo.zone/logos/tiktok/tiktok-ar21.svg' },
+  ];
+
+  // Fix: Use Partial to satisfy Record<Language, string[]> when only en and ar are provided
+  const seoKeywords: Partial<Record<Language, string[]>> = {
     en: [
       "DIGITAL IDENTITY", "SMART BUSINESS CARDS", "NFC TECHNOLOGY", "QR CODE NETWORKING", 
       "PROFESSIONAL PROFILES", "VIRTUAL BUSINESS CARDS", "BIO LINK", "CONTACTLESS NETWORKING", 
-      "PERSONAL BRANDING", "SMART CONTACT SHARING", "E-BUSINESS CARD", "SMART PROFILE"
+      "PERSONAL BRANDING", "SMART CONTACT SHARING", "E-BUSINESS CARD", "SMART PROFILE",
+      "DIGITAL ECOSYSTEM", "VCARD PLUS", "NETWORKING SOLUTIONS", "CORPORATE ID",
+      "ELECTRONIC BUSINESS CARD", "PAPERLESS NETWORKING", "MOBILE IDENTITY", "SMART TAGS",
+      "PROFILE BUILDER", "CONTACTLESS CARDS", "TECH NETWORKING", "DIGITAL CV",
+      "PROFESSIONAL BIO", "IDENTITY MANAGEMENT", "LINKTREE ALTERNATIVE", "FREE DIGITAL CARD",
+      "NFC FOR BUSINESS", "CUSTOM QR CODES", "SMART CARD DESIGNER", "IDENTITY HUB"
     ],
     ar: [
       "بطاقات أعمال رقمية", "هوية مهنية ذكية", "تقنية NFC", "باركود الأعمال", 
       "روابط التواصل المهني", "بروفايل ذكي", "كرت شخصي إلكتروني", "تواصل لا تلامسي", 
-      "مشاركة جهات الاتصال", "كروت ذكية", "هويتي الرقمية", "تحول رقمي مهني"
-    ],
-    es: [
-      "IDENTIDAD DIGITAL", "TARJETAS DE VISITA INTELIGENTES", "TECNOLOGÍA NFC", "NETWORKING CÓDIGO QR", 
-      "PERFILES PROFESIONALES", "TARJETAS VIRTUALES", "MARCA PERSONAL", "NETWORKING SIN CONTACTO"
-    ],
-    fr: [
-      "IDENTITÉ NUMÉRIQUE", "CARTES DE VISITE INTELLIGENTES", "TECHNOLOGIE NFC", "RÉSEAUTAGE CODE QR", 
-      "PROFILS PROFESSIONNELS", "CARTES VIRTUELLES", "BRANDING PERSONNEL", "RÉSEAUTAGE SANS CONTACT"
-    ],
-    de: [
-      "DIGITALE IDENTITÄT", "INTELLIGENTE VISITENKARTEN", "NFC-TECHNOLOGIE", "QR-CODE NETWORKING", 
-      "PROFESSIONELLE PROFILE", "VIRTUELLE VISITENKARTEN", "PERSONAL BRANDING", "KONTAKTLOSES NETWORKING"
-    ],
-    zh: [
-      "数字身份", "智能名片", "NFC技术", "二维码网络", 
-      "职业档案", "虚拟名片", "个人品牌", "无接触社交"
-    ],
-    ja: [
-      "デジタルアイデンティティ", "スマート名刺", "NFC技術", "QRコードネットワーキング", 
-      "プロフェッショナルプロフィール", "バーチャل名刺", "パーソナルブランディング"
-    ],
-    pt: [
-      "IDENTIDADE DIGITAL", "CARTÕES DE VISITA INTELIGENTES", "TECNOLOGIA NFC", "NETWORKING QR CODE", 
-      "PERFIS PROFISSIONAIS", "CARTÕES VIRTUAIS", "BRANDING PESSOAL", "NETWORKING SEM CONTATO"
-    ],
-    ru: [
-      "ЦИФРОВАЯ ЛИЧНОСТЬ", "УМНЫЕ ВИЗИТКИ", "ТЕХНОЛОГИЯ NFC", "QR-КОД НЕТВОРКИНГ", 
-      "ПРОФЕССИОНАЛЬНЫЕ ПРОФИЛИ", "ВИРТУАЛЬНЫЕ КАРТЫ", "ПЕРСОНАЛЬНЫЙ БРЕНДИНГ"
-    ],
-    hi: [
-      "डिजिटल पहचान", "स्मارت बिजनेस कार्ड", "एनएफसी तकनीक", "क्यूआर कोड नेटवर्किंग", 
-      "प्रोफेशनल प्रोफाइल", "वर्चुअल बिजनेस कार्ड", "पर्सनल ब्रांडिंग"
+      "مشاركة جهات الاتصال", "كروت ذكية", "هويتي الرقمية", "تحول رقمي مهني",
+      "رابط البيو", "بطاقة تواصل", "هوية الشركات", "التسويق الشخصي",
+      "كروت NFC", "كيو ار كود", "منصة هويتي", "بروفايل مهني متكامل",
+      "سيرة ذاتية رقمية", "تكنولوجيا الأعمال", "مشاركة بيانات بلمسة", "بطاقة الزيارة الذكية",
+      "بطاقات بدون تلامس", "إدارة الهوية الرقمية", "كرت عمل مجاني", "تصميم كروت أونلاين",
+      "حلول الشركات الذكية", "تحول رقمي متكامل", "باقة الأعمال", "منصة المبدعين"
     ]
   };
 
-  const currentKeywords = seoKeywords[lang] || seoKeywords['en'];
+  const currentKeywords = seoKeywords[lang] || seoKeywords['en'] || [];
   const seoHeader = {
-    en: "DIGITAL IDENTITY TECHNOLOGIES",
-    ar: "تقنيات وخدمات الهوية الرقمية",
-    es: "TECNOLOGÍAS DE IDENTIDAD DIGITAL",
-    fr: "TECHNOLOGIES D'IDENTITÉ NUMÉRIQUE",
-    de: "DIGITALE IDENTITÄTSTECHNOLOGIEN",
-    zh: "数字身份技术",
-    ja: "デジタルアイデンティティ技術",
-    pt: "TECNOLOGIAS DE IDENTIDADE DIGITAL",
-    ru: "ТЕХНОЛОГИИ ЦИФРОВОЙ ИДЕНТИФИКАЦИИ",
-    hi: "डिजिटल पहचान तकनीक"
+    en: "ADVANCED DIGITAL IDENTITY ECOSYSTEM & SERVICES",
+    ar: "المنظومة المتكاملة لتقنيات وخدمات الهوية الرقمية الذكية"
   };
+
+  const MarqueeRow = ({ logos, speedClass = "animate-marquee", reverse = false }: { logos: any[], speedClass?: string, reverse?: boolean }) => (
+    <div className={`marquee-container relative w-full overflow-hidden ltr py-4 ${reverse ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex whitespace-nowrap ${speedClass} items-center`}>
+        {logos.map((brand, i) => (
+          <div key={`brand-1-${i}`} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+            <img 
+              src={brand.url} 
+              alt={brand.name} 
+              className="h-10 md:h-16 w-auto object-contain dark:invert" 
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        ))}
+        {logos.map((brand, i) => (
+          <div key={`brand-2-${i}`} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+            <img 
+              src={brand.url} 
+              alt={brand.name} 
+              className="h-10 md:h-16 w-auto object-contain dark:invert" 
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <main className={`min-h-[85vh] flex flex-col items-center justify-between bg-transparent ${isRtl ? 'rtl' : 'ltr'}`}>
@@ -91,7 +120,7 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
           {t('heroDesc')}
         </h2>
 
-        <div className="flex justify-center items-center mb-24">
+        <div className="flex justify-center items-center mb-16">
           <button 
             onClick={onStart}
             className="w-full sm:w-auto px-14 py-6 bg-[#0f172a] dark:bg-blue-600 text-white rounded-2xl font-black text-xl hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-blue-500/10"
@@ -101,20 +130,32 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
         </div>
       </section>
 
-      {/* SEO Keywords Block */}
-      <footer className="w-full max-w-6xl mx-auto px-6 py-12 border-t border-gray-100 dark:border-gray-800/50 mt-auto">
-        <div className="flex flex-col items-center gap-6">
-          <h3 className="text-[10px] md:text-[11px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.3em] text-center">
-            {seoHeader[lang] || seoHeader['en']}
+      {/* Global Brands Section - Compact 2-Row Layout */}
+      <section className="w-full py-12 md:py-16 bg-transparent overflow-hidden space-y-4">
+        <div className="text-center mb-4">
+           <h3 className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-[0.5em]">
+             {isRtl ? 'موثوق من قبل رواد الأعمال عالمياً' : 'TRUSTED BY PROFESSIONALS WORLDWIDE'}
+           </h3>
+        </div>
+        
+        <MarqueeRow logos={row1Logos} speedClass="animate-marquee" />
+        <MarqueeRow logos={row2Logos} speedClass="animate-marquee" reverse={true} />
+      </section>
+
+      {/* Expanded SEO Keywords Block */}
+      <footer className="w-full max-w-6xl mx-auto px-6 py-16 border-t border-gray-100 dark:border-gray-800/50 mt-auto">
+        <div className="flex flex-col items-center gap-8">
+          <h3 className="text-[10px] md:text-[12px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.4em] text-center border-b border-gray-100 dark:border-gray-800 pb-4 w-full max-w-md">
+            {(seoHeader as any)[lang] || (seoHeader as any)['en']}
           </h3>
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 max-w-5xl opacity-50 dark:opacity-40">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 max-w-6xl opacity-60 dark:opacity-50 text-center">
             {currentKeywords.map((keyword, index) => (
               <React.Fragment key={index}>
-                <span className="text-[9px] md:text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest hover:text-blue-500 transition-colors cursor-default">
+                <span className="text-[9px] md:text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest hover:text-blue-500 transition-all cursor-default hover:scale-105">
                   {keyword}
                 </span>
                 {index < currentKeywords.length - 1 && (
-                  <span className="text-gray-200 dark:text-gray-800 select-none" aria-hidden="true">•</span>
+                  <span className="text-gray-200 dark:text-gray-800 select-none font-thin" aria-hidden="true">|</span>
                 )}
               </React.Fragment>
             ))}

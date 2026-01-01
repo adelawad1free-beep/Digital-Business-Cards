@@ -437,31 +437,31 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
         </div>
       </div>
 
-      {/* شريط الإجراءات السفلي ممتد للجوال */}
+      {/* شريط الإجراءات السفلي ممتد للجوال - المحرر (تصميم زجاجي بسيط) */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
-        <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 px-8 py-5 pb-10 flex items-center justify-between shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
+        <div className="bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-t border-gray-100/30 dark:border-white/5 px-8 py-5 pb-8 flex items-center justify-between">
           <button 
             onClick={onCancel} 
-            className="flex flex-col items-center gap-1.5 p-2 text-gray-400 hover:text-red-500 transition-all"
+            className="flex flex-col items-center gap-1.5 p-2 text-gray-400 group transition-all"
           >
-            <ArrowLeft size={22} className={isRtl ? 'rotate-0' : 'rotate-180'} />
-            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'رجوع' : 'Back'}</span>
+            <ArrowLeft size={22} className={`transition-transform duration-300 group-active:scale-90 ${isRtl ? 'rotate-0' : 'rotate-180'}`} />
+            <span className="text-[9px] font-black uppercase tracking-wider opacity-60">{isRtl ? 'رجوع' : 'Back'}</span>
           </button>
           
           <button 
             onClick={() => setShowMobilePreview(true)}
-            className="flex flex-col items-center gap-1.5 px-10 py-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+            className="relative flex flex-col items-center gap-1.5 px-12 py-3 bg-blue-600 text-white rounded-[2rem] shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
           >
-            <Eye size={22} />
+            <Eye size={20} />
             <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'معاينة' : 'Preview'}</span>
           </button>
 
           <button 
             onClick={handleFinalSave}
-            className="flex flex-col items-center gap-1.5 p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
+            className="flex flex-col items-center gap-1.5 p-2 text-blue-600 group transition-all"
           >
-            <Save size={22} />
-            <span className="text-[9px] font-black uppercase tracking-wider">{isRtl ? 'حفظ' : 'Save'}</span>
+            <Save size={22} className="transition-transform duration-300 group-active:scale-90" />
+            <span className="text-[9px] font-black uppercase tracking-wider opacity-60">{isRtl ? 'حفظ' : 'Save'}</span>
           </button>
         </div>
       </nav>

@@ -61,7 +61,12 @@ const App: React.FC = () => {
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
     root.dir = LANGUAGES_CONFIG[lang].dir;
     root.lang = lang;
-    localStorage.setItem('preferred_lang', lang);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    
+    const metaThemeColor = document.getElementById('meta-theme-color');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDarkMode ? '#0a0a0c' : '#ffffff');
+    }
   }, [isDarkMode, lang]);
 
   useEffect(() => {
@@ -125,6 +130,7 @@ const App: React.FC = () => {
       id: generateSerialId(),
       templateId: templateId,
       ownerId: undefined, 
+      isDark: false
     } as CardData;
     setEditingCard(newCard);
     setActiveTab('editor');
@@ -171,7 +177,6 @@ const App: React.FC = () => {
     return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} />;
   }
 
-  // تحديد ما إذا كان يجب إخفاء المنيو السفلي العام
   const isEditing = activeTab === 'editor';
 
   return (
@@ -243,42 +248,32 @@ const App: React.FC = () => {
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
-      {/* شريط التنقل السفلي للجوال - يختفي عند التحرير */}
       {!isEditing && (
-        <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] z-[150] animate-fade-in-up">
-          <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] flex items-center justify-around">
-            <button 
-              onClick={() => setActiveTab('home')} 
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
-            >
-              <HomeIcon size={20} />
-              <span className="text-[8px] font-black uppercase">{t('home')}</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('templates')} 
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
-            >
-              <Layout size={20} />
-              <span className="text-[8px] font-black uppercase">{t('templates')}</span>
-            </button>
-            {currentUser && (
-              <button 
-                onClick={() => setActiveTab('manager')} 
-                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
-              >
-                <CreditCard size={20} />
-                <span className="text-[8px] font-black uppercase">{t('myCards')}</span>
-              </button>
-            )}
-            {isAdmin && (
-              <button 
-                onClick={() => setActiveTab('admin')} 
-                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400'}`}
-              >
-                <ShieldCheck size={20} />
-                <span className="text-[8px] font-black uppercase">{t('admin')}</span>
-              </button>
-            )}
+        <nav className="md:hidden fixed bottom-0 left-0 w-full z-[150] animate-fade-in-up">
+          <div className="bg-white/80 dark:bg-black/80 backdrop-blur-2xl border-t border-gray-100/50 dark:border-white/5 px-8 py-4 pb-8 flex items-center justify-around">
+            {[
+              { id: 'home', icon: HomeIcon, label: t('home') },
+              { id: 'templates', icon: Layout, label: t('templates') },
+              ...(currentUser ? [{ id: 'manager', icon: CreditCard, label: t('myCards') }] : []),
+              ...(isAdmin ? [{ id: 'admin', icon: ShieldCheck, label: t('admin') }] : [])
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button 
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as any)} 
+                  className={`relative flex flex-col items-center gap-1.5 p-2 group transition-all duration-300 ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-600'}`}
+                >
+                  <item.icon size={22} className={`transition-transform duration-300 ${isActive ? 'scale-110 -translate-y-0.5' : 'group-active:scale-90'}`} />
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-60'}`}>
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <span className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </nav>
       )}
