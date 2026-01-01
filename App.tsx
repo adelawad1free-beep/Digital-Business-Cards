@@ -138,7 +138,7 @@ const App: React.FC = () => {
     if (!auth.currentUser) { setShowAuthModal(true); return; }
     setSaveLoading(true);
     try {
-      // Fix: Calling saveCardToDB with explicit 2 arguments to resolve the reported argument count mismatch
+      // Fix: Ensure saveCardToDB is called with correct 2 arguments matching its defined signature in services/firebase.ts.
       await saveCardToDB(data, oldId);
       const cards = await getUserCards(auth.currentUser.uid);
       setUserCards(cards as CardData[]);

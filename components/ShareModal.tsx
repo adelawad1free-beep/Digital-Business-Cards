@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Language, CardData } from '../types';
 import { generateShareUrl } from '../utils/share';
-import { Copy, Check, Download, X, Send, Hash, Info } from 'lucide-react';
+import { Copy, Check, Download, X, Send, Hash, Info, UserCheck } from 'lucide-react';
 
 interface ShareModalProps {
   data: CardData;
@@ -19,10 +19,17 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
   }, [data]);
 
   const copyToClipboard = () => {
-    // تم التعديل لنسخ الرابط فقط بناءً على طلب المستخدم
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // توليد نص احترافي للمشاركة
+  const getProfessionalText = () => {
+    if (lang === 'ar') {
+      return `مرحباً، إليك بطاقتي المهنية الرقمية:\n\n*${data.name}*\n${data.title}\n${data.company}\n\nتواصل معي عبر الرابط:\n${url}`;
+    }
+    return `Hello, here is my professional digital card:\n\n*${data.name}*\n${data.title}\n${data.company}\n\nConnect with me here:\n${url}`;
   };
 
   const handleNativeShare = async () => {
@@ -30,9 +37,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
       try {
         await navigator.share({
           title: `${data.name} | ${data.title}`,
-          text: lang === 'ar' 
-            ? `مرحباً، إليك بطاقتي المهنية الرقمية: ${data.name}` 
-            : `Hello, here is my professional digital card: ${data.name}`,
+          text: getProfessionalText(),
           url: url,
         });
       } catch (err) {
@@ -84,7 +89,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
               className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl shadow-blue-600/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
               <Send size={18} />
-              {lang === 'ar' ? 'مشاركة عبر التطبيقات' : 'Share via Apps'}
+              {lang === 'ar' ? 'مشاركة احترافية (واتساب)' : 'Professional Share'}
             </button>
 
             <div className="flex gap-2">
@@ -110,12 +115,15 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
             </div>
           </div>
           
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl flex gap-3 items-start">
-             <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
-             <p className="text-[10px] leading-relaxed text-blue-800 dark:text-blue-300 font-bold">
+          <div className="mt-8 p-5 bg-blue-50 dark:bg-blue-900/10 rounded-[2rem] flex flex-col gap-3">
+             <div className="flex gap-2 items-center">
+                <UserCheck size={16} className="text-blue-600" />
+                <span className="text-[10px] font-black uppercase text-blue-800 dark:text-blue-400">{lang === 'ar' ? 'نصيحة المشاركة' : 'Sharing Tip'}</span>
+             </div>
+             <p className="text-[10px] leading-relaxed text-blue-800/80 dark:text-blue-300/80 font-bold">
                 {lang === 'ar' 
-                  ? 'نصيحة: عند لصق الرابط في واتساب، انتظر ثانية واحدة لتظهر صورتك واسمك بشكل تلقائي قبل الإرسال.' 
-                  : 'Tip: When pasting the link in WhatsApp, wait a second for your image and name to appear automatically before sending.'}
+                  ? 'عند الضغط على "مشاركة احترافية" سنقوم بتضمين اسمك ومنصبك في الرسالة لضمان ظهور هويتك بشكل جذاب حتى قبل أن يفتح المستلم الرابط.' 
+                  : 'By using "Professional Share", we include your name and title in the message, ensuring your identity looks great even before the link is opened.'}
              </p>
           </div>
         </div>

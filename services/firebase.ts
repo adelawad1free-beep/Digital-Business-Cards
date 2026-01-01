@@ -126,8 +126,8 @@ export const deleteTemplate = async (id: string) => {
   await deleteDoc(doc(db, "custom_templates", id));
 };
 
-// Fix: Redefined as arrow function export to ensure consistent signature and resolve argument mismatch errors in consumer files
-export const saveCardToDB = async (cardData: CardData, oldId?: string) => {
+// Fix: Use a standard function declaration to ensure the signature (cardData, oldId) is robustly exported and correctly matched in consumers.
+export async function saveCardToDB(cardData: CardData, oldId?: string) {
   const currentUid = auth.currentUser?.uid;
   if (!currentUid) throw new Error("Auth required");
   
@@ -166,7 +166,7 @@ export const saveCardToDB = async (cardData: CardData, oldId?: string) => {
       }
     } catch (e) {}
   }
-};
+}
 
 export const toggleCardStatus = async (cardId: string, ownerId: string, isActive: boolean) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");

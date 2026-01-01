@@ -17,32 +17,47 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
   useEffect(() => {
-    if (data.isActive === false) return; // لا نحدث الـ Meta إذا كانت البطاقة معطلة
+    if (!data || data.isActive === false) return;
 
+    // تجهيز البيانات للاستخدام في الـ Meta Tags
     const cardTitle = data.name ? `${data.name} | ${data.title}` : (lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID');
     const cardDesc = data.bio || (lang === 'ar' ? `تفضل بزيارة بطاقة أعمالي الرقمية وتواصل معي.` : `Connect with me via my Digital ID.`);
+    // استخدام صورة البروفايل كصورة معاينة للمشاركة
     const cardImg = data.profileImage || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
 
+    // تحديث عنوان التبويب
     document.title = cardTitle;
 
-    const updateOrCreateMeta = (attribute: string, attrValue: string, content: string) => {
-      let el = document.querySelector(`meta[${attribute}="${attrValue}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute(attribute, attrValue);
-        document.head.appendChild(el);
+    // وظيفة لتحديث أو إنشاء وسوم الميتا
+    const updateMeta = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector(selector);
+      if (el) {
+        el.setAttribute(attr, value);
+      } else {
+        // إذا لم يكن موجوداً، نقوم بإنشائه (اختياري، يفضل وجوده مسبقاً في index.html)
+        const newMeta = document.createElement('meta');
+        if (selector.includes('property')) {
+          newMeta.setAttribute('property', selector.split('"')[1]);
+        } else if (selector.includes('name')) {
+          newMeta.setAttribute('name', selector.split('"')[1]);
+        }
+        newMeta.setAttribute(attr, value);
+        document.head.appendChild(newMeta);
       }
-      el.setAttribute('content', content);
     };
 
-    updateOrCreateMeta('property', 'og:title', cardTitle);
-    updateOrCreateMeta('property', 'og:description', cardDesc);
-    updateOrCreateMeta('property', 'og:image', cardImg);
-    updateOrCreateMeta('property', 'og:url', window.location.href);
-    updateOrCreateMeta('property', 'og:type', 'profile');
-    updateOrCreateMeta('name', 'twitter:card', 'summary_large_image');
-    updateOrCreateMeta('name', 'description', cardDesc);
+    // تحديث كافة وسوم المعاينة (Open Graph)
+    updateMeta('title', 'text', cardTitle);
+    updateMeta('meta[name="description"]', 'content', cardDesc);
+    updateMeta('meta[property="og:title"]', 'content', cardTitle);
+    updateMeta('meta[property="og:description"]', 'content', cardDesc);
+    updateMeta('meta[property="og:image"]', 'content', cardImg);
+    updateMeta('meta[property="og:url"]', 'content', window.location.href);
+    updateMeta('meta[name="twitter:title"]', 'content', cardTitle);
+    updateMeta('meta[name="twitter:description"]', 'content', cardDesc);
+    updateMeta('meta[name="twitter:image"]', 'content', cardImg);
 
+    // Schema.org for Google Search
     const schemaData = {
       "@context": "https://schema.org/",
       "@type": "Person",
@@ -70,13 +85,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
     }
     scriptTag.text = JSON.stringify(schemaData);
 
+    // تحديث الفافيكون ليكون صورة الشخص
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
     if (favicon && data.profileImage) favicon.href = data.profileImage;
 
-    return () => {
-      const oldScript = document.getElementById(scriptId);
-      if (oldScript) oldScript.remove();
-    };
   }, [data, lang]);
 
   if (data.isActive === false) {
@@ -109,7 +121,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig 
       try {
         await navigator.share({
           title: data.name,
-          text: data.title,
+          text: isRtl ? `تواصل معي عبر بطاقتي الرقمية: ${data.name}` : `Connect with me: ${data.name}`,
           url: window.location.href,
         });
       } catch (err) {}
