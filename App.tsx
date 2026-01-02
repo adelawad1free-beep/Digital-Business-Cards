@@ -13,7 +13,7 @@ import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, Coffee, Heart } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -250,31 +250,93 @@ const App: React.FC = () => {
         {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={(id) => { setSelectedTemplateId(id); setEditingCard(null); setActiveTab('editor'); }} />}
         {activeTab === 'manager' && (
           <div className="max-w-6xl mx-auto space-y-12 animate-fade-in-up">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-8">
                <h2 className="text-4xl font-black dark:text-white">{t('myCards')}</h2>
-               <button onClick={() => setActiveTab('templates')} className="p-5 bg-blue-600 text-white rounded-3xl shadow-2xl hover:scale-110 transition-all"><Plus size={28} /></button>
+               <button 
+                onClick={() => setActiveTab('templates')} 
+                className="p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all"
+               >
+                 <Plus size={24} />
+               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                {userCards.map((card) => (
-                  <div key={card.id} className="bg-white dark:bg-[#121215] p-10 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 shadow-xl group hover:shadow-2xl transition-all">
-                     <div className="flex items-center gap-6 mb-10">
-                        <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-gray-50 shadow-lg bg-gray-50">
-                           {card.profileImage ? <img src={card.profileImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><UserIcon size={40} className="text-gray-300"/></div>}
+                  <div 
+                    key={card.id} 
+                    className="bg-white dark:bg-[#121215] p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-gray-50 dark:border-gray-800 group hover:-translate-y-1 transition-all duration-300"
+                  >
+                     {/* Identity Section (Professional Thumbnail style) */}
+                     <div className={`flex items-start justify-between mb-8 ${isRtl ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div className={`flex flex-col ${isRtl ? 'items-start' : 'items-end'} min-w-0 flex-1`}>
+                           <h3 className="font-black text-xl text-gray-900 dark:text-white truncate w-full mb-2">
+                             {card.name || '---'}
+                           </h3>
+                           <div className="inline-flex items-center px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full">
+                              <span className="text-[10px] font-black tracking-widest">{card.id}</span>
+                           </div>
                         </div>
-                        <div className="min-w-0">
-                           <p className="font-black text-2xl truncate dark:text-white">{card.name || '---'}</p>
-                           <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full uppercase tracking-widest">/{card.id}</span>
+                        
+                        <div className={`shrink-0 w-20 h-20 rounded-[1.75rem] border-4 border-white dark:border-gray-800 shadow-xl overflow-hidden bg-gray-50 dark:bg-gray-900 ${isRtl ? 'mr-4' : 'ml-4'}`}>
+                           {card.profileImage ? (
+                             <img src={card.profileImage} className="w-full h-full object-cover" />
+                           ) : (
+                             <div className="w-full h-full flex items-center justify-center">
+                               <UserIcon size={28} className="text-gray-300"/>
+                             </div>
+                           )}
                         </div>
                      </div>
-                     <div className="grid grid-cols-3 gap-4">
-                        <button onClick={() => { setEditingCard(card); setSelectedTemplateId(card.templateId); setActiveTab('editor'); }} className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all flex justify-center"><Edit2 size={22} /></button>
-                        <a href={`?u=${card.id}`} target="_blank" className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all flex justify-center"><ExternalLink size={22} /></a>
-                        <button onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || '' })} className="p-5 rounded-[1.8rem] bg-gray-50 dark:bg-gray-800/50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex justify-center"><Trash2 size={22} /></button>
+
+                     {/* Professional Action Buttons at bottom */}
+                     <div className="flex items-center justify-center gap-3">
+                        <button 
+                          onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || '' })}
+                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                          title={isRtl ? "حذف" : "Delete"}
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                        
+                        <a 
+                          href={`?u=${card.id}`} 
+                          target="_blank" 
+                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                          title={isRtl ? "معاينة" : "Preview"}
+                        >
+                          <ExternalLink size={20} />
+                        </a>
+
+                        <button 
+                          onClick={() => { setEditingCard(card); setSelectedTemplateId(card.templateId); setActiveTab('editor'); }}
+                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                          title={isRtl ? "تعديل" : "Edit"}
+                        >
+                          <Edit2 size={20} />
+                        </button>
                      </div>
                   </div>
                ))}
-               {userCards.length === 0 && <div className="col-span-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">{t('noCardsYet')}</div>}
+               
+               {/* Add New Card Slot */}
+               <button 
+                 onClick={() => setActiveTab('templates')}
+                 className="flex flex-col items-center justify-center p-8 rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 hover:border-blue-200 hover:bg-blue-50/10 transition-all group min-h-[180px]"
+               >
+                 <div className="w-14 h-14 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm mb-4">
+                    <Plus size={28} />
+                 </div>
+                 <span className="text-xs font-black text-gray-400 group-hover:text-blue-600 uppercase tracking-widest transition-colors">
+                   {isRtl ? 'إضافة بطاقة جديدة' : 'Add New Card'}
+                 </span>
+               </button>
             </div>
+            
+            {userCards.length === 0 && (
+              <div className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
+                {t('noCardsYet')}
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'editor' && (
@@ -292,15 +354,42 @@ const App: React.FC = () => {
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
-      <footer className="w-full pt-16 pb-10 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-              {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}
-              <span className="mx-2 opacity-30">|</span>
-              <a href="mailto:info@nextid.my" className="text-blue-600 hover:underline">info@nextid.my</a>
+      <footer className="w-full pt-16 pb-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
+            {/* Buy Me A Coffee - Elegant Integration */}
+            <div className="animate-fade-in">
+              <a 
+                href="https://buymeacoffee.com/guidai" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="group relative flex items-center gap-4 px-8 py-4 bg-[#FFDD00] hover:bg-[#FFC400] text-black rounded-[2rem] shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <div className="p-2 bg-white/40 rounded-full group-hover:rotate-12 transition-transform duration-500">
+                   <Coffee size={24} className="animate-pulse" />
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">
+                    {isRtl ? 'ادعم استمرارية الموقع مجاناً' : 'Keep this project free'}
+                  </span>
+                  <span className="text-sm font-black uppercase">
+                    {isRtl ? 'تبرع بكوب قهوة' : 'Buy me a coffee'}
+                  </span>
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-bounce">
+                   <Heart size={12} fill="currentColor" />
+                </div>
+              </a>
             </div>
-            <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
-              {isRtl ? 'بواسطة هويتي الرقمية' : 'By My Digital Identity'}
+
+            <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                  {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}
+                  <span className="mx-2 opacity-30">|</span>
+                  <a href="mailto:info@nextid.my" className="text-blue-600 hover:underline">info@nextid.my</a>
+                </div>
+                <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
+                  {isRtl ? 'بواسطة هويتي الرقمية' : 'By My Digital Identity'}
+                </div>
             </div>
         </div>
       </footer>

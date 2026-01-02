@@ -4,13 +4,13 @@ import { CardData, Language, TemplateConfig } from '../types';
 import CardPreview from '../components/CardPreview';
 import { TRANSLATIONS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
-import { Plus, UserPlus, Share2, AlertCircle } from 'lucide-react';
+import { Plus, UserPlus, Share2, AlertCircle, Coffee } from 'lucide-react';
 
 interface PublicProfileProps {
   data: CardData;
   lang: Language;
   customConfig?: TemplateConfig; 
-  siteIcon?: string; // إضافة تمرير أيقونة الموقع
+  siteIcon?: string;
 }
 
 const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig, siteIcon }) => {
@@ -20,50 +20,53 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
   useEffect(() => {
     if (!data || data.isActive === false) return;
 
-    // تجهيز البيانات للاستخدام في الـ Meta Tags
-    const cardTitle = data.name ? `${data.name} | ${data.title}` : (lang === 'ar' ? 'هويتي الرقمية' : 'My Digital ID');
-    const cardDesc = data.bio || (lang === 'ar' ? `تفضل بزيارة بطاقة أعمالي الرقمية وتواصل معي.` : `Connect with me via my Digital ID.`);
-    // استخدام صورة البروفايل كصورة معاينة للمشاركة
-    const cardImg = data.profileImage || siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
+    // تجهيز البيانات الديناميكية للعميل
+    const clientName = data.name || (isRtl ? 'مستخدم هويتي' : 'NextID User');
+    const clientTitle = data.title || '';
+    const fullPageTitle = clientTitle ? `${clientName} | ${clientTitle}` : clientName;
+    const clientBio = data.bio || (isRtl ? `تفضل بزيارة بطاقتي الرقمية وتواصل معي.` : `View my digital business card.`);
+    const previewImage = data.profileImage || siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
 
-    // تحديث عنوان التبويب
-    document.title = cardTitle;
+    // 1. تحديث عنوان التبويب في المتصفح
+    document.title = fullPageTitle;
 
-    // وظيفة لتحديث أو إنشاء وسوم الميتا
-    const updateMeta = (selector: string, attr: string, value: string) => {
-      let el = document.querySelector(selector);
-      if (el) {
-        el.setAttribute(attr, value);
-      } else {
-        const newMeta = document.createElement('meta');
-        if (selector.includes('property')) {
-          newMeta.setAttribute('property', selector.split('"')[1]);
-        } else if (selector.includes('name')) {
-          newMeta.setAttribute('name', selector.split('"')[1]);
-        }
-        newMeta.setAttribute(attr, value);
-        document.head.appendChild(newMeta);
+    // 2. وظيفة ذكية لتحديث أو إنشاء وسوم الميتا (Meta Tags) لضمان المعاينة
+    const setMetaTag = (property: string, content: string, isProperty = true) => {
+      const attribute = isProperty ? 'property' : 'name';
+      let element = document.querySelector(`meta[${attribute}="${property}"]`);
+      
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, property);
+        document.head.appendChild(element);
       }
+      element.setAttribute('content', content);
     };
 
-    // تحديث كافة وسوم المعاينة (Open Graph)
-    updateMeta('title', 'text', cardTitle);
-    updateMeta('meta[name="description"]', 'content', cardDesc);
-    updateMeta('meta[property="og:title"]', 'content', cardTitle);
-    updateMeta('meta[property="og:description"]', 'content', cardDesc);
-    updateMeta('meta[property="og:image"]', 'content', cardImg);
-    updateMeta('meta[property="og:url"]', 'content', window.location.href);
-    updateMeta('meta[name="twitter:title"]', 'content', cardTitle);
-    updateMeta('meta[name="twitter:description"]', 'content', cardDesc);
-    updateMeta('meta[name="twitter:image"]', 'content', cardImg);
+    // تحديث كافة الوسوم المطلوبة لمنصات التواصل (WhatsApp, FB, X)
+    setMetaTag('description', clientBio, false);
+    setMetaTag('og:title', fullPageTitle);
+    setMetaTag('og:description', clientBio);
+    setMetaTag('og:image', previewImage);
+    setMetaTag('og:url', window.location.href);
+    setMetaTag('og:type', 'profile');
+    
+    setMetaTag('twitter:card', 'summary_large_image', false);
+    setMetaTag('twitter:title', fullPageTitle, false);
+    setMetaTag('twitter:description', clientBio, false);
+    setMetaTag('twitter:image', previewImage, false);
 
-    // تحديث الفافيكون (Favicon) ليكون صورة الشخص أو أيقونة الموقع
+    // تحديث أيقونة الموقع المصغرة لتكون صورة العميل (لمسة احترافية إضافية)
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    if (favicon) {
-      favicon.href = data.profileImage || siteIcon || favicon.href;
+    if (favicon && data.profileImage) {
+      favicon.href = data.profileImage;
     }
 
-  }, [data, lang, siteIcon]);
+    // تنظيف العناوين عند مغادرة الصفحة (اختياري)
+    return () => {
+      document.title = isRtl ? 'هويتي الرقمية' : 'My Digital Identity';
+    };
+  }, [data, lang, siteIcon, isRtl]);
 
   if (data.isActive === false) {
     return (
@@ -75,10 +78,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             {isRtl ? 'البطاقة غير متاحة حالياً' : 'Card Currently Unavailable'}
          </h1>
          <p className="text-gray-500 dark:text-gray-400 max-w-xs font-bold leading-relaxed mb-10">
-            {isRtl ? 'تم تعطيل هذه البطاقة مؤقتاً بواسطة المسؤول أو صاحب البطاقة. يرجى المحاولة لاحقاً.' : 'This card has been temporarily disabled. Please try again later.'}
+            {isRtl ? 'تم تعطيل هذه البطاقة مؤقتاً بواسطة المسؤول أو صاحب البطاقة.' : 'This card has been temporarily disabled.'}
          </p>
          <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">
-            {isRtl ? 'أنشئ بطاقتك الخاصة' : 'Create Your Own Card'}
+            {isRtl ? 'العودة للرئيسية' : 'Back to Home'}
          </a>
       </div>
     );
@@ -114,10 +117,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       <main className="w-full max-w-sm z-10 animate-fade-in-up pt-10 pb-32">
         <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} />
         
-        <div className="mt-12 text-center">
-          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-            {lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}
-          </p>
+        <div className="mt-12 text-center flex flex-col items-center gap-8">
           <nav>
             <a href="/" className="inline-flex items-center gap-3 px-8 py-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all border group">
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white group-hover:rotate-12 transition-transform">
@@ -126,6 +126,22 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
               {lang === 'ar' ? 'أنشئ بطاقتك الرقمية الآن' : 'Create Your Digital Card Now'}
             </a>
           </nav>
+
+          <a 
+            href="https://buymeacoffee.com/guidai" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+          >
+            <Coffee size={14} className="text-[#FFDD00] group-hover:animate-bounce" />
+            <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-white transition-colors">
+              {isRtl ? 'ادعم استمرار المشروع' : 'Support this project'}
+            </span>
+          </a>
+
+          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
+            {lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}
+          </p>
         </div>
       </main>
 
@@ -147,15 +163,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             </button>
          </div>
       </div>
-      
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes bounce-in {
-          0% { transform: translate(-50%, 100px); opacity: 0; }
-          60% { transform: translate(-50%, -10px); opacity: 1; }
-          100% { transform: translate(-50%, 0); opacity: 1; }
-        }
-        .animate-bounce-in { animation: bounce-in 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-      `}} />
     </article>
   );
 };
