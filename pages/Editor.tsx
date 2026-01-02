@@ -1,4 +1,3 @@
-
 import { 
   Save, Plus, X, Loader2, Sparkles, Moon, Sun, Hash, 
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
@@ -541,8 +540,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
                    {formData.themeType === 'image' && (
                      <div className="space-y-4 pt-2">
-                       <div className="grid grid-cols-4 gap-3">
-                          {BACKGROUND_PRESETS.slice(0, 8).map((url, i) => (
+                       <div className="grid grid-cols-4 gap-3 max-h-[220px] overflow-y-auto no-scrollbar p-1">
+                          {BACKGROUND_PRESETS.map((url, i) => (
                             <button key={i} onClick={() => handleChange('backgroundImage', url)} className={`h-16 rounded-xl border-2 overflow-hidden transition-all ${formData.backgroundImage === url ? 'border-blue-600 scale-105 shadow-none' : 'border-transparent opacity-60'}`}><img src={url} className="w-full h-full object-cover" /></button>
                           ))}
                        </div>

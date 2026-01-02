@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle } from '../types';
+import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import { getAllCategories, saveTemplateCategory, getAllVisualStyles } from '../services/firebase';
@@ -517,6 +516,32 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      <ToggleSwitch label={t('تفعيل المناسبة افتراضياً', 'Activate by Default')} value={template.config.showOccasionByDefault} onChange={(v: boolean) => updateConfig('showOccasionByDefault', v)} icon={CheckCircle2} />
                      
                      <div className="grid grid-cols-1 gap-6 pt-4 border-t dark:border-gray-800">
+                        {/* Background Selection for Occasion inside Admin Builder */}
+                        <div className="space-y-4">
+                           <div className="flex items-center gap-2">
+                              <ImageIcon className="text-indigo-600" size={16} />
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('خلفية المناسبة (اختياري)', 'Occasion Background (Optional)')}</label>
+                           </div>
+                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-1 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800">
+                              {BACKGROUND_PRESETS.map((url, i) => (
+                                <button key={i} onClick={() => { updateConfig('defaultBackgroundImage', url); updateConfig('defaultThemeType', 'image'); }} className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent opacity-60'}`}>
+                                   <img src={url} className="w-full h-full object-cover" />
+                                </button>
+                              ))}
+                           </div>
+                           <div className="flex gap-2">
+                             {['color', 'gradient', 'image'].map((type) => (
+                               <button 
+                                 key={type} 
+                                 onClick={() => updateConfig('defaultThemeType', type as ThemeType)}
+                                 className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${template.config.defaultThemeType === type ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-400 border border-gray-100 dark:border-gray-800'}`}
+                               >
+                                 {t(type, type.toUpperCase())}
+                               </button>
+                             ))}
+                           </div>
+                        </div>
+
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('صاحب الدعوة الافتراضي', 'Default Organizer Name')}</label>
                            <div className="relative">
