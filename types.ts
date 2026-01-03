@@ -28,6 +28,13 @@ export interface TemplateConfig {
   avatarOffsetX: number;
   avatarBorderWidth?: number;
   avatarBorderColor?: string;
+  // Animated Border Settings
+  avatarAnimatedBorder?: boolean;
+  avatarAnimatedBorderColor1?: string;
+  avatarAnimatedBorderColor2?: string;
+  avatarAnimatedBorderSpeed?: number;
+  avatarAnimatedGlow?: boolean;
+
   nameOffsetY: number;
   titleOffsetY?: number; 
   bioOffsetY: number;

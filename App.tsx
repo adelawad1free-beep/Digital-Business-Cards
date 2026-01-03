@@ -60,6 +60,11 @@ const App: React.FC = () => {
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
   };
 
+  // تأثير لضمان التمرير للأعلى عند تغيير التبويبات أو الدخول للمحرر
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab, editingCard]);
+
   useEffect(() => {
     const root = window.document.documentElement;
     isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
@@ -161,7 +166,6 @@ const App: React.FC = () => {
 
   const navigateTo = (tab: any) => {
     setActiveTab(tab);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (isInitializing) return (
@@ -468,7 +472,7 @@ const App: React.FC = () => {
                 } catch (e) { alert("Error deleting card"); }
                 finally { setSaveLoading(false); }
               }} className="py-4 md:py-5 bg-red-600 text-white rounded-2xl md:rounded-3xl font-black text-sm uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all">نعم، احذف</button>
-              <button onClick={() => setDeleteConfirmation(null)} className="py-4 md:py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-2xl md:rounded-3xl font-black text-sm uppercase transition-all">إلغاء</button>
+              <button onClick={() => setDeleteConfirmation(null)} className="py-4 md:py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl md:rounded-3xl font-black text-sm uppercase transition-all">إلغاء</button>
             </div>
           </div>
         </div>

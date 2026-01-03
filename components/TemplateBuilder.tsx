@@ -30,6 +30,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const isRtl = lang === 'ar';
   const headerAssetInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   
   const ADMIN_PRESET_COLORS = ['#2563eb', '#1e40af', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981', '#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444', '#f43f5e', '#db2777', '#d946ef', '#a855f7', '#7c3aed', '#6366f1', '#4b5563', '#0f172a'];
 
@@ -43,6 +44,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [loading, setLoading] = useState(false);
   const [uploadingAsset, setUploadingAsset] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
   const [visualStyles, setVisualStyles] = useState<VisualStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string>(initialTemplate?.parentStyleId || '');
@@ -69,6 +71,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       avatarOffsetX: 0,
       avatarBorderWidth: 4,
       avatarBorderColor: '#ffffff',
+      avatarAnimatedBorder: false,
+      avatarAnimatedBorderColor1: '#3b82f6',
+      avatarAnimatedBorderColor2: '#ffffff',
+      avatarAnimatedBorderSpeed: 3,
+      avatarAnimatedGlow: false,
       nameOffsetY: 0,
       titleOffsetY: 0,
       bioOffsetY: 0,
@@ -139,7 +146,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       defaultThemeGradient: THEME_GRADIENTS[0],
       defaultName: '',
       defaultIsDark: false,
-      cardBgColor: '', // New property
+      cardBgColor: '', 
       headerPatternId: 'none',
       headerPatternOpacity: 20,
       headerPatternScale: 100
@@ -183,6 +190,20 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       }
     } finally {
       setUploadingBg(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const b = await uploadImageToCloud(file, 'avatar');
+      if (b) {
+        updateConfig('defaultProfileImage', b);
+      }
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -330,11 +351,65 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
               <div className="space-y-6 animate-fade-in">
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <ToggleSwitch label={t('تفعيل ظهور الصورة', 'Show Avatar')} value={template.config.avatarStyle !== 'none'} onChange={(v: boolean) => updateConfig('avatarStyle', v ? 'circle' : 'none')} icon={Camera} />
+                    
+                    <div className="pt-4 border-t dark:border-gray-800 space-y-6">
+                       <div className="flex items-center gap-3">
+                          <ImageIcon className="text-blue-600" size={20} />
+                          <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('الصورة الافتراضية للقالب', 'Default Template Avatar')}</h4>
+                       </div>
+                       
+                       <div className="flex flex-col md:flex-row items-center gap-6 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                          <div className={`w-24 h-24 shrink-0 bg-white dark:bg-gray-900 rounded-[2rem] border-2 border-white dark:border-gray-700 shadow-md overflow-hidden flex items-center justify-center relative`}>
+                             {template.config.defaultProfileImage ? (
+                               <img src={template.config.defaultProfileImage} className="w-full h-full object-cover" alt="Default Avatar" />
+                             ) : (
+                               <UserCircle size={40} className="text-gray-200" />
+                             )}
+                             {uploadingAvatar && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                          </div>
+                          
+                          <div className="flex-1 space-y-3 w-full">
+                             <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                             <button onClick={() => avatarInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
+                                <UploadCloud size={16} className="text-blue-500" />
+                                {t('رفع صورة افتراضية', 'Upload Default Avatar')}
+                             </button>
+                             {template.config.defaultProfileImage && (
+                                <button onClick={() => updateConfig('defaultProfileImage', '')} className="w-full py-2 text-red-500 font-black text-[9px] uppercase hover:underline">
+                                   {t('إزالة الصورة', 'Remove Photo')}
+                                </button>
+                             )}
+                             <p className="text-[9px] text-gray-400 font-bold leading-tight px-1">
+                                {t('* ملاحظة: ستظهر هذه الصورة كمعاينة للقالب، وسيكون للعميل لاحقاً إمكانية تغييرها بصورته الخاصة.', '* Note: This photo will appear as a preview. Customers can later change it to their own photo.')}
+                             </p>
+                          </div>
+                       </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <RangeControl label={t('حجم الصورة', 'Size')} min={60} max={250} value={template.config.avatarSize} onChange={(v: number) => updateConfig('avatarSize', v)} icon={Maximize2} />
                        <RangeControl label={t('سمك الإطار', 'Border Width')} min={0} max={20} value={template.config.avatarBorderWidth ?? 4} onChange={(v: number) => updateConfig('avatarBorderWidth', v)} icon={Ruler} />
                     </div>
                     <ColorPicker label={t('لون الإطار', 'Border Color')} value={template.config.avatarBorderColor || '#ffffff'} onChange={(v: string) => updateConfig('avatarBorderColor', v)} />
+
+                    {/* Animated Border Settings Section */}
+                    <div className="pt-6 border-t dark:border-gray-800 space-y-6">
+                       <div className="flex items-center gap-3">
+                          <Zap className="text-amber-500" size={20} />
+                          <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('إطار مضيء ومتحرك', 'Animated Border Lab')}</h4>
+                       </div>
+                       
+                       <ToggleSwitch label={t('تفعيل الإطار المتحرك', 'Enable Animated Border')} value={template.config.avatarAnimatedBorder} onChange={(v: boolean) => updateConfig('avatarAnimatedBorder', v)} icon={Sparkles} color="bg-amber-500" />
+                       
+                       {template.config.avatarAnimatedBorder && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                             <ColorPicker label={t('لون الحركة 1', 'Motion Color 1')} value={template.config.avatarAnimatedBorderColor1} onChange={(v: string) => updateConfig('avatarAnimatedBorderColor1', v)} />
+                             <ColorPicker label={t('لون الحركة 2', 'Motion Color 2')} value={template.config.avatarAnimatedBorderColor2} onChange={(v: string) => updateConfig('avatarAnimatedBorderColor2', v)} />
+                             <RangeControl label={t('سرعة الدوران', 'Rotation Speed')} min={1} max={10} value={template.config.avatarAnimatedBorderSpeed || 3} onChange={(v: number) => updateConfig('avatarAnimatedBorderSpeed', v)} icon={RefreshCcw} unit="s" hint={t('كلما قل الرقم زادت السرعة', 'Lower is faster')} />
+                             <ToggleSwitch label={t('تأثير التوهج (Glow)', 'Glow Effect')} value={template.config.avatarAnimatedGlow} onChange={(v: boolean) => updateConfig('avatarAnimatedGlow', v)} icon={Sun} color="bg-blue-600" />
+                          </div>
+                       )}
+                    </div>
                   </div>
               </div>
             )}
@@ -577,7 +652,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('صاحب الدعوة الافتراضي', 'Default Organizer Name')}</label>
                            <div className="relative">
-                              <UserCircle className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-500`} size={16} />
+                              <UserCircle className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-50`} size={16} />
                               <input type="text" value={template.config.defaultName || ''} onChange={e => updateConfig('defaultName', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all`} placeholder={t('أدخل اسم صاحب الدعوة...', 'Enter organizer name...')} />
                            </div>
                         </div>
@@ -701,8 +776,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        themeColor: template.config.defaultThemeColor, 
                        themeGradient: template.config.defaultThemeGradient,
                        backgroundImage: template.config.defaultBackgroundImage,
+                       profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',
                        isDark: template.config.defaultIsDark,
-                       cardBgColor: template.config.cardBgColor, // New property
+                       cardBgColor: template.config.cardBgColor, 
                        nameColor: template.config.nameColor,
                        titleColor: template.config.titleColor,
                        bioTextColor: template.config.bioTextColor,

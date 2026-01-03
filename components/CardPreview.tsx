@@ -207,11 +207,11 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const occasionOpacity = (data.occasionOpacity ?? config.occasionOpacity ?? 100) / 100;
   
   const hexToRgb = (hex: string) => {
-    hex = hex.replace('#', '');
+    hex = (hex || '#000000').replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
     return `${r}, ${g}, ${b}`;
   };
 
@@ -221,6 +221,12 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     : (occasionOpacity < 1 ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` : occasionBaseColor);
 
   const finalCardBgColor = data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff');
+
+  // Animated Border Logic
+  const showAnimatedBorder = config.avatarAnimatedBorder;
+  const borderClr1 = config.avatarAnimatedBorderColor1 || themeColor;
+  const borderClr2 = config.avatarAnimatedBorderColor2 || '#ffffff';
+  const borderSpeed = config.avatarAnimatedBorderSpeed || 3;
 
   return (
     <div 
@@ -249,12 +255,28 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
       <div className="flex flex-col flex-1 px-4 sm:px-6" style={bodyStyles}>
         {config.avatarStyle !== 'none' && (
-          <div className={`relative ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[28%]'} overflow-hidden shadow-2xl z-30 shrink-0 mx-auto transition-all`} 
+          <div className={`relative ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[28%]'} z-30 shrink-0 mx-auto transition-all`} 
                style={{ 
                  width: `${config.avatarSize}px`, height: `${config.avatarSize}px`, 
                  transform: `translate(${config.avatarOffsetX || 0}px, ${config.avatarOffsetY || 0}px)`,
-                 padding: `${config.avatarBorderWidth ?? 4}px`, backgroundColor: config.avatarBorderColor || '#ffffff'
+                 padding: `${config.avatarBorderWidth ?? 4}px`, 
+                 backgroundColor: showAnimatedBorder ? 'transparent' : (config.avatarBorderColor || '#ffffff'),
+                 boxShadow: config.avatarAnimatedGlow ? `0 0 20px rgba(${hexToRgb(borderClr1)}, 0.5)` : '0 20px 40px rgba(0,0,0,0.1)'
                }}>
+            
+            {/* Animated Border Component */}
+            {showAnimatedBorder && (
+              <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden" style={{ borderRadius: config.avatarStyle === 'circle' ? '50%' : '28%' }}>
+                <div 
+                  className="absolute inset-[-100%] animate-spin-slow"
+                  style={{ 
+                    background: `conic-gradient(from 0deg, transparent, ${borderClr1}, ${borderClr2}, transparent 60%)`,
+                    animationDuration: `${borderSpeed}s`
+                  }}
+                />
+              </div>
+            )}
+
             <div className={`w-full h-full ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[22%]'} overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center`}>
               {data.profileImage ? <img src={data.profileImage} className="w-full h-full object-cover" /> : <Camera size={40} className="text-gray-200" />}
             </div>
