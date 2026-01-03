@@ -373,6 +373,28 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               )}
            </div>
 
+           {/* Contact Buttons Fix: Flexible height and squircle rounding for better responsive scaling */}
+           {hasContactButtons && (
+              <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
+                {showPhone && data.phone && (
+                  <a href={`tel:${data.phone}`} style={{ backgroundColor: phoneBtnColor }} className="flex-1 py-4 flex items-center justify-center gap-2 px-3 rounded-2xl text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
+                    <Phone size={14} className="shrink-0" /> <span className="truncate">{t('call')}</span>
+                  </a>
+                )}
+                {showWhatsapp && data.whatsapp && (
+                  <a href={`https://wa.me/${data.whatsapp}`} target="_blank" style={{ backgroundColor: whatsappBtnColor }} className="flex-1 py-4 flex items-center justify-center gap-2 px-3 rounded-2xl text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
+                    <MessageCircle size={14} className="shrink-0" /> <span className="truncate">{t('whatsappBtn')}</span>
+                  </a>
+                )}
+                {!hideSaveButton && showButtons && (
+                  <button onClick={() => downloadVCard(data)} className="flex-1 py-4 flex items-center justify-center gap-3 px-3 rounded-2xl bg-gray-900 text-white font-black text-[10px] shadow-lg hover:bg-black transition-all min-w-0">
+                    <UserPlus size={14} className="shrink-0" /> <span className="truncate">{t('saveContact')}</span>
+                  </button>
+                )}
+              </div>
+           )}
+
+           {/* Social Links Moved DOWN */}
            {showSocialLinks && data.socialLinks?.length > 0 && (
              <div className="flex flex-wrap justify-center gap-3 py-6" style={{ transform: `translateY(${config.socialLinksOffsetY || 0}px)` }}>
                {data.socialLinks.map((link, idx) => (
@@ -381,26 +403,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                  </a>
                ))}
              </div>
-           )}
-
-           {hasContactButtons && (
-              <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
-                {showPhone && data.phone && (
-                  <a href={`tel:${data.phone}`} style={{ backgroundColor: phoneBtnColor }} className="flex-1 h-14 flex items-center justify-center gap-2 px-3 rounded-full text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all">
-                    <Phone size={14} /> {t('call')}
-                  </a>
-                )}
-                {showWhatsapp && data.whatsapp && (
-                  <a href={`https://wa.me/${data.whatsapp}`} target="_blank" style={{ backgroundColor: whatsappBtnColor }} className="flex-1 h-14 flex items-center justify-center gap-2 px-3 rounded-full text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all">
-                    <MessageCircle size={14} /> {t('whatsappBtn')}
-                  </a>
-                )}
-                {!hideSaveButton && showButtons && (
-                  <button onClick={() => downloadVCard(data)} className="flex-1 h-14 flex items-center justify-center gap-3 px-3 rounded-full bg-gray-900 text-white font-black text-[10px] shadow-lg hover:bg-black transition-all">
-                    <UserPlus size={14} /> {t('saveContact')}
-                  </button>
-                )}
-              </div>
            )}
 
            {showQrCode && (

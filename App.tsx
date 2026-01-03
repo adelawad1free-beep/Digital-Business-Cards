@@ -60,7 +60,6 @@ const App: React.FC = () => {
     return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
   };
 
-  // تأثير لضمان التمرير للأعلى عند تغيير التبويبات أو الدخول للمحرر
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab, editingCard]);
@@ -131,8 +130,9 @@ const App: React.FC = () => {
           try {
             const cards = await getUserCards(user.uid);
             setUserCards(cards as CardData[]);
-            if (activeTab === 'home') setActiveTab('manager');
           } catch (e) {}
+        } else {
+          setUserCards([]); // تأمين تفريغ البطاقات عند تسجيل الخروج
         }
         setIsInitializing(false);
       });
@@ -228,7 +228,8 @@ const App: React.FC = () => {
             <nav className="hidden lg:flex items-center gap-2">
               <button onClick={() => navigateTo('home')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('home')}</button>
               <button onClick={() => navigateTo('templates')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('templates')}</button>
-              {currentUser && <button onClick={() => navigateTo('manager')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('myCards')}</button>}
+              {/* Fix: "My Cards" now visible to everyone */}
+              <button onClick={() => navigateTo('manager')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('myCards')}</button>
               {isAdmin && <button onClick={() => navigateTo('admin')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('admin')}</button>}
             </nav>
           </div>

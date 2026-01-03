@@ -14,7 +14,7 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -49,6 +49,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [visualStyles, setVisualStyles] = useState<VisualStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string>(initialTemplate?.parentStyleId || '');
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   const [template, setTemplate] = useState<CustomTemplate>(initialTemplate || {
     id: `tmpl_${Date.now()}`,
@@ -169,6 +170,39 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     }));
   };
 
+  const resetOffsets = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleActualReset = () => {
+    const resetConfig: Partial<TemplateConfig> = {
+      avatarOffsetY: 0,
+      avatarOffsetX: 0,
+      nameOffsetY: 0,
+      titleOffsetY: 0,
+      bioOffsetY: 0,
+      emailOffsetY: 0,
+      websiteOffsetY: 0,
+      contactButtonsOffsetY: 0,
+      socialLinksOffsetY: 0,
+      bodyOffsetY: 0,
+      qrOffsetY: 0,
+      invitationYOffset: 0,
+      occasionOffsetY: 0,
+      spacing: 'normal',
+      contentAlign: 'center'
+    };
+
+    setTemplate(prev => ({
+      ...prev,
+      config: { 
+        ...prev.config, 
+        ...resetConfig 
+      }
+    }));
+    setShowResetConfirm(false);
+  };
+
   const applyVisualStyle = (style: VisualStyle) => {
     setSelectedStyleId(style.id);
     setTemplate(prev => ({
@@ -231,7 +265,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
         {Icon && <Icon size={18} className={value ? "text-blue-500" : "text-gray-300"} />}
         <span className={`text-[11px] font-black uppercase tracking-widest ${value ? 'dark:text-white' : 'text-gray-400'}`}>{label}</span>
       </div>
-      <button onClick={() => onChange(!value)} className={`w-12 h-6 rounded-full relative transition-all ${value ? color + ' shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}>
+      <button type="button" onClick={() => onChange(!value)} className={`w-12 h-6 rounded-full relative transition-all ${value ? color + ' shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}>
         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (value ? 'right-7' : 'right-1') : (value ? 'left-7' : 'left-1')}`} />
       </button>
     </div>
@@ -251,7 +285,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   );
 
   const NavItem = ({ id, label, icon: Icon }: { id: BuilderTab, label: string, icon: any }) => (
-    <button onClick={() => setActiveTab(id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group ${activeTab === id ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+    <button type="button" onClick={() => setActiveTab(id)} className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group ${activeTab === id ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
       <div className={`p-2 rounded-xl ${activeTab === id ? 'bg-white/20' : 'bg-gray-50 dark:bg-gray-800 group-hover:bg-white dark:group-hover:bg-gray-700'} transition-colors`}><Icon size={18} /></div>
       <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{label}</span>
     </button>
@@ -271,7 +305,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowSaveModal(true)} disabled={loading} className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">{t('حفظ القالب', 'Save Template')}</button>
+          <button type="button" onClick={() => setShowSaveModal(true)} disabled={loading} className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all">{t('حفظ القالب', 'Save Template')}</button>
         </div>
       </div>
 
@@ -303,6 +337,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        {visualStyles.map(style => (
                          <button 
                            key={style.id} 
+                           type="button"
                            onClick={() => applyVisualStyle(style)}
                            className={`p-3 bg-white dark:bg-gray-900 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 group hover:scale-105 ${template.parentStyleId === style.id ? 'border-indigo-600 ring-4 ring-indigo-500/10' : 'border-gray-100 dark:border-gray-800'}`}
                          >
@@ -326,8 +361,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            {id: 'curved', icon: Wind, label: 'منحني'},
                            {id: 'wave', icon: Waves, label: 'موجي'},
                            {id: 'diagonal', icon: RefreshCcw, label: 'قطري'},
-                           {id: 'split-left', icon: AlignLeft, label: 'منقسم يسار'},
-                           {id: 'split-right', icon: AlignRight, label: 'منقسم يمين'},
+                           {id: 'split-left', icon: AlignLeft, label: 'قطري يسار'},
+                           {id: 'split-right', icon: AlignRight, label: 'قطري يمين'},
                            {id: 'floating', icon: Square, label: 'عائم'},
                            {id: 'glass-card', icon: GlassWater, label: 'زجاجي'},
                            {id: 'modern-split', icon: Columns, label: 'حديث'},
@@ -336,7 +371,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            {id: 'minimal', icon: Minus, label: 'بسيط'},
                            {id: 'custom-asset', icon: FileCode, label: 'ملف خاص'}
                          ].map(item => (
-                           <button key={item.id} onClick={() => updateConfig('headerType', item.id)} className={`py-4 px-1 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <button type="button" key={item.id} onClick={() => updateConfig('headerType', item.id)} className={`py-4 px-1 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
                              <item.icon size={20} /> 
                              <span className="text-[7px] font-black uppercase text-center leading-tight">{t(item.label, item.id)}</span>
                            </button>
@@ -370,12 +405,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           
                           <div className="flex-1 space-y-3 w-full">
                              <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
-                             <button onClick={() => avatarInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
+                             <button type="button" onClick={() => avatarInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
                                 <UploadCloud size={16} className="text-blue-500" />
                                 {t('رفع صورة افتراضية', 'Upload Default Avatar')}
                              </button>
                              {template.config.defaultProfileImage && (
-                                <button onClick={() => updateConfig('defaultProfileImage', '')} className="w-full py-2 text-red-500 font-black text-[9px] uppercase hover:underline">
+                                <button type="button" onClick={() => updateConfig('defaultProfileImage', '')} className="w-full py-2 text-red-500 font-black text-[9px] uppercase hover:underline">
                                    {t('إزالة الصورة', 'Remove Photo')}
                                 </button>
                              )}
@@ -433,13 +468,27 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   </div>
 
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
-                     <div className="flex items-center gap-3"><TypographyIcon className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('هيكلة النصوص والأبعاد', 'Text Structure & Typography')}</h4></div>
+                     <div className="flex items-center justify-between border-b dark:border-gray-800 pb-4 mb-6">
+                        <div className="flex items-center gap-3">
+                           <TypographyIcon className="text-blue-600" size={24} />
+                           <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('محرك إزاحة العناصر والتباعد', 'Displacement & Spacing Engine')}</h4>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={resetOffsets}
+                          className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-orange-100 dark:border-orange-800/30 hover:bg-orange-100 transition-all shadow-sm"
+                        >
+                          <RotateCcw size={14} />
+                          {t('إعادة ضبط التموضع', 'Reset Offsets')}
+                        </button>
+                     </div>
+
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <RangeControl label={t('حجم خط الاسم', 'Name Font Size')} min={16} max={56} value={template.config.nameSize} onChange={(v: number) => updateConfig('nameSize', v)} icon={TypographyIcon} />
                         <RangeControl label={t('حجم خط النبذة', 'Bio Font Size')} min={10} max={28} value={template.config.bioSize} onChange={(v: number) => updateConfig('bioSize', v)} icon={FileText} />
                      </div>
-                     <div className="pt-6 border-t dark:border-gray-800 space-y-6">
-                        <label className="text-[10px] font-black text-gray-400 uppercase block tracking-widest">{t('محرك إزاحة العناصر (Vertical Offsets)', 'Precision Displacement Engine')}</label>
+                     <div className="pt-6 space-y-6">
+                        <label className="text-[10px] font-black text-gray-400 uppercase block tracking-widest">{t('التحكم الدقيق في التموضع الرأسي', 'Precision Vertical Displacement')}</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <RangeControl label={t('إزاحة الصورة', 'Avatar Y')} min={-150} max={200} value={template.config.avatarOffsetY} onChange={(v: number) => updateConfig('avatarOffsetY', v)} icon={Move} />
                            <RangeControl label={t('إزاحة الاسم', 'Name Y')} min={-100} max={150} value={template.config.nameOffsetY} onChange={(v: number) => updateConfig('nameOffsetY', v)} icon={MousePointer2} />
@@ -479,14 +528,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="grid grid-cols-3 gap-2">
                              {['start', 'center', 'end'].map(align => (
-                                <button key={align} onClick={() => updateConfig('contentAlign', align)} className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center ${template.config.contentAlign === align ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <button type="button" key={align} onClick={() => updateConfig('contentAlign', align)} className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center ${template.config.contentAlign === align ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
                                    {align === 'start' ? <AlignLeft size={18}/> : align === 'center' ? <AlignCenter size={18}/> : <AlignRight size={18}/>}
                                 </button>
                              ))}
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                              {['compact', 'normal', 'relaxed'].map(s => (
-                                <button key={s} onClick={() => { updateConfig('spacing', s) }} className={`py-3 rounded-xl border-2 transition-all font-black text-[8px] uppercase ${template.config.spacing === s ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <button type="button" key={s} onClick={() => { updateConfig('spacing', s) }} className={`py-3 rounded-xl border-2 transition-all font-black text-[8px] uppercase ${template.config.spacing === s ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
                                    {t(s === 'compact' ? 'مضغوط' : (s === 'normal' ? 'عادي' : 'مريح'), s.toUpperCase())}
                                 </button>
                              ))}
@@ -532,7 +581,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   
                   <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-black/20 p-2 rounded-[2rem]">
                        {['color', 'gradient', 'image'].map(type => (
-                         <button key={type} onClick={() => updateConfig('defaultThemeType', type as ThemeType)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 flex-1 ${template.config.defaultThemeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400 border-transparent shadow-sm'}`}>
+                         <button type="button" key={type} onClick={() => updateConfig('defaultThemeType', type as ThemeType)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 flex-1 ${template.config.defaultThemeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400 border-transparent shadow-sm'}`}>
                            {type === 'color' ? <Palette size={20}/> : type === 'gradient' ? <Sparkles size={20}/> : <ImageIcon size={20}/>}
                            <span className="text-[10px] font-black uppercase tracking-widest">{t(type === 'color' ? 'لون ثابت' : type === 'gradient' ? 'تدرج' : 'صورة', type.toUpperCase())}</span>
                          </button>
@@ -544,7 +593,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <label className="text-[10px] font-black text-gray-400 uppercase">{t('لوحة الألوان السريعة', 'Quick Color Palette')}</label>
                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
                           {ADMIN_PRESET_COLORS.map((clr, i) => (
-                            <button key={i} onClick={() => updateConfig('defaultThemeColor', clr)} className={`h-8 w-8 rounded-full border-2 transition-all hover:scale-125 ${template.config.defaultThemeColor === clr ? 'border-blue-600 scale-125 shadow-lg' : 'border-white dark:border-gray-600'}`} style={{ backgroundColor: clr }} />
+                            <button type="button" key={i} onClick={() => updateConfig('defaultThemeColor', clr)} className={`h-8 w-8 rounded-full border-2 transition-all hover:scale-125 ${template.config.defaultThemeColor === clr ? 'border-blue-600 scale-125 shadow-lg' : 'border-white dark:border-gray-600'}`} style={{ backgroundColor: clr }} />
                           ))}
                        </div>
                     </div>
@@ -555,7 +604,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <label className="text-[10px] font-black text-gray-400 uppercase">{t('اختر التدرج اللوني المفضل', 'Select Color Gradient')}</label>
                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                           {THEME_GRADIENTS.map((grad, i) => (
-                            <button key={i} onClick={() => updateConfig('defaultThemeGradient', grad)} className={`h-12 rounded-2xl border-2 transition-all ${template.config.defaultThemeGradient === grad ? 'border-blue-600 scale-110 shadow-lg' : 'border-transparent opacity-60'}`} style={{ background: grad }} />
+                            <button type="button" key={i} onClick={() => updateConfig('defaultThemeGradient', grad)} className={`h-12 rounded-2xl border-2 transition-all ${template.config.defaultThemeGradient === grad ? 'border-blue-600 scale-110 shadow-lg' : 'border-transparent opacity-60'}`} style={{ background: grad }} />
                           ))}
                        </div>
                     </div>
@@ -566,14 +615,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <label className="text-[10px] font-black text-gray-400 uppercase">{t('خلفيات فنية افتراضية', 'Artistic Background Presets')}</label>
                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                           {BACKGROUND_PRESETS.map((url, i) => (
-                            <button key={i} onClick={() => updateConfig('defaultBackgroundImage', url)} className={`h-24 rounded-2xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-blue-600 scale-105 shadow-xl' : 'border-transparent opacity-60'}`}>
+                            <button type="button" key={i} onClick={() => updateConfig('defaultBackgroundImage', url)} className={`h-24 rounded-2xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-blue-600 scale-105 shadow-xl' : 'border-transparent opacity-60'}`}>
                                <img src={url} className="w-full h-full object-cover" alt={`Preset ${i}`} />
                             </button>
                           ))}
                        </div>
                        <div className="pt-4 border-t dark:border-gray-800">
                           <input type="file" ref={bgInputRef} onChange={handleBgUpload} className="hidden" accept="image/*" />
-                          <button onClick={() => bgInputRef.current?.click()} className="w-full py-5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-all">
+                          <button type="button" onClick={() => bgInputRef.current?.click()} className="w-full py-5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-all">
                              {uploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                              {t('رفع خلفية خاصة للقالب', 'Upload Custom Background')}
                           </button>
@@ -593,6 +642,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         />
                         {template.config.cardBgColor && (
                           <button 
+                            type="button"
                             onClick={() => updateConfig('cardBgColor', '')}
                             className="text-[9px] font-black text-red-500 uppercase hover:underline"
                           >
@@ -603,7 +653,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     
                     <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                       <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
-                      <button onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
+                      <button type="button" onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
                     </div>
                     <p className="text-[9px] text-gray-400 font-bold px-2 italic">
                        {t('* ملاحظة: في حال اختيار لون أرضية مخصص، سيظل خيار ليل/نهار يتحكم بلون النصوص والعناصر فقط.', '* Note: If a custom background color is selected, the light/dark toggle will only control text and element colors.')}
@@ -631,7 +681,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            </div>
                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-1 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800">
                               {BACKGROUND_PRESETS.map((url, i) => (
-                                <button key={i} onClick={() => { updateConfig('defaultBackgroundImage', url); updateConfig('defaultThemeType', 'image'); }} className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent opacity-60'}`}>
+                                <button type="button" key={i} onClick={() => { updateConfig('defaultBackgroundImage', url); updateConfig('defaultThemeType', 'image'); }} className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent opacity-60'}`}>
                                    <img src={url} className="w-full h-full object-cover" />
                                 </button>
                               ))}
@@ -639,6 +689,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            <div className="flex gap-2">
                              {['color', 'gradient', 'image'].map((type) => (
                                <button 
+                                 type="button"
                                  key={type} 
                                  onClick={() => updateConfig('defaultThemeType', type as ThemeType)}
                                  className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${template.config.defaultThemeType === type ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-400 border border-gray-100 dark:border-gray-800'}`}
@@ -757,16 +808,21 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
               <div className="mb-6 w-full flex items-center justify-between px-4">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('معاينة حية', 'Live Preview')}</span></div>
                 <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                   <button onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
-                   <button onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
-                   <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={18}/></button>
+                   <button type="button" onClick={() => setPreviewDevice('mobile')} className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Smartphone size={16}/></button>
+                   <button type="button" onClick={() => setPreviewDevice('tablet')} className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Tablet size={16}/></button>
+                   <button type="button" onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={18}/></button>
                 </div>
               </div>
               
-              <div className={`transition-all duration-500 origin-top rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 relative ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`} style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
-                <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+              {/* Fix: Preview Wrapper with isolation and hard clipping */}
+              <div className={`transition-all duration-500 origin-top rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 relative border-[12px] border-gray-900 dark:border-gray-800 ${previewDevice === 'mobile' ? 'w-[360px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[400px]'}`} 
+                   style={{ 
+                     isolation: 'isolate', 
+                     transform: 'translateZ(0)',
+                     WebkitMaskImage: '-webkit-radial-gradient(white, black)' // Fix for Safari bleeding corners
+                   }}>
                 
-                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ clipPath: 'inset(1px round 2.8rem)' }}>
+                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ clipPath: 'inset(0 round(2.6rem))', borderRadius: '2.6rem' }}>
                    <CardPreview 
                      data={{ 
                        ...sampleCardData, 
@@ -826,7 +882,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
            <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
               <div className="flex justify-between items-center">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
-                 <button onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
+                 <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
               </div>
               <div className="space-y-6">
                  <div className="grid grid-cols-2 gap-4">
@@ -847,8 +903,38 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </select>
                  </div>
               </div>
-              <button onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>
+              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>
            </div>
+        </div>
+      )}
+
+      {/* Custom Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-orange-100 dark:border-orange-900/20 animate-zoom-in">
+             <div className="w-20 h-20 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle size={40} />
+             </div>
+             <h3 className="text-2xl font-black dark:text-white mb-4">{t('تأكيد إعادة الضبط', 'Confirm Reset')}</h3>
+             <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                {t('هل أنت متأكد من تصفير كافة قيم الإزاحة والتباعد؟ هذا الإجراء سيعيد العناصر لمواقعها الافتراضية.', 'Are you sure? This will reset all offsets and spacing to their original default values.')}
+             </p>
+             <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleActualReset}
+                  className="w-full py-5 bg-orange-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                >
+                  <RotateCcw size={18} />
+                  {t('نعم، قم بإعادة الضبط', 'Yes, Reset Now')}
+                </button>
+                <button 
+                  onClick={() => setShowResetConfirm(false)}
+                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-3xl font-black text-sm uppercase transition-all"
+                >
+                  {t('إلغاء', 'Cancel')}
+                </button>
+             </div>
+          </div>
         </div>
       )}
     </div>

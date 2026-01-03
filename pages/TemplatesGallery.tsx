@@ -100,7 +100,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 md:gap-12 pt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-10 md:gap-14 pt-4 max-w-6xl mx-auto">
         {filteredTemplates.map(tmpl => (
           <TemplateCard key={tmpl.id} tmpl={tmpl} lang={lang} onSelect={onSelect} sampleData={sampleCardData} />
         ))}
@@ -137,11 +137,12 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
 
   return (
     <div className="group flex flex-col transition-all duration-500">
+      {/* Fix: Aspect ratio updated to 10/18 for a slightly taller but still wide preview */}
       <div 
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className={`relative aspect-[9/19] w-full bg-white dark:bg-black rounded-[3.5rem] shadow-xl overflow-hidden mb-6 group-hover:shadow-[0_50px_120px_-20px_rgba(0,0,0,0.4)] transition-all duration-700 border border-gray-100 dark:border-gray-800 cursor-ns-resize`}
+        className={`relative aspect-[10/18] w-full bg-white dark:bg-black rounded-[3.5rem] shadow-xl overflow-hidden mb-8 group-hover:shadow-[0_50px_120px_-20px_rgba(0,0,0,0.4)] transition-all duration-700 border border-gray-100 dark:border-gray-800 cursor-ns-resize`}
       >
         
         {/* The Phone Bezel */}
@@ -154,8 +155,8 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
           </div>
         )}
         
-        {/* Manual Scroll Preview Content */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+        {/* Manual Scroll Preview Content with Hard Clipping */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ isolation: 'isolate', transform: 'translateZ(0)', clipPath: 'inset(1px round(2.6rem))' }}>
            <div 
              className="h-full w-full transition-transform duration-[450ms] ease-out origin-top scale-[0.98]"
              style={{ 
@@ -182,7 +183,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
            </div>
         </div>
 
-        {/* Action Button Overlay - Centered vertically and horizontally */}
+        {/* Action Button Overlay */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center z-[60]">
            <button 
              onClick={(e) => {
@@ -197,14 +198,14 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
         </div>
       </div>
 
-      <div className="px-6 text-center sm:text-start flex flex-col gap-1.5">
-         <div className="flex items-center justify-center sm:justify-start gap-2.5">
-            <div className={`w-2.5 h-2.5 rounded-full ${tmpl.isFeatured ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-600'}`}></div>
-            <h3 className="text-base md:text-lg font-black dark:text-white uppercase tracking-tight truncate">
+      <div className="px-6 text-center sm:text-start flex flex-col gap-2">
+         <div className="flex items-center justify-center sm:justify-start gap-3">
+            <div className={`w-3 h-3 rounded-full ${tmpl.isFeatured ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-600'}`}></div>
+            <h3 className="text-lg md:text-2xl font-black dark:text-white uppercase tracking-tight truncate">
               {isRtl ? tmpl.nameAr : tmpl.nameEn}
             </h3>
          </div>
-         <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 leading-relaxed uppercase tracking-widest px-1">
+         <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 leading-relaxed uppercase tracking-widest px-1">
            {isRtl ? tmpl.descAr : tmpl.descEn}
          </p>
       </div>
