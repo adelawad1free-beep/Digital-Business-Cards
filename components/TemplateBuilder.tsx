@@ -139,6 +139,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       defaultThemeGradient: THEME_GRADIENTS[0],
       defaultName: '',
       defaultIsDark: false,
+      cardBgColor: '', // New property
       headerPatternId: 'none',
       headerPatternOpacity: 20,
       headerPatternScale: 100
@@ -220,10 +221,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
       <div className="flex items-center gap-3">
          <div className="relative w-9 h-9 rounded-2xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-md">
-            <input type="color" value={value?.startsWith('rgba') || !value?.startsWith('#') ? '#3b82f6' : value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
-            <div className="w-full h-full" style={{ backgroundColor: value }} />
+            <input type="color" value={value?.startsWith('rgba') || !value?.startsWith('#') ? '#3b82f6' : (value || '#ffffff')} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
+            <div className="w-full h-full" style={{ backgroundColor: value || '#ffffff' }} />
          </div>
-         <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-3 py-2 text-[10px] font-black text-blue-600 w-24 uppercase text-center outline-none" />
+         <input type="text" value={value || ''} onChange={(e) => onChange(e.target.value)} className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-3 py-2 text-[10px] font-black text-blue-600 w-24 uppercase text-center outline-none" placeholder="#HEX" />
       </div>
     </div>
   );
@@ -507,9 +508,31 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                   <ColorPicker label={t('لون السمة الأساسي', 'Base Theme Color')} value={template.config.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
 
-                  <div className="pt-6 border-t dark:border-gray-800 flex items-center justify-between">
-                    <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
-                    <button onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
+                  <div className="pt-6 border-t dark:border-gray-800 space-y-6">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('خلفية البطاقة (الأرضية)', 'Card Base Background')}</h4>
+                    <div className="space-y-4">
+                        <ColorPicker 
+                          label={t('لون مخصص للأرضية', 'Custom Card Base Color')} 
+                          value={template.config.cardBgColor || ''} 
+                          onChange={(v: string) => updateConfig('cardBgColor', v)} 
+                        />
+                        {template.config.cardBgColor && (
+                          <button 
+                            onClick={() => updateConfig('cardBgColor', '')}
+                            className="text-[9px] font-black text-red-500 uppercase hover:underline"
+                          >
+                            {t('إعادة تعيين للأرضية التلقائية', 'Reset to Automatic Background')}
+                          </button>
+                        )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                      <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
+                      <button onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
+                    </div>
+                    <p className="text-[9px] text-gray-400 font-bold px-2 italic">
+                       {t('* ملاحظة: في حال اختيار لون أرضية مخصص، سيظل خيار ليل/نهار يتحكم بلون النصوص والعناصر فقط.', '* Note: If a custom background color is selected, the light/dark toggle will only control text and element colors.')}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -665,12 +688,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 </div>
               </div>
               
-              {/* متصفح المعاينة المحدث بـ Bezel Layer و Clip-path */}
               <div className={`transition-all duration-500 origin-top rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 relative ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`} style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
-                {/* طبقة الإطار السوداء الحقيقية (Bezel) */}
                 <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
                 
-                {/* المحتوى الداخلي مع حماية القص القوية */}
                 <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ clipPath: 'inset(1px round 2.8rem)' }}>
                    <CardPreview 
                      data={{ 
@@ -682,6 +702,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        themeGradient: template.config.defaultThemeGradient,
                        backgroundImage: template.config.defaultBackgroundImage,
                        isDark: template.config.defaultIsDark,
+                       cardBgColor: template.config.cardBgColor, // New property
                        nameColor: template.config.nameColor,
                        titleColor: template.config.titleColor,
                        bioTextColor: template.config.bioTextColor,

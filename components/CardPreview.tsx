@@ -170,7 +170,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const bodyStyles: React.CSSProperties = {
     marginTop: headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px'),
     transform: `translateY(${config.bodyOffsetY || 0}px)`, 
-    // تحسين: الخلفية تدعم الشفافية دائماً سواء كان التأثير الزجاجي مفعلاً أم لا
     backgroundColor: isDark 
       ? `rgba(15, 15, 18, ${bodyOpacity})` 
       : `rgba(255, 255, 255, ${bodyOpacity})`,
@@ -180,7 +179,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     zIndex: 20,
     width: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? 'calc(100% - 32px)' : '100%',
     margin: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? '0 auto' : '0',
-    // التأثير الزجاجي يضيف الضبابية فقط
     backdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
     WebkitBackdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
     border: (isBodyGlassy || bodyOpacity < 1) ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : 'none',
@@ -222,8 +220,13 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` 
     : (occasionOpacity < 1 ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` : occasionBaseColor);
 
+  const finalCardBgColor = data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff');
+
   return (
-    <div className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden rounded-[2.25rem] ${isDark ? 'bg-[#0f0f12] text-white' : 'bg-white text-gray-900'}`}>
+    <div 
+      className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden rounded-[2.25rem] ${isDark ? 'text-white' : 'text-gray-900'}`}
+      style={{ backgroundColor: finalCardBgColor }}
+    >
       
       <div className="absolute inset-0 z-[-1] opacity-40">
         {themeType === 'image' && backgroundImage && <img src={backgroundImage} className="w-full h-full object-cover blur-sm scale-110" />}

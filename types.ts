@@ -112,6 +112,7 @@ export interface TemplateConfig {
   defaultName?: string;
   defaultNameSize?: number;
   defaultIsDark?: boolean;
+  cardBgColor?: string; // New: Custom background color for the card base
   
   customCss?: string;
 }
@@ -229,6 +230,7 @@ export interface CardData {
   qrBorderWidth?: number;
   qrBorderColor?: string;
   qrBorderRadius?: number;
+  cardBgColor?: string; // New: Custom background color for the card base
 }
 
 export interface TranslationStrings {

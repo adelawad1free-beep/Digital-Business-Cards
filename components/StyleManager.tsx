@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { VisualStyle, Language, TemplateConfig, ThemeType } from '../types';
 import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL } from '../services/firebase';
 import { THEME_GRADIENTS, THEME_COLORS, BACKGROUND_PRESETS, PATTERN_PRESETS } from '../constants';
@@ -70,6 +70,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
         bioTextColor: 'rgba(0,0,0,0.6)',
         bioBgColor: 'rgba(0,0,0,0.03)',
         defaultIsDark: false,
+        cardBgColor: '', // New property
         headerGlassy: false,
         bodyGlassy: false,
         headerOpacity: 100,
@@ -129,7 +130,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
     if (!file) return;
     setUploadingBg(true);
     try {
-      // استخدام نوع 'background' لرفع صورة النمط بدقة عالية (1200px)
       const b = await uploadImageToCloud(file, 'background');
       if (b) {
         updateConfig('defaultBackgroundImage', b);
@@ -157,10 +157,10 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
       <div className="flex items-center gap-2">
         <div className="relative w-8 h-8 rounded-lg overflow-hidden border shadow-sm">
-          <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
-          <div className="w-full h-full" style={{ backgroundColor: value }} />
+          <input type="color" value={value || '#ffffff'} onChange={e => onChange(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
+          <div className="w-full h-full" style={{ backgroundColor: value || '#ffffff' }} />
         </div>
-        <input type="text" value={value} onChange={e => onChange(e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-20 text-center dark:text-gray-400" />
+        <input type="text" value={value || ''} onChange={e => onChange(e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-20 text-center dark:text-gray-400" placeholder="#HEX" />
       </div>
     </div>
   );
@@ -239,6 +239,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                             themeColor: style.config.defaultThemeColor || '#2563eb',
                             themeGradient: style.config.defaultThemeGradient || THEME_GRADIENTS[0],
                             backgroundImage: style.config.defaultBackgroundImage || '',
+                            cardBgColor: style.config.cardBgColor, // New property
                             templateId: 'preview'
                           } as any} 
                           lang={lang} 
@@ -423,7 +424,12 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     )}
 
                     <div className="pt-6 border-t dark:border-gray-800 space-y-6">
-                       <ColorInput label={t('لون السمة الأساسي', 'Base Theme Color')} value={editingStyle.config?.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
+                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('ألوان السمة والأرضية', 'Base Theme & Card Colors')}</h4>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <ColorInput label={t('لون السمة الأساسي', 'Base Theme Color')} value={editingStyle.config?.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
+                          <ColorInput label={t('لون أرضية البطاقة', 'Card Base Bg')} value={editingStyle.config?.cardBgColor || ''} onChange={(v: string) => updateConfig('cardBgColor', v)} />
+                       </div>
+                       
                        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
                           <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
                           <button onClick={() => updateConfig('defaultIsDark', !editingStyle.config?.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${editingStyle.config?.defaultIsDark ? 'bg-indigo-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (editingStyle.config?.defaultIsDark ? 'right-8' : 'right-1') : (editingStyle.config?.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
@@ -454,6 +460,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                                themeGradient: editingStyle.config?.defaultThemeGradient || THEME_GRADIENTS[0],
                                backgroundImage: editingStyle.config?.defaultBackgroundImage || BACKGROUND_PRESETS[1],
                                isDark: editingStyle.config?.defaultIsDark || false,
+                               cardBgColor: editingStyle.config?.cardBgColor, // New property
                                socialLinks: [
                                   { platformId: 'linkedin', platform: 'LinkedIn', url: '#' }
                                ],
@@ -475,7 +482,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl border border-gray-100 dark:border-gray-800 animate-fade-in">
              <Trash2 size={48} className="mx-auto text-red-500 mb-6" />
-             <h3 className="text-2xl font-black mb-4 dark:text-white">{t('تدمير النمط', 'Destroy DNA')}</h3>
+             <h3 className="text-2xl font-black dark:text-white mb-4">{t('تدمير النمط', 'Destroy DNA')}</h3>
              <p className="text-sm font-bold text-gray-400 mb-10 leading-relaxed">{t('هل أنت متأكد من تدمير هذا النمط المبتكر؟', 'Are you sure you want to destroy this DNA?')}</p>
              <div className="flex flex-col gap-3">
                <button onClick={handleDelete} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">تأكيد الحذف</button>
