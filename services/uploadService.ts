@@ -1,10 +1,6 @@
-
-import { storage, auth } from './firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-
 /**
- * خدمة معالجة الصور ورفعها إلى Firebase Storage
- * تم تحسينها لمعالجة أخطاء الصلاحيات (Unauthorized)
+ * خدمة معالجة الصور وتحويلها إلى Base64 لتخزينها مباشرة في قاعدة البيانات (Firestore)
+ * تم الاستغناء عن Firebase Storage بناءً على طلب المستخدم
  */
 export const uploadImageToCloud = async (
   file: File, 
@@ -13,18 +9,8 @@ export const uploadImageToCloud = async (
   if (!file) return null;
 
   try {
-    const user = auth.currentUser;
-    
-    // منع الرفع إذا لم يكن هناك مستخدم مسجل لتجنب خطأ unauthorized
-    if (!user) {
-      console.error("Cloud Upload Error: User must be authenticated to upload files.");
-      return null;
-    }
-
-    const userId = user.uid;
-
-    // ضغط الصورة محلياً لتقليل الحجم وتسريع التحميل
-    const compressToBlob = (f: File): Promise<Blob> => new Promise((resolve, reject) => {
+    // ضغط الصورة وتحويلها إلى Base64
+    const processImage = (f: File): Promise<string> => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(f);
       reader.onerror = () => reject("File reading error");
@@ -35,8 +21,10 @@ export const uploadImageToCloud = async (
         img.onload = () => {
           const canvas = document.createElement('canvas');
           
-          let MAX_SIZE = type === 'background' ? 1600 : 800; 
-          let quality = 0.8;
+          // تحديد الحجم الأقصى بناءً على نوع الصورة لضمان عدم تجاوز حد Firestore (1MB)
+          // الصور الشخصية أصغر، الخلفيات أكبر قليلاً
+          let MAX_SIZE = type === 'background' ? 1200 : 600; 
+          let quality = 0.7; // تقليل الجودة قليلاً لتقليل الحجم النصي
 
           let width = img.width;
           let height = img.height;
@@ -62,42 +50,25 @@ export const uploadImageToCloud = async (
             ctx.drawImage(img, 0, 0, width, height);
           }
           
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject("Compression failed");
-          }, 'image/jpeg', quality);
+          // تصدير الصورة كـ Base64 بصيغة JPEG لتقليل الحجم
+          const base64String = canvas.toDataURL('image/jpeg', quality);
+          resolve(base64String);
         };
       };
     });
 
-    const compressedBlob = await compressToBlob(file);
+    const resultBase64 = await processImage(file);
+    
+    // التحقق من أن حجم السلسلة النصية لا يسبب مشاكل (Firestore limit 1MB)
+    // السلسلة النصية تشغل حوالي 1.33 ضعف حجم الملف الأصلي
+    if (resultBase64.length > 800000) { // حوالي 800 كيلوبايت كحد أقصى للأمان
+        console.warn("Image is too large for database storage, even after compression.");
+    }
 
-    // إنشاء مسار فريد للملف يعتمد على معرف المستخدم الفعلي
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileName = `${type}_${timestamp}_${randomString}.jpg`;
-    const storagePath = `uploads/${userId}/${type}/${fileName}`;
-    const storageRef = ref(storage, storagePath);
-
-    const metadata = {
-      contentType: 'image/jpeg',
-      customMetadata: {
-        'uploadedBy': userId,
-        'type': type,
-        'originalName': file.name
-      }
-    };
-
-    const uploadResult = await uploadBytes(storageRef, compressedBlob, metadata);
-    const downloadUrl = await getDownloadURL(uploadResult.ref);
-    return downloadUrl;
+    return resultBase64;
 
   } catch (error: any) {
-    if (error.code === 'storage/unauthorized') {
-      console.error("Cloud Upload Error: Firebase Storage Rules block this upload. Make sure rules allow write access to path: uploads/{userId}/...");
-    } else {
-      console.error("Cloud Upload Error:", error);
-    }
+    console.error("Image Processing Error:", error);
     return null;
   }
 };

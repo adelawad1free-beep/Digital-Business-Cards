@@ -143,7 +143,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
       const b = await uploadImageToCloud(file, 'background');
       if (b) {
         updateConfig('defaultBackgroundImage', b);
-        updateConfig('defaultThemeType', 'image'); // تأمين تغيير النوع ليتم التعرف على مكان الصورة
       }
     } finally {
       setUploadingBg(false);

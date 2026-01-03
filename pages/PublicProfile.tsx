@@ -181,7 +181,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       {/* منطقة الالتقاط المخفية لضمان صورة نظيفة واحترافية */}
       <div className="fixed top-0 left-0 -translate-x-[3000px] pointer-events-none" style={{ width: '400px' }}>
           <div id="public-capture-area" className="bg-white dark:bg-black overflow-hidden" style={{ width: '400px', minHeight: '700px' }}>
-             <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} isCapturing={true} />
+             <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} />
           </div>
       </div>
 

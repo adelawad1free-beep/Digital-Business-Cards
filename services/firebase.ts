@@ -28,7 +28,6 @@ import {
   getAggregateFromServer,
   sum
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 import { CardData, TemplateCategory, VisualStyle } from "../types";
 
 const firebaseConfig = {
@@ -44,7 +43,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+// تم إيقاف استخدام Storage لتوفير التكاليف وتسهيل النقل
+// export const storage = getStorage(app); 
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
@@ -60,6 +60,26 @@ const sanitizeData = (data: any) => {
     }
   });
   return clean;
+};
+
+// --- Auth Helper Functions ---
+
+// Added getAuthErrorMessage to translate Firebase authentication codes to readable strings
+export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
+  const isAr = lang === 'ar';
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.';
+    case 'auth/email-already-in-use':
+      return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
+    case 'auth/weak-password':
+      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
+    case 'auth/requires-recent-login':
+      return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
+    default:
+      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred.';
+  }
 };
 
 // --- Core App Functions ---
@@ -234,7 +254,6 @@ export const getAllVisualStyles = async () => {
   } catch (error) { return []; }
 };
 
-// Fix: Add missing saveVisualStyle and deleteVisualStyle exports
 export const saveVisualStyle = async (style: Partial<VisualStyle>) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
   const styleId = style.id || `style_${Date.now()}`;
@@ -260,24 +279,6 @@ export const toggleCardStatus = async (cardId: string, ownerId: string, isActive
   ]);
 };
 
-export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
-  const isAr = lang === 'ar';
-  switch (code) {
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.';
-    case 'auth/email-already-in-use':
-      return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
-    case 'auth/weak-password':
-      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
-    case 'auth/requires-recent-login':
-      return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
-    default:
-      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred.';
-  }
-};
-
-// Fix: Add missing auth methods
 export const signInWithGoogle = async () => {
   const result = await signInWithPopup(auth, googleProvider);
   return result.user;
@@ -294,5 +295,4 @@ export const updateUserSecurity = async (currentPassword: string, newEmail: stri
   if (newPassword) await updatePassword(user, newPassword);
 };
 
-// Fix: Add updateAdminSecurity as an alias to updateUserSecurity
 export const updateAdminSecurity = updateUserSecurity;
