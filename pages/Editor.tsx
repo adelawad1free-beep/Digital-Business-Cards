@@ -6,7 +6,8 @@ import {
   Palette, Layout, User as UserIcon, Camera, 
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
-  GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer
+  GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
+  QrCode, Share2
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -92,7 +93,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          invitationPrefix: selectedTmpl.config.invitationPrefix || (isRtl ? 'يتشرف' : 'Invited by'),
          invitationWelcome: selectedTmpl.config.invitationWelcome || (isRtl ? 'بدعوتكم لحضور' : 'Welcomes you to'),
          bodyGlassy: selectedTmpl.config.bodyGlassy ?? false,
-         bodyOpacity: selectedTmpl.config.bodyOpacity ?? 100
+         bodyOpacity: selectedTmpl.config.bodyOpacity ?? 100,
+         showSocialLinks: true,
+         showQrCode: true
        } as CardData;
     }
     return baseData;
@@ -180,7 +183,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const ToggleSwitch = ({ label, value, onChange, icon: Icon, color = "bg-rose-500" }: any) => (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-3">
-        {Icon && <Icon size={18} className={value ? "text-rose-500" : "text-gray-300"} />}
+        {Icon && <Icon size={18} className={value ? "text-blue-600" : "text-gray-300"} />}
         <span className={`text-[11px] font-black uppercase tracking-widest ${value ? 'dark:text-white' : 'text-gray-400'}`}>{label}</span>
       </div>
       <button 
@@ -560,35 +563,66 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                        </div>
                     </div>
                     
-                    <div className="space-y-4 pt-6 border-t dark:border-gray-800">
-                       <label className={labelClasses}>{t('روابط التواصل الاجتماعي', 'Social Media Links')}</label>
-                       <div className="flex flex-col sm:flex-row gap-2">
-                          <select 
-                            value={socialInput.platformId} 
-                            onChange={e => setSocialInput({...socialInput, platformId: e.target.value})}
-                            className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-xs font-black dark:text-white outline-none"
-                          >
-                            {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <div className="flex-1 flex gap-2">
-                            <input 
-                              type="url" 
-                              value={socialInput.url} 
-                              onChange={e => setSocialInput({...socialInput, url: e.target.value})} 
-                              className={`${inputClasses} !py-3`} 
-                              placeholder="https://..."
-                            />
-                            <button type="button" onClick={addSocialLink} className="px-5 py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all"><Plus size={16} /></button>
+                    <div className={`space-y-4 pt-6 border-t dark:border-gray-800 transition-all ${formData.showSocialLinks === false ? 'opacity-50' : ''}`}>
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                          <div className="flex items-center gap-3">
+                             <Share2 size={18} className="text-blue-600" />
+                             <label className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{t('روابط التواصل الاجتماعي', 'Social Media Links')}</label>
+                          </div>
+                          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-xl border dark:border-gray-700">
+                             <span className="text-[9px] font-black text-gray-400 uppercase">{t('إظهار الروابط', 'Show Links')}</span>
+                             <button 
+                               type="button"
+                               onClick={() => handleChange('showSocialLinks', !formData.showSocialLinks)} 
+                               className={`w-9 h-5 rounded-full relative transition-all ${formData.showSocialLinks !== false ? 'bg-blue-600 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}
+                             >
+                               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${isRtl ? (formData.showSocialLinks !== false ? 'right-4.5' : 'right-0.5') : (formData.showSocialLinks !== false ? 'left-4.5' : 'left-0.5')}`} />
+                             </button>
                           </div>
                        </div>
-                       <div className="flex flex-wrap gap-2">
-                          {formData.socialLinks?.map((link, i) => (
-                            <div key={i} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-xl border dark:border-gray-700">
-                               <SocialIcon platformId={link.platformId} size={14} />
-                               <span className="text-[9px] font-bold truncate max-w-[60px]">{link.platform}</span>
-                               <button type="button" onClick={() => removeSocialLink(i)} className="text-gray-300 hover:text-red-500"><X size={12} /></button>
-                            </div>
-                          ))}
+
+                       <div className={`space-y-4 transition-all ${formData.showSocialLinks === false ? 'pointer-events-none' : ''}`}>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                             <select 
+                               value={socialInput.platformId} 
+                               onChange={e => setSocialInput({...socialInput, platformId: e.target.value})}
+                               className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-xs font-black dark:text-white outline-none"
+                             >
+                               {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                             </select>
+                             <div className="flex-1 flex gap-2">
+                               <input 
+                                 type="url" 
+                                 value={socialInput.url} 
+                                 onChange={e => setSocialInput({...socialInput, url: e.target.value})} 
+                                 className={`${inputClasses} !py-3`} 
+                                 placeholder="https://..."
+                               />
+                               <button type="button" onClick={addSocialLink} className="px-5 py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-all"><Plus size={16} /></button>
+                             </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                             {formData.socialLinks?.map((link, i) => (
+                               <div key={i} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-xl border dark:border-gray-700">
+                                  <SocialIcon platformId={link.platformId} size={14} />
+                                  <span className="text-[9px] font-bold truncate max-w-[60px]">{link.platform}</span>
+                                  <button type="button" onClick={() => removeSocialLink(i)} className="text-gray-300 hover:text-red-500"><X size={12} /></button>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* QR Code Toggle at the end */}
+                    <div className="pt-6 border-t dark:border-gray-800">
+                       <div className="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-gray-100 dark:border-gray-800">
+                          <ToggleSwitch 
+                            label={t('إظهار رمز الباركود', 'Show QR Code')} 
+                            value={formData.showQrCode !== false} 
+                            onChange={(v: boolean) => handleChange('showQrCode', v)} 
+                            icon={QrCode} 
+                            color="bg-blue-600"
+                          />
                        </div>
                     </div>
                   </div>
@@ -596,24 +630,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
                 {activeTab === 'design' && (
                   <div className="space-y-8 animate-fade-in">
-                    <div className="space-y-4">
-                       <div className="flex items-center gap-2 px-1"><LayoutGrid className="text-blue-600" size={16} /><label className={labelClasses.replace('mb-2', 'mb-0')}>{t('نمط القالب', 'Template Layout')}</label></div>
-                       <div className="grid grid-cols-2 gap-3">
-                          {relatedTemplates.map(tmpl => (
-                            <button 
-                              key={tmpl.id} 
-                              type="button"
-                              onClick={() => handleChange('templateId', tmpl.id)}
-                              className={`relative p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.templateId === tmpl.id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'}`}
-                            >
-                               <LayoutGrid size={20} />
-                               <span className="text-[8px] font-black uppercase text-center leading-tight truncate w-full">{isRtl ? tmpl.nameAr : tmpl.nameEn}</span>
-                            </button>
-                          ))}
-                       </div>
-                    </div>
-                    
-                    <div className="pt-6 border-t dark:border-gray-800 space-y-6">
+                    <div className="space-y-6">
                        <div className="grid grid-cols-3 gap-2 bg-gray-100/50 dark:bg-black/20 p-1.5 rounded-2xl">
                           {['color', 'gradient', 'image'].map(type => (
                             <button type="button" key={type} onClick={() => handleChange('themeType', type)} className={`py-3 rounded-xl border transition-all flex flex-col items-center gap-1.5 flex-1 ${formData.themeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-transparent text-gray-400 border-transparent'}`}>
