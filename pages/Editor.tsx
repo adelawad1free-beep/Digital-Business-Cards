@@ -7,11 +7,12 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2
+  QrCode, Share2, Trash2, LogIn
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
+import AuthModal from '../components/AuthModal';
 import { BACKGROUND_PRESETS, SAMPLE_DATA, SOCIAL_PLATFORMS, THEME_COLORS, THEME_GRADIENTS, TRANSLATIONS } from '../constants';
 import { isSlugAvailable, auth } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
@@ -49,6 +50,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const [lastScrollY, setLastScrollY] = useState(0);
   const [previewMouseY, setPreviewMouseY] = useState(0);
   
+  // حالات جديدة للتنبيه وتسجيل الدخول
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
+  const [showDirectAuth, setShowDirectAuth] = useState(false);
+
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
 
@@ -172,12 +177,23 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     );
   };
 
+  // وظيفة التحقق المحسنة
+  const checkAuthAndClick = (ref: React.RefObject<HTMLInputElement>) => {
+    if (!auth.currentUser) {
+      setShowAuthWarning(true);
+      return;
+    }
+    ref.current?.click();
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploading(true);
     try { 
       const b = await uploadImageToCloud(file, 'avatar'); 
-      if (b) handleChange('profileImage', b); 
+      if (b) {
+        handleChange('profileImage', b); 
+      }
     } finally { setIsUploading(false); }
   };
 
@@ -245,6 +261,46 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   return (
     <div className="max-w-[1440px] mx-auto">
+      {/* نافذة التنبيه بهوية الموقع */}
+      {showAuthWarning && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+           <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
+              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                 <UserIcon size={40} />
+              </div>
+              <h3 className="text-xl font-black dark:text-white leading-relaxed">
+                 {isRtl ? "لرفع صورة خاصة الرجاء التسجيل في الموقع" : "To upload a custom image, please register on the site"}
+              </h3>
+              <p className="text-xs font-bold text-gray-400 leading-relaxed">
+                 {isRtl ? "سجل حسابك الآن لتتمكن من تخصيص بطاقتك بصورك الشخصية وخلفياتك الخاصة." : "Sign up now to customize your card with your personal photos and custom backgrounds."}
+              </p>
+              <div className="flex flex-col gap-3 pt-4">
+                 <button 
+                   onClick={() => { setShowAuthWarning(false); setShowDirectAuth(true); }}
+                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                 >
+                    <LogIn size={18} />
+                    {isRtl ? "تسجيل دخول / إنشاء حساب" : "Login / Register"}
+                 </button>
+                 <button 
+                   onClick={() => setShowAuthWarning(false)}
+                   className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl font-black text-[10px] uppercase hover:bg-gray-100 transition-all"
+                 >
+                    {isRtl ? "لاحقاً" : "Maybe Later"}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {showDirectAuth && (
+        <AuthModal 
+          lang={lang} 
+          onClose={() => setShowDirectAuth(false)} 
+          onSuccess={() => { setShowDirectAuth(false); window.location.reload(); }} 
+        />
+      )}
+
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <div className="flex-1 w-full space-y-0 pb-32">
           
@@ -294,7 +350,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                             {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <Camera size={20} className="text-gray-300" />}
                             {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
                          </div>
-                         <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all disabled:opacity-50"><Plus size={16} /></button>
+                         <button type="button" disabled={isUploading} onClick={() => checkAuthAndClick(fileInputRef)} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all disabled:opacity-50"><Plus size={16} /></button>
                          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
                       </div>
                       <div className="flex-1 w-full space-y-4">
@@ -343,7 +399,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    </div>
                 </div>
 
-                {/* Updated Design Section in Simple Mode to include full color options */}
                 <div className="p-6 bg-indigo-50/30 dark:bg-indigo-900/5 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-900/10 space-y-8">
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -384,7 +439,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                               {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30 scale-95' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
                            </div>
-                           <button type="button" disabled={isUploadingBg} onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
+                           <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
                               {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                               {t('رفع خلفية خاصة', 'Upload Background')}
                            </button>
@@ -415,7 +470,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                             {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon size={32} className="text-gray-300" />}
                             {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
                           </div>
-                          <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg disabled:opacity-50"><Camera size={16} /></button>
+                          <button type="button" disabled={isUploading} onClick={() => checkAuthAndClick(fileInputRef)} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg disabled:opacity-50"><Camera size={16} /></button>
                           <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
                        </div>
                        <div className="flex-1 w-full space-y-4">
@@ -532,7 +587,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                               <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
                                  {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
                               </div>
-                              <button type="button" disabled={isUploadingBg} onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all disabled:opacity-50">
+                              <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
                                  {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                                  {t('رفع خلفية خاصة', 'Upload Background')}
                               </button>

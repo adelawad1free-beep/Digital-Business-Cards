@@ -2,7 +2,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Language } from "../types";
 
-// Fix: Correct usage of Gemini API following the latest guidelines for professional bio generation
 export const generateProfessionalBio = async (
   name: string,
   title: string,
@@ -27,7 +26,6 @@ export const generateProfessionalBio = async (
        اللغة: العربية. يجب أن تكون أقل من 150 حرفاً.`;
 
   try {
-    // Fix: Using ai.models.generateContent with a direct model name string
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
@@ -36,7 +34,7 @@ export const generateProfessionalBio = async (
         topP: 0.95,
       }
     });
-    // Fix: response.text is a property, not a method
+    // استخدام الخاصية .text مباشرة
     return response.text?.trim() || "";
   } catch (error) {
     console.error("AI Bio Error:", error);

@@ -13,6 +13,7 @@ interface CardPreviewProps {
   customConfig?: TemplateConfig; 
   hideSaveButton?: boolean; 
   isFullFrame?: boolean; 
+  isCapturing?: boolean; // خاصية جديدة للتحكم في وضع التقاط الصورة
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -57,7 +58,7 @@ const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: stri
   );
 };
 
-const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false }) => {
+const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false, isCapturing = false }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
 
@@ -242,6 +243,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const featureRadius = config.bodyFeatureBorderRadius ?? 16;
   const featureOffsetY = config.bodyFeatureOffsetY || 0;
 
+  // Helper for CORS attribute based on capturing mode
+  const imgCorsAttr = isCapturing ? { crossOrigin: "anonymous" as const } : {};
+
   return (
     <div 
       className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'}`}
@@ -249,7 +253,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     >
       
       <div className="absolute inset-0 z-[-1] opacity-40">
-        {themeType === 'image' && backgroundImage && <img src={backgroundImage} className="w-full h-full object-cover blur-sm scale-110" />}
+        {themeType === 'image' && backgroundImage && <img src={backgroundImage} {...imgCorsAttr} className="w-full h-full object-cover blur-sm scale-110" />}
         {themeType === 'gradient' && <div className="w-full h-full" style={{ background: themeGradient }} />}
       </div>
 
@@ -291,7 +295,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
             )}
 
             <div className={`w-full h-full ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[22%]'} overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center`}>
-              {data.profileImage ? <img src={data.profileImage} className="w-full h-full object-cover" /> : <Camera size={40} className="text-gray-200" />}
+              {data.profileImage ? <img src={data.profileImage} {...imgCorsAttr} className="w-full h-full object-cover" /> : <Camera size={40} className="text-gray-200" />}
             </div>
           </div>
         )}
@@ -448,7 +452,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                       borderRadius: `${qrBorderRadius}px`, 
                       padding: `${config.qrPadding || 4}px`
                     }}>
-                  <img src={qrImageUrl} alt="QR" style={{ width: `${qrSize}px`, height: `${qrSize}px` }} />
+                  <img src={qrImageUrl} alt="QR" crossOrigin="anonymous" style={{ width: `${qrSize}px`, height: `${qrSize}px` }} />
                </div>
                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] opacity-40">{t('showQrCode')}</span>
              </div>

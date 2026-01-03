@@ -3,8 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
-import { getAllCategories, saveTemplateCategory, getAllVisualStyles } from '../services/firebase';
+import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth } from '../services/firebase';
 import CardPreview from './CardPreview';
+import AuthModal from './AuthModal';
 import { 
   Save, Layout, Smartphone, Layers, Move, Check, X, 
   Zap, AlignCenter, Circle, Box, Loader2, Type as TypographyIcon, 
@@ -14,7 +15,7 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -50,6 +51,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [selectedStyleId, setSelectedStyleId] = useState<string>(initialTemplate?.parentStyleId || '');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
+  const [showDirectAuth, setShowDirectAuth] = useState(false);
   
   const [template, setTemplate] = useState<CustomTemplate>(initialTemplate || {
     id: `tmpl_${Date.now()}`,
@@ -226,6 +230,28 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     }));
   };
 
+  const checkAuthAndClick = (ref: React.RefObject<HTMLInputElement>) => {
+    if (!auth.currentUser) {
+      setShowAuthWarning(true);
+      return;
+    }
+    ref.current?.click();
+  };
+
+  const handleHeaderAssetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAsset(true);
+    try {
+      const b = await uploadImageToCloud(file, 'background');
+      if (b) {
+        updateConfig('headerCustomAsset', b);
+      }
+    } finally {
+      setUploadingAsset(false);
+    }
+  };
+
   const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -307,6 +333,46 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
   return (
     <div className="bg-white dark:bg-[#0a0a0c] rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col h-[calc(100vh-100px)] min-h-[850px] relative">
+      
+      {showAuthWarning && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+           <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
+              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                 <UserCircle size={40} />
+              </div>
+              <h3 className="text-xl font-black dark:text-white leading-relaxed">
+                 {isRtl ? "لرفع صورة خاصة الرجاء التسجيل في الموقع" : "To upload a custom image, please register on the site"}
+              </h3>
+              <p className="text-xs font-bold text-gray-400 leading-relaxed">
+                 {isRtl ? "سجل حسابك الآن لتتمكن من تخصيص القوالب بصورك الافتراضية الخاصة." : "Sign up now to customize templates with your own default photos."}
+              </p>
+              <div className="flex flex-col gap-3 pt-4">
+                 <button 
+                   onClick={() => { setShowAuthWarning(false); setShowDirectAuth(true); }}
+                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                 >
+                    <LogIn size={18} />
+                    {isRtl ? "تسجيل دخول" : "Login"}
+                 </button>
+                 <button 
+                   onClick={() => setShowAuthWarning(false)}
+                   className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl font-black text-[10px] uppercase transition-all"
+                 >
+                    {isRtl ? "إلغاء" : "Cancel"}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {showDirectAuth && (
+        <AuthModal 
+          lang={lang} 
+          onClose={() => setShowDirectAuth(false)} 
+          onSuccess={() => { setShowDirectAuth(false); window.location.reload(); }} 
+        />
+      )}
+
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-8 py-4 bg-gray-50/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10 shrink-0">
         <div className="flex items-center gap-5">
           <button type="button" onClick={onCancel} className="p-2 bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-xl border border-gray-100 dark:border-gray-700 transition-all shadow-sm"><ArrowLeft size={18} className={isRtl ? 'rotate-180' : ''} /></button>
@@ -391,11 +457,41 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            </button>
                          ))}
                     </div>
+
+                    {template.config.headerType === 'custom-asset' && (
+                       <div className="p-6 bg-blue-50 dark:bg-blue-900/10 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 animate-fade-in space-y-4">
+                          <div className="flex items-center gap-3">
+                             <FileCode size={18} className="text-blue-600" />
+                             <span className="text-[10px] font-black uppercase tracking-widest">{t('ملف الترويسة المخصص', 'Custom Header Asset')}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                             <div className="w-20 h-20 rounded-xl border-2 border-white dark:border-gray-700 shadow-sm bg-gray-100 dark:bg-gray-800 overflow-hidden flex items-center justify-center relative shrink-0">
+                                {template.config.headerCustomAsset ? (
+                                   <img src={template.config.headerCustomAsset} className="w-full h-full object-cover" />
+                                ) : (
+                                   <ImageIcon size={24} className="text-gray-300" />
+                                )}
+                                {uploadingAsset && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                             </div>
+                             <div className="flex-1 space-y-2">
+                                <input type="file" ref={headerAssetInputRef} onChange={handleHeaderAssetUpload} className="hidden" accept="image/*" />
+                                <button type="button" onClick={() => checkAuthAndClick(headerAssetInputRef)} className="w-full py-3 bg-white dark:bg-gray-900 border rounded-xl font-black text-[9px] uppercase flex items-center justify-center gap-2 transition-all hover:border-blue-500">
+                                   <UploadCloud size={14} className="text-blue-500" />
+                                   {t('رفع ملف الترويسة', 'Upload Header Image')}
+                                </button>
+                                {template.config.headerCustomAsset && (
+                                   <button type="button" onClick={() => updateConfig('headerCustomAsset', '')} className="text-[8px] font-black text-red-500 uppercase px-1 hover:underline">{t('إزالة الملف', 'Remove')}</button>
+                                )}
+                             </div>
+                          </div>
+                       </div>
+                    )}
+
                     <RangeControl label={t('ارتفاع الترويسة', 'Header Height')} min={40} max={1000} value={template.config.headerHeight} onChange={(v: number) => updateConfig('headerHeight', v)} icon={Maximize2} />
                  </div>
               </div>
             )}
-
+            
             {activeTab === 'avatar' && (
               <div className="space-y-6 animate-fade-in">
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
@@ -419,7 +515,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           
                           <div className="flex-1 space-y-3 w-full">
                              <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
-                             <button type="button" onClick={() => avatarInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
+                             <button type="button" onClick={() => checkAuthAndClick(avatarInputRef)} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
                                 <UploadCloud size={16} className="text-blue-500" />
                                 {t('رفع صورة افتراضية', 'Upload Default Avatar')}
                              </button>
@@ -461,7 +557,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   </div>
               </div>
             )}
-
+            
             {activeTab === 'design-system' && (
                <div className="space-y-8 animate-fade-in">
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
@@ -530,7 +626,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            value={template.config.bodyOpacity ?? 100} 
                            onChange={(v: number) => updateConfig('bodyOpacity', v)} 
                            icon={Sun} 
-                           hint={t('اضبطه على 0 للكتابة مباشرة فوق الصورة', 'Set to 0 to write directly over background')}
                         />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
                         <RangeControl label={t('إزاحة منطقة المحتوى (أعلى/أسفل)', 'Body Y Offset')} min={-1000} max={500} value={template.config.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
@@ -547,17 +642,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                         {template.config.showBodyFeatureByDefault && (
                            <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
-                                    <input type="text" value={template.config.bodyFeatureTextAr || ''} onChange={e => updateConfig('bodyFeatureTextAr', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
-                                 </div>
-                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
-                                    <input type="text" value={template.config.bodyFeatureTextEn || ''} onChange={e => updateConfig('bodyFeatureTextEn', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
-                                 </div>
-                              </div>
-
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                  <RangeControl 
                                     label={t('توسعة الميزة جانبياً', 'Side Expansion')} 
@@ -585,55 +669,29 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            </div>
                         )}
                      </div>
-
-                     <div className="pt-8 border-t dark:border-gray-800 space-y-6">
-                        <div className="flex items-center gap-3"><AlignJustify className="text-indigo-600" size={20} /><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('محاذاة المحتوى ونمط التباعد', 'Alignment & Spacing DNA')}</label></div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="grid grid-cols-3 gap-2">
-                             {['start', 'center', 'end'].map(align => (
-                                <button type="button" key={align} onClick={() => updateConfig('contentAlign', align)} className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center ${template.config.contentAlign === align ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
-                                   {align === 'start' ? <AlignLeft size={18}/> : align === 'center' ? <AlignCenter size={18}/> : <AlignRight size={18}/>}
-                                </button>
-                             ))}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                             {['compact', 'normal', 'relaxed'].map(s => (
-                                <button type="button" key={s} onClick={() => { updateConfig('spacing', s) }} className={`py-3 rounded-xl border-2 transition-all font-black text-[8px] uppercase ${template.config.spacing === s ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
-                                   {t(s === 'compact' ? 'مضغوط' : (s === 'normal' ? 'عادي' : 'مريح'), s.toUpperCase())}
-                                </button>
-                             ))}
-                          </div>
-                        </div>
-                     </div>
                   </div>
                </div>
             )}
 
             {activeTab === 'elements' && (
               <div className="space-y-8 animate-fade-in">
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
-                    <div className="flex items-center gap-4"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Palette size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('ألوان عناصر الواجهة', 'Element UI Colors')}</h2></div>
-                    
-                    <div className="space-y-6">
-                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('ألوان النصوص الأساسية', 'Primary Text Colors')}</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <ColorPicker label={t('لون الاسم', 'Name Color')} value={template.config.nameColor || '#111827'} onChange={(v: string) => updateConfig('nameColor', v)} />
-                          <ColorPicker label={t('لون المسمى', 'Title Color')} value={template.config.titleColor || '#2563eb'} onChange={(v: string) => updateConfig('titleColor', v)} />
-                          <ColorPicker label={t('لون النبذة', 'Bio Text Color')} value={template.config.bioTextColor || 'rgba(0,0,0,0.65)'} onChange={(v: string) => updateConfig('bioTextColor', v)} />
-                       </div>
-                    </div>
-
-                    <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
-                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('ألوان التفاعل والأيقونات', 'Interactive & Icon Colors')}</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <ColorPicker label={t('لون الروابط', 'Links Color')} value={template.config.linksColor || '#3b82f6'} onChange={(v: string) => updateConfig('linksColor', v)} />
-                          <ColorPicker label={t('أيقونات التواصل', 'Social Icons Color')} value={template.config.socialIconsColor || '#3b82f6'} onChange={(v: string) => updateConfig('socialIconsColor', v)} />
-                          <ColorPicker label={t('خلفية النبذة', 'Bio Background Color')} value={template.config.bioBgColor || 'rgba(0,0,0,0.03)'} onChange={(v: string) => updateConfig('bioBgColor', v)} />
-                          <ColorPicker label={t('لون زر الاتصال', 'Phone Button Color')} value={template.config.contactPhoneColor || '#2563eb'} onChange={(v: string) => updateConfig('contactPhoneColor', v)} />
-                          <ColorPicker label={t('لون زر واتساب', 'WhatsApp Button Color')} value={template.config.contactWhatsappColor || '#10b981'} onChange={(v: string) => updateConfig('contactWhatsappColor', v)} />
-                       </div>
-                    </div>
-                 </div>
+                <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
+                  <div className="flex items-center gap-3">
+                    <Palette className="text-blue-600" size={24} />
+                    <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('تخصيص ألوان النصوص والعناصر', 'Element Colors Lab')}</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <ColorPicker label={t('لون الاسم', 'Name Color')} value={template.config.nameColor} onChange={(v: string) => updateConfig('nameColor', v)} />
+                    <ColorPicker label={t('لون المسمى الوظيفي', 'Title Color')} value={template.config.titleColor} onChange={(v: string) => updateConfig('titleColor', v)} />
+                    <ColorPicker label={t('لون نص النبذة', 'Bio Text Color')} value={template.config.bioTextColor} onChange={(v: string) => updateConfig('bioTextColor', v)} />
+                    <ColorPicker label={t('لون خلفية النبذة', 'Bio Background Color')} value={template.config.bioBgColor} onChange={(v: string) => updateConfig('bioBgColor', v)} />
+                    <ColorPicker label={t('لون الروابط العامة', 'Links Color')} value={template.config.linksColor} onChange={(v: string) => updateConfig('linksColor', v)} />
+                    <ColorPicker label={t('لون أيقونات السوشيال', 'Social Icons Color')} value={template.config.socialIconsColor} onChange={(v: string) => updateConfig('socialIconsColor', v)} />
+                    <ColorPicker label={t('لون زر الاتصال', 'Phone Button Color')} value={template.config.contactPhoneColor} onChange={(v: string) => updateConfig('contactPhoneColor', v)} />
+                    <ColorPicker label={t('لون زر الواتساب', 'WhatsApp Button Color')} value={template.config.contactWhatsappColor} onChange={(v: string) => updateConfig('contactWhatsappColor', v)} />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -685,7 +743,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        </div>
                        <div className="pt-4 border-t dark:border-gray-800">
                           <input type="file" ref={bgInputRef} onChange={handleBgUpload} className="hidden" accept="image/*" />
-                          <button type="button" onClick={() => bgInputRef.current?.click()} className="w-full py-5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-all">
+                          <button type="button" onClick={() => checkAuthAndClick(bgInputRef)} className="w-full py-5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-blue-100 dark:border-blue-900/40 hover:bg-blue-100 transition-all">
                              {uploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                              {t('رفع خلفية خاصة للقالب', 'Upload Custom Background')}
                           </button>

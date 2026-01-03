@@ -4,36 +4,39 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 /**
  * خدمة معالجة الصور ورفعها إلى Firebase Storage
- * تم التحديث لدعم الرفع السحابي الحقيقي لضمان قابلية التوسع
+ * تم تحسينها لمعالجة أخطاء الصلاحيات (Unauthorized)
  */
 export const uploadImageToCloud = async (
   file: File, 
   type: 'avatar' | 'background' | 'logo' = 'avatar'
 ): Promise<string | null> => {
+  if (!file) return null;
+
   try {
     const user = auth.currentUser;
-    const userId = user ? user.uid : 'anonymous';
+    
+    // منع الرفع إذا لم يكن هناك مستخدم مسجل لتجنب خطأ unauthorized
+    if (!user) {
+      console.error("Cloud Upload Error: User must be authenticated to upload files.");
+      return null;
+    }
+
+    const userId = user.uid;
 
     // ضغط الصورة محلياً لتقليل الحجم وتسريع التحميل
     const compressToBlob = (f: File): Promise<Blob> => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(f);
+      reader.onerror = () => reject("File reading error");
       reader.onload = (event) => {
         const img = new Image();
         img.src = event.target?.result as string;
+        img.onerror = () => reject("Image loading error");
         img.onload = () => {
           const canvas = document.createElement('canvas');
           
-          let MAX_SIZE = 512; // حجم كافٍ جداً للصور الشخصية
+          let MAX_SIZE = type === 'background' ? 1600 : 800; 
           let quality = 0.8;
-
-          if (type === 'background') {
-            MAX_SIZE = 1440; // دقة عالية للخلفيات
-            quality = 0.85;
-          } else if (type === 'logo') {
-            MAX_SIZE = 600;
-            quality = 0.9;
-          }
 
           let width = img.width;
           let height = img.height;
@@ -69,28 +72,32 @@ export const uploadImageToCloud = async (
 
     const compressedBlob = await compressToBlob(file);
 
-    // إنشاء مسار فريد للملف لضمان عدم الكتابة فوق صور قديمة
+    // إنشاء مسار فريد للملف يعتمد على معرف المستخدم الفعلي
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
     const fileName = `${type}_${timestamp}_${randomString}.jpg`;
     const storagePath = `uploads/${userId}/${type}/${fileName}`;
     const storageRef = ref(storage, storagePath);
 
-    // عملية الرفع
-    const uploadResult = await uploadBytes(storageRef, compressedBlob, {
+    const metadata = {
       contentType: 'image/jpeg',
       customMetadata: {
         'uploadedBy': userId,
-        'type': type
+        'type': type,
+        'originalName': file.name
       }
-    });
+    };
 
-    // الحصول على رابط التحميل النهائي
+    const uploadResult = await uploadBytes(storageRef, compressedBlob, metadata);
     const downloadUrl = await getDownloadURL(uploadResult.ref);
     return downloadUrl;
 
-  } catch (error) {
-    console.error("Cloud Upload Error:", error);
+  } catch (error: any) {
+    if (error.code === 'storage/unauthorized') {
+      console.error("Cloud Upload Error: Firebase Storage Rules block this upload. Make sure rules allow write access to path: uploads/{userId}/...");
+    } else {
+      console.error("Cloud Upload Error:", error);
+    }
     return null;
   }
 };

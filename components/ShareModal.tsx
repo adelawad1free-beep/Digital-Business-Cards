@@ -108,7 +108,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
       {/* منطقة الالتقاط المخفية */}
       <div className="fixed top-0 left-0 -translate-x-[2000px] pointer-events-none" style={{ width: '400px' }}>
           <div id="share-card-capture-area" className="bg-white dark:bg-black overflow-hidden" style={{ width: '400px', minHeight: '700px' }}>
-             <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} />
+             <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} isCapturing={true} />
           </div>
       </div>
 
