@@ -145,8 +145,8 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
         style={{ isolation: 'isolate' }}
       >
         
-        {/* إطار الهاتف الخارجي (Bezel) */}
-        <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50 shadow-inner"></div>
+        {/* Bezel is top layer */}
+        <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
         
         {tmpl.isFeatured && (
           <div className="absolute top-8 left-8 z-[60] flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
@@ -155,18 +155,18 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
           </div>
         )}
         
-        {/* منطقة المحتوى المتحرك مع ضبط القص (Clipping) الصارم */}
+        {/* FIX: Inset(0) to allow background to flow edge-to-edge behind the bezel, just like the editor preview */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none" 
              style={{ 
                borderRadius: '2.6rem', 
-               clipPath: 'inset(12px round 2.6rem)', 
+               clipPath: 'inset(0 round 2.6rem)', 
                zIndex: 10,
                transform: 'translateZ(0)'
              }}>
            <div 
              className="h-full w-full transition-transform duration-[500ms] ease-out origin-top"
              style={{ 
-               transform: `translateY(-${mouseYPercentage * 0.45}%)`, // تقليل نسبة الحركة قليلاً لضمان عدم الوصول للنهاية بسرعة
+               transform: `translateY(-${mouseYPercentage * 0.45}%)`,
                willChange: 'transform'
              }}
            >
@@ -186,12 +186,11 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
                 lang={lang} 
                 customConfig={tmpl.config}
                 hideSaveButton={true} 
-                isFullFrame={true} // ضمان تطابق الحواف الداخلية
+                isFullFrame={true}
               />
            </div>
         </div>
 
-        {/* طبقة زر الإجراء (Overlay) */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center z-[60]">
            <button 
              onClick={(e) => {

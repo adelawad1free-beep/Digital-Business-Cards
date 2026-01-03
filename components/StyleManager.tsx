@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { VisualStyle, Language, TemplateConfig, ThemeType } from '../types';
+import { VisualStyle, Language, TemplateConfig, ThemeType, PageBgStrategy } from '../types';
 import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL } from '../services/firebase';
 import { THEME_GRADIENTS, THEME_COLORS, BACKGROUND_PRESETS, PATTERN_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
@@ -11,7 +11,7 @@ import {
   Search, GlassWater, Box, LayoutTemplate, Layers, ChevronLeft, 
   ChevronRight, Monitor, Zap, Wind, Waves, Square, AlignLeft, 
   AlignRight, Columns, Maximize2, Move, RefreshCcw, Grid, Shapes,
-  Tag, Ruler
+  Tag, Ruler, Pipette, Repeat, SlidersHorizontal, Sparkle
 } from 'lucide-react';
 
 interface StyleManagerProps {
@@ -70,7 +70,9 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
         bioTextColor: 'rgba(0,0,0,0.6)',
         bioBgColor: 'rgba(0,0,0,0.03)',
         defaultIsDark: false,
-        cardBgColor: '', // New property
+        cardBgColor: '',
+        pageBgColor: '',
+        pageBgStrategy: 'solid',
         headerGlassy: false,
         bodyGlassy: false,
         headerOpacity: 100,
@@ -82,7 +84,15 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
         headerPatternOpacity: 20,
         headerPatternScale: 100,
         bodyBorderRadius: 48,
-        bodyOffsetY: 0
+        bodyOffsetY: 0,
+        showBodyFeatureByDefault: false,
+        bodyFeatureBgColor: '#3b82f6',
+        bodyFeatureTextColor: '#ffffff',
+        bodyFeatureHeight: 45,
+        bodyFeaturePaddingX: 0,
+        bodyFeatureOffsetY: 0,
+        bodyFeatureBorderRadius: 16,
+        bodyFeatureGlassy: false
       }
     });
   };
@@ -165,13 +175,13 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
     </div>
   );
 
-  const ToggleSwitch = ({ label, value, onChange, icon: Icon }: any) => (
+  const ToggleSwitch = ({ label, value, onChange, icon: Icon, color = "bg-indigo-600" }: any) => (
     <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
       <div className="flex items-center gap-3">
         {Icon && <Icon size={16} className={value ? "text-indigo-600" : "text-gray-300"} />}
         <span className={`text-[10px] font-black uppercase tracking-widest ${value ? 'dark:text-white' : 'text-gray-400'}`}>{label}</span>
       </div>
-      <button onClick={() => onChange(!value)} className={`w-12 h-6 rounded-full relative transition-all ${value ? 'bg-indigo-600 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
+      <button onClick={() => onChange(!value)} className={`w-12 h-6 rounded-full relative transition-all ${value ? color + ' shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (value ? 'right-7' : 'right-1') : (value ? 'left-7' : 'left-1')}`} />
       </button>
     </div>
@@ -239,7 +249,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                             themeColor: style.config.defaultThemeColor || '#2563eb',
                             themeGradient: style.config.defaultThemeGradient || THEME_GRADIENTS[0],
                             backgroundImage: style.config.defaultBackgroundImage || '',
-                            cardBgColor: style.config.cardBgColor, // New property
+                            showBodyFeature: style.config.showBodyFeatureByDefault,
                             templateId: 'preview'
                           } as any} 
                           lang={lang} 
@@ -300,34 +310,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               <div className="lg:col-span-8 space-y-8">
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
-                    <div className="flex items-center gap-4"><Tag className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('تعريف النمط المبتكر', 'Style Identity & Naming')}</h3></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <div className="space-y-2">
-                          <label className={labelTextClasses}>{t('اسم النمط (عربي)', 'Style Name (AR)')}</label>
-                          <input 
-                            type="text" 
-                            required 
-                            value={editingStyle.nameAr || ''} 
-                            onChange={e => setEditingStyle({...editingStyle, nameAr: e.target.value})} 
-                            className={inputClasses} 
-                            placeholder="مثلاً: الترويسة الزجاجية المتموجة"
-                          />
-                       </div>
-                       <div className="space-y-2">
-                          <label className={labelTextClasses}>{t('اسم النمط (EN)', 'Style Name (EN)')}</label>
-                          <input 
-                            type="text" 
-                            required 
-                            value={editingStyle.nameEn || ''} 
-                            onChange={e => setEditingStyle({...editingStyle, nameEn: e.target.value})} 
-                            className={inputClasses} 
-                            placeholder="Ex: Glassy Wave Header"
-                          />
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Shapes className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('محرك هندسة الترويسات', 'Structural Shape Engine')}</h3></div>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                          {[
@@ -367,6 +349,45 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                        <RangeControl label={t('درجة شفافية الجسم', 'Body Transparency')} min={0} max={100} unit="%" value={editingStyle.config?.bodyOpacity ?? 100} onChange={(v: number) => updateConfig('bodyOpacity', v)} icon={Sun} />
                        <RangeControl label={t('إزاحة منطقة البيانات', 'Overlap Y Offset')} min={-1000} max={500} value={editingStyle.config?.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
                        <RangeControl label={t('انحناء زوايا الجسم', 'Border Radius')} min={0} max={120} value={editingStyle.config?.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
+                    </div>
+
+                    <div className="pt-10 border-t dark:border-gray-800 space-y-6">
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <Sparkle className="text-indigo-600" size={22} />
+                              <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('ميزة جسم البطاقة الخاصة (DNA)', 'Special Body Feature DNA')}</h4>
+                           </div>
+                           <ToggleSwitch label={t('تفعيل الميزة', 'Enable')} value={editingStyle.config?.showBodyFeatureByDefault} onChange={(v: boolean) => updateConfig('showBodyFeatureByDefault', v)} color="bg-emerald-600" />
+                        </div>
+
+                        {editingStyle.config?.showBodyFeatureByDefault && (
+                           <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-[2.5rem] border border-indigo-100 dark:border-indigo-900/20">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <RangeControl 
+                                    label={t('توسعة الميزة جانبياً', 'Side Expansion')} 
+                                    min={0} max={60} 
+                                    value={editingStyle.config?.bodyFeaturePaddingX ?? 0} 
+                                    onChange={(v: number) => updateConfig('bodyFeaturePaddingX', v)} 
+                                    icon={SlidersHorizontal} 
+                                 />
+                                 <RangeControl 
+                                    label={t('إزاحة الميزة رأسياً', 'Vertical Offset')} 
+                                    min={-100} max={150} 
+                                    value={editingStyle.config?.bodyFeatureOffsetY ?? 0} 
+                                    onChange={(v: number) => updateConfig('bodyFeatureOffsetY', v)} 
+                                    icon={Move} 
+                                 />
+                                 <RangeControl label={t('ارتفاع القسم', 'Height')} min={30} max={120} value={editingStyle.config?.bodyFeatureHeight ?? 45} onChange={(v: number) => updateConfig('bodyFeatureHeight', v)} icon={Maximize2} />
+                                 <RangeControl label={t('انحناء الحواف', 'Radius')} min={0} max={50} value={editingStyle.config?.bodyFeatureBorderRadius ?? 16} onChange={(v: number) => updateConfig('bodyFeatureBorderRadius', v)} icon={Ruler} />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                 <ColorInput label={t('لون الخلفية', 'Background')} value={editingStyle.config?.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
+                                 <ColorInput label={t('لون النص', 'Text Color')} value={editingStyle.config?.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
+                                 <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={editingStyle.config?.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} />
+                              </div>
+                           </div>
+                        )}
                     </div>
                  </div>
 
@@ -424,10 +445,36 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     )}
 
                     <div className="pt-6 border-t dark:border-gray-800 space-y-6">
-                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('ألوان السمة والأرضية', 'Base Theme & Card Colors')}</h4>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <ColorInput label={t('لون السمة الأساسي', 'Base Theme Color')} value={editingStyle.config?.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
+                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('ألوان السمة والأرضية والخلفية', 'Base Theme, Card & Page Colors')}</h4>
+                       
+                       <div className="bg-indigo-50 dark:bg-indigo-900/10 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/20 mb-4">
+                          <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest px-1 mb-3 flex items-center gap-2">
+                             <Repeat size={14} /> {t('استراتيجية خلفية الصفحة', 'Page BG Strategy')}
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                             <button 
+                                onClick={() => updateConfig('pageBgStrategy', 'solid')}
+                                className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${editingStyle.config?.pageBgStrategy !== 'mirror-header' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
+                             >
+                                <Pipette size={16} />
+                                <span className="text-[9px] font-black uppercase">{t('لون ثابت', 'Solid')}</span>
+                             </button>
+                             <button 
+                                onClick={() => updateConfig('pageBgStrategy', 'mirror-header')}
+                                className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${editingStyle.config?.pageBgStrategy === 'mirror-header' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
+                             >
+                                <Layers size={16} />
+                                <span className="text-[9px] font-black uppercase">{t('مطابقة ألوان الترويسة الخلفية', 'Mirror Header Background')}</span>
+                             </button>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <ColorInput label={t('لون السمة الأساسي', 'Base Theme')} value={editingStyle.config?.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
                           <ColorInput label={t('لون أرضية البطاقة', 'Card Base Bg')} value={editingStyle.config?.cardBgColor || ''} onChange={(v: string) => updateConfig('cardBgColor', v)} />
+                          {editingStyle.config?.pageBgStrategy !== 'mirror-header' && (
+                            <ColorInput label={t('لون خلفية الصفحة', 'Page Bg Color')} value={editingStyle.config?.pageBgColor || ''} onChange={(v: string) => updateConfig('pageBgColor', v)} />
+                          )}
                        </div>
                        
                        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
@@ -460,10 +507,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                                themeGradient: editingStyle.config?.defaultThemeGradient || THEME_GRADIENTS[0],
                                backgroundImage: editingStyle.config?.defaultBackgroundImage || BACKGROUND_PRESETS[1],
                                isDark: editingStyle.config?.defaultIsDark || false,
-                               cardBgColor: editingStyle.config?.cardBgColor, // New property
-                               socialLinks: [
-                                  { platformId: 'linkedin', platform: 'LinkedIn', url: '#' }
-                               ],
+                               showBodyFeature: editingStyle.config?.showBodyFeatureByDefault,
                                templateId: 'lab-preview'
                             } as any} 
                             lang={lang} 

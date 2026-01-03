@@ -8,6 +8,7 @@ export interface SocialLink {
 }
 
 export type ThemeType = 'color' | 'gradient' | 'image';
+export type PageBgStrategy = 'solid' | 'mirror-header';
 
 export interface TemplateConfig {
   headerType: 
@@ -92,6 +93,18 @@ export interface TemplateConfig {
   occasionOpacity?: number;
   showCountdown?: boolean;
 
+  // Special Body Feature (Admin Only Control)
+  showBodyFeatureByDefault?: boolean;
+  bodyFeatureTextAr?: string;
+  bodyFeatureTextEn?: string;
+  bodyFeatureBgColor?: string;
+  bodyFeatureTextColor?: string;
+  bodyFeatureHeight?: number;
+  bodyFeaturePaddingX?: number; // Width expansion
+  bodyFeatureOffsetY?: number;
+  bodyFeatureBorderRadius?: number;
+  bodyFeatureGlassy?: boolean;
+
   // Invitation Texts Colors
   occasionPrefixColor?: string;
   occasionNameColor?: string;
@@ -119,44 +132,11 @@ export interface TemplateConfig {
   defaultName?: string;
   defaultNameSize?: number;
   defaultIsDark?: boolean;
-  cardBgColor?: string; // New: Custom background color for the card base
+  cardBgColor?: string; 
+  pageBgColor?: string; 
+  pageBgStrategy?: PageBgStrategy; // New: determines if bg is solid or mirrored from header
   
   customCss?: string;
-}
-
-export interface VisualStyle {
-  id: string;
-  nameAr: string;
-  nameEn: string;
-  isActive: boolean;
-  config: Partial<TemplateConfig>; 
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface TemplateCategory {
-  id: string;
-  nameAr: string;
-  nameEn: string;
-  order: number;
-  isActive: boolean;
-}
-
-export interface CustomTemplate {
-  id: string;
-  categoryId?: string; 
-  parentStyleId?: string; 
-  nameAr: string;
-  nameEn: string;
-  descAr: string;
-  descEn: string;
-  config: TemplateConfig;
-  isActive: boolean;
-  isFeatured: boolean;
-  order: number;
-  usageCount?: number;
-  createdAt: string;
-  updatedAt?: string;
 }
 
 export interface CardData {
@@ -217,6 +197,10 @@ export interface CardData {
   occasionNameColor?: string;
   occasionWelcomeColor?: string;
 
+  // Special Feature overrides
+  showBodyFeature?: boolean;
+  bodyFeatureText?: string;
+
   // Glassmorphism Overrides
   bodyGlassy?: boolean;
   bodyOpacity?: number;
@@ -237,7 +221,44 @@ export interface CardData {
   qrBorderWidth?: number;
   qrBorderColor?: string;
   qrBorderRadius?: number;
-  cardBgColor?: string; // New: Custom background color for the card base
+  cardBgColor?: string; 
+  pageBgColor?: string;
+  pageBgStrategy?: PageBgStrategy;
+}
+
+export interface VisualStyle {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  isActive: boolean;
+  config: Partial<TemplateConfig>; 
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TemplateCategory {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  order: number;
+  isActive: boolean;
+}
+
+export interface CustomTemplate {
+  id: string;
+  categoryId?: string; 
+  parentStyleId?: string; 
+  nameAr: string;
+  nameEn: string;
+  descAr: string;
+  descEn: string;
+  config: TemplateConfig;
+  isActive: boolean;
+  isFeatured: boolean;
+  order: number;
+  usageCount?: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface TranslationStrings {

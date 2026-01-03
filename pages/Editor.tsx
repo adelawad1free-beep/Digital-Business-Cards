@@ -84,6 +84,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          themeGradient: selectedTmpl.config.defaultThemeGradient || baseData.themeGradient,
          backgroundImage: selectedTmpl.config.defaultBackgroundImage || baseData.backgroundImage,
          isDark: selectedTmpl.config.defaultIsDark ?? baseData.isDark,
+         pageBgColor: selectedTmpl.config.pageBgColor || '',
          showOccasion: selectedTmpl.config.showOccasionByDefault ?? false,
          showName: selectedTmpl.config.showNameByDefault ?? true,
          showTitle: selectedTmpl.config.showTitleByDefault ?? true,
@@ -258,7 +259,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
             
             {isSimpleMode ? (
               <div className="space-y-8 animate-fade-in relative z-10">
-                {/* Simplified Editor Content (Occasion Mode) */}
                 <div className="p-5 md:p-8 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 dark:from-blue-900/10 dark:via-[#121215] dark:to-indigo-900/5 rounded-[2rem] md:rounded-[3rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-xl shadow-blue-500/5 space-y-6 transition-all relative overflow-hidden">
                    <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
@@ -339,8 +339,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    </div>
                 </div>
 
-                {/* Added: Design Section for Simple Mode */}
-                <div className="p-6 bg-indigo-50/30 dark:bg-indigo-900/5 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-900/10 space-y-6">
+                {/* Updated Design Section in Simple Mode to include full color options */}
+                <div className="p-6 bg-indigo-50/30 dark:bg-indigo-900/5 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-900/10 space-y-8">
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                          <Palette className="text-indigo-500" size={20} />
@@ -362,35 +362,36 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                            </button>
                          ))}
                       </div>
-                   </div>
 
-                   {formData.themeType === 'color' && (
-                      <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 animate-fade-in">
-                         {THEME_COLORS.map(c => <button key={c} onClick={() => handleChange('themeColor', c)} className={`aspect-square rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === c ? 'border-blue-600 scale-110' : 'border-white'}`} style={{ backgroundColor: c }} />)}
-                      </div>
-                   )}
-                   {formData.themeType === 'gradient' && (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 animate-fade-in">
-                         {THEME_GRADIENTS.map((g, i) => <button key={i} onClick={() => handleChange('themeGradient', g)} className={`h-10 rounded-xl transition-all hover:scale-105 ${formData.themeGradient === g ? 'ring-4 ring-blue-500/20 opacity-100 scale-105' : 'opacity-60'}`} style={{ background: g }} />)}
-                      </div>
-                   )}
-                   {formData.themeType === 'image' && (
-                      <div className="space-y-4 animate-fade-in">
-                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
-                            {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
-                         </div>
-                         <button onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all">
-                            {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-                            {t('رفع خلفية خاصة', 'Upload Background')}
-                         </button>
-                         <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
-                      </div>
-                   )}
+                      {formData.themeType === 'color' && (
+                        <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 animate-fade-in pt-4">
+                           {THEME_COLORS.map(c => <button key={c} onClick={() => handleChange('themeColor', c)} className={`aspect-square rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === c ? 'border-blue-600 scale-110' : 'border-white dark:border-gray-700'}`} style={{ backgroundColor: c }} />)}
+                        </div>
+                      )}
+
+                      {formData.themeType === 'gradient' && (
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 animate-fade-in pt-4">
+                           {THEME_GRADIENTS.map((g, i) => <button key={i} onClick={() => handleChange('themeGradient', g)} className={`h-10 rounded-xl transition-all hover:scale-105 ${formData.themeGradient === g ? 'ring-4 ring-blue-500/20 opacity-100 scale-105' : 'opacity-60'}`} style={{ background: g }} />)}
+                        </div>
+                      )}
+
+                      {formData.themeType === 'image' && (
+                        <div className="space-y-4 animate-fade-in pt-4">
+                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                              {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30 scale-95' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
+                           </div>
+                           <button onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50">
+                              {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+                              {t('رفع خلفية خاصة', 'Upload Background')}
+                           </button>
+                           <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
+                        </div>
+                      )}
+                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-8 mt-4 animate-fade-in">
-                {/* Standard Tabbed Content */}
                 {activeTab === 'identity' && (
                   <div className="space-y-6 animate-fade-in relative z-10">
                     <div className="p-5 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-4">
@@ -494,7 +495,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                               <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg"><Palette size={20}/></div>
                               <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('تخصيص المظهر والسمة', 'Visual Theme Lab')}</h4>
                            </div>
-                           <button onClick={() => handleChange('isDark', !formData.isDark)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[10px] uppercase transition-all shadow-sm ${formData.isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
+                           <button onClick={() => handleChange('isDark', !formData.isDark)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[9px] uppercase transition-all shadow-sm ${formData.isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
                               {formData.isDark ? <Moon size={16} /> : <Sun size={16} />}
                               {formData.isDark ? t('وضع ليلي', 'Dark Mode') : t('وضع نهاري', 'Light Mode')}
                            </button>
@@ -627,25 +628,24 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       </div>
 
       {showMobilePreview && (
-        <div className="fixed inset-0 z-[600] flex flex-col bg-white dark:bg-[#0a0a0c] animate-fade-in">
-           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                 <h3 className="font-black dark:text-white uppercase text-sm tracking-widest">{t('معاينة البطاقة', 'Live Card Preview')}</h3>
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+           <div className="bg-white dark:bg-[#0a0a0c] w-full max-w-sm rounded-[3.5rem] overflow-hidden flex flex-col h-[90vh]">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                 <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                    <h3 className="font-black dark:text-white uppercase text-sm tracking-widest">{t('معاينة البطاقة', 'Live Card Preview')}</h3>
+                 </div>
+                 <button onClick={() => setShowMobilePreview(false)} className="p-2 text-gray-400 hover:text-red-500 transition-all"><X size={24} /></button>
               </div>
-              <button onClick={() => setShowMobilePreview(false)} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl text-gray-500 hover:text-red-500 transition-all shadow-sm"><X size={20} /></button>
-           </div>
-           <div className="flex-1 overflow-y-auto no-scrollbar bg-gray-50 dark:bg-[#050507] p-4 flex items-start justify-center">
-              <div className="w-full max-w-[420px] shadow-2xl rounded-[3.5rem] overflow-hidden relative border-[12px] border-gray-900 dark:border-gray-800 bg-white dark:bg-black"
-                   style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
-                 <div className="h-[680px] overflow-y-auto no-scrollbar relative" 
-                      style={{ borderRadius: '2.5rem', overflow: 'hidden', clipPath: 'inset(0 round 2.5rem)' }}>
-                    <CardPreview data={formData} lang={lang} customConfig={currentTemplate?.config} hideSaveButton={true} isFullFrame={true} />
+              <div className="flex-1 overflow-y-auto no-scrollbar bg-gray-50 dark:bg-[#050507] p-4 flex items-start justify-center">
+                 <div className="w-full shadow-2xl rounded-[3rem] overflow-hidden relative border-[8px] border-gray-900 dark:border-gray-800 bg-white dark:bg-black"
+                      style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+                    <div className="h-[580px] overflow-y-auto no-scrollbar relative" 
+                         style={{ borderRadius: '2.4rem', overflow: 'hidden', clipPath: 'inset(0 round(2.4rem))' }}>
+                       <CardPreview data={formData} lang={lang} customConfig={currentTemplate?.config} hideSaveButton={true} isFullFrame={true} />
+                    </div>
                  </div>
               </div>
-           </div>
-           <div className="p-6 bg-white dark:bg-[#0a0a0c] border-t border-gray-100 dark:border-gray-800 pb-10">
-              <button onClick={() => setShowMobilePreview(false)} className="w-full py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl active:scale-95 transition-all">{t('العودة للتعديل', 'Back to Editing')}</button>
            </div>
         </div>
       )}

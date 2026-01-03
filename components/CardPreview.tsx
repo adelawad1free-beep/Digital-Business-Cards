@@ -1,5 +1,5 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
@@ -12,7 +12,7 @@ interface CardPreviewProps {
   lang: Language;
   customConfig?: TemplateConfig; 
   hideSaveButton?: boolean; 
-  isFullFrame?: boolean; // New prop to handle clipping inside frames
+  isFullFrame?: boolean; 
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -168,6 +168,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const isBodyGlassy = data.bodyGlassy ?? config.bodyGlassy;
   const bodyOpacity = (data.bodyOpacity ?? config.bodyOpacity ?? 100) / 100;
 
+  const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating';
+
   const bodyStyles: React.CSSProperties = {
     marginTop: headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px'),
     transform: `translateY(${config.bodyOffsetY || 0}px)`, 
@@ -178,17 +180,17 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     paddingTop: '24px',
     position: 'relative',
     zIndex: 20,
-    width: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? 'calc(100% - 32px)' : '100%',
-    margin: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? '0 auto' : '0',
+    width: needsSideMargins ? 'calc(100% - 32px)' : '100%',
+    margin: needsSideMargins ? '0 auto' : '0',
     backdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
     WebkitBackdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
-    border: (isBodyGlassy || bodyOpacity < 1) ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : 'none',
+    border: needsSideMargins ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : 'none',
     textAlign: config.contentAlign || 'center',
-    marginLeft: headerType === 'side-left' ? '28%' : (headerType === 'side-right' ? '2%' : 'auto'),
-    marginRight: headerType === 'side-right' ? '28%' : (headerType === 'side-left' ? '2%' : 'auto'),
+    marginLeft: headerType === 'side-left' ? '28%' : (headerType === 'side-right' ? '2%' : (needsSideMargins ? 'auto' : '0')),
+    marginRight: headerType === 'side-right' ? '28%' : (headerType === 'side-left' ? '2%' : (needsSideMargins ? 'auto' : '0')),
     minHeight: '400px',
     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: (isBodyGlassy || bodyOpacity < 1) ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
+    boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
   const displayOccasionTitle = data.occasionTitle || config.occasionTitle || '';
@@ -229,6 +231,17 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const borderClr2 = config.avatarAnimatedBorderColor2 || '#ffffff';
   const borderSpeed = config.avatarAnimatedBorderSpeed || 3;
 
+  // Special Body Feature Logic - Ensuring strict adherence to config if data is missing
+  const showBodyFeature = isVisible(data.showBodyFeature, config.showBodyFeatureByDefault);
+  const featureContent = data.bodyFeatureText || (isRtl ? config.bodyFeatureTextAr : config.bodyFeatureTextEn) || '';
+  const featurePaddingX = config.bodyFeaturePaddingX ?? 0;
+  const featureBg = config.bodyFeatureBgColor || themeColor;
+  const featureTextColor = config.bodyFeatureTextColor || '#ffffff';
+  const isFeatureGlassy = config.bodyFeatureGlassy;
+  const featureHeight = config.bodyFeatureHeight || 45;
+  const featureRadius = config.bodyFeatureBorderRadius ?? 16;
+  const featureOffsetY = config.bodyFeatureOffsetY || 0;
+
   return (
     <div 
       className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'}`}
@@ -265,7 +278,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                  boxShadow: config.avatarAnimatedGlow ? `0 0 20px rgba(${hexToRgb(borderClr1)}, 0.5)` : '0 20px 40px rgba(0,0,0,0.1)'
                }}>
             
-            {/* Animated Border Component */}
             {showAnimatedBorder && (
               <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden" style={{ borderRadius: config.avatarStyle === 'circle' ? '50%' : '28%' }}>
                 <div 
@@ -284,7 +296,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
           </div>
         )}
 
-        <div className={`w-full ${config.spacing === 'compact' ? 'space-y-2' : config.spacing === 'relaxed' ? 'space-y-6' : 'space-y-4'}`} style={{ marginTop: headerType === 'overlay' ? '20px' : '24px' }}>
+        <div className={`w-full ${config.spacing === 'relaxed' ? 'space-y-6' : config.spacing === 'compact' ? 'space-y-2' : 'space-y-4'} relative z-10`} style={{ marginTop: headerType === 'overlay' ? '20px' : '24px' }}>
            
            {isOccasionActive ? (
              <div className="transition-transform duration-300" style={{ transform: `translateY(${invYOffset}px)` }}>
@@ -352,6 +364,30 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
              </>
            )}
 
+           {showBodyFeature && featureContent && (
+             <div 
+               className={`py-3 px-4 shadow-xl flex items-center justify-center gap-3 transition-all duration-500 animate-fade-in-up relative z-40`}
+               style={{ 
+                 color: featureTextColor,
+                 transform: `translateY(${featureOffsetY}px)`,
+                 marginLeft: `-${featurePaddingX}px`,
+                 marginRight: `-${featurePaddingX}px`,
+                 borderRadius: `${featureRadius}px`,
+                 minHeight: `${featureHeight}px`,
+                 backdropFilter: isFeatureGlassy ? 'blur(10px)' : 'none',
+                 WebkitBackdropFilter: isFeatureGlassy ? 'blur(10px)' : 'none',
+                 border: isFeatureGlassy ? `1px solid rgba(${hexToRgb(featureBg)}, 0.3)` : 'none',
+                 background: isFeatureGlassy 
+                    ? `rgba(${hexToRgb(featureBg)}, 0.15)` 
+                    : featureBg
+               }}
+             >
+                <Sparkle size={14} className="animate-pulse shrink-0" />
+                <span className="text-xs font-black uppercase tracking-tight text-center">{featureContent}</span>
+                <Sparkle size={14} className="animate-pulse shrink-0" />
+             </div>
+           )}
+
            {showBio && data.bio && (
              <div className="p-5 rounded-[2rem] mx-auto border border-gray-100 dark:border-white/10 relative" style={{ backgroundColor: bioBgColor, transform: `translateY(${config.bioOffsetY}px)`, maxWidth: '90%' }}>
                 <Quote size={12} className="absolute top-3 left-4 opacity-20 text-blue-500" />
@@ -374,7 +410,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               )}
            </div>
 
-           {/* Contact Buttons Fix: Flexible height and squircle rounding for better responsive scaling */}
            {hasContactButtons && (
               <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
                 {showPhone && data.phone && (
@@ -395,7 +430,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               </div>
            )}
 
-           {/* Social Links Moved DOWN */}
            {showSocialLinks && data.socialLinks?.length > 0 && (
              <div className="flex flex-wrap justify-center gap-3 py-6" style={{ transform: `translateY(${config.socialLinksOffsetY || 0}px)` }}>
                {data.socialLinks.map((link, idx) => (

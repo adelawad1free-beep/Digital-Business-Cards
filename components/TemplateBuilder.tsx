@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType } from '../types';
+import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import { getAllCategories, saveTemplateCategory, getAllVisualStyles } from '../services/firebase';
@@ -14,7 +14,7 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle
 } from 'lucide-react';
 
 interface TemplateBuilderProps {
@@ -148,9 +148,21 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       defaultName: '',
       defaultIsDark: false,
       cardBgColor: '', 
+      pageBgColor: '',
+      pageBgStrategy: 'solid',
       headerPatternId: 'none',
       headerPatternOpacity: 20,
-      headerPatternScale: 100
+      headerPatternScale: 100,
+      showBodyFeatureByDefault: false,
+      bodyFeatureTextAr: 'ميزة حصرية',
+      bodyFeatureTextEn: 'EXCLUSIVE FEATURE',
+      bodyFeatureBgColor: '#3b82f6',
+      bodyFeatureTextColor: '#ffffff',
+      bodyFeatureHeight: 45,
+      bodyFeaturePaddingX: 0,
+      bodyFeatureOffsetY: 0,
+      bodyFeatureBorderRadius: 16,
+      bodyFeatureGlassy: false
     }
   });
 
@@ -189,6 +201,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       qrOffsetY: 0,
       invitationYOffset: 0,
       occasionOffsetY: 0,
+      bodyFeatureOffsetY: 0,
+      bodyFeaturePaddingX: 0,
       spacing: 'normal',
       contentAlign: 'center'
     };
@@ -427,7 +441,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
                     <ColorPicker label={t('لون الإطار', 'Border Color')} value={template.config.avatarBorderColor || '#ffffff'} onChange={(v: string) => updateConfig('avatarBorderColor', v)} />
 
-                    {/* Animated Border Settings Section */}
                     <div className="pt-6 border-t dark:border-gray-800 space-y-6">
                        <div className="flex items-center gap-3">
                           <Zap className="text-amber-500" size={20} />
@@ -478,7 +491,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           onClick={resetOffsets}
                           className="flex items-center gap-2 px-4 py-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl text-[9px] font-black uppercase tracking-widest border border-orange-100 dark:border-orange-800/30 hover:bg-orange-100 transition-all shadow-sm"
                         >
-                          <RotateCcw size={14} />
+                          <Repeat size={14} />
                           {t('إعادة ضبط التموضع', 'Reset Offsets')}
                         </button>
                      </div>
@@ -521,6 +534,56 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
                         <RangeControl label={t('إزاحة منطقة المحتوى (أعلى/أسفل)', 'Body Y Offset')} min={-1000} max={500} value={template.config.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
+                     </div>
+
+                     <div className="pt-10 border-t dark:border-gray-800 space-y-8">
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                              <Sparkle className="text-blue-600" size={22} />
+                              <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('ميزة جسم البطاقة الخاصة (إدارة فقط)', 'Special Body Feature (Admin Control)')}</h4>
+                           </div>
+                           <ToggleSwitch label={t('تفعيل الميزة', 'Enable')} value={template.config.showBodyFeatureByDefault} onChange={(v: boolean) => updateConfig('showBodyFeatureByDefault', v)} color="bg-emerald-600" />
+                        </div>
+
+                        {template.config.showBodyFeatureByDefault && (
+                           <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
+                                    <input type="text" value={template.config.bodyFeatureTextAr || ''} onChange={e => updateConfig('bodyFeatureTextAr', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
+                                 </div>
+                                 <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
+                                    <input type="text" value={template.config.bodyFeatureTextEn || ''} onChange={e => updateConfig('bodyFeatureTextEn', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
+                                 </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <RangeControl 
+                                    label={t('توسعة الميزة جانبياً', 'Side Expansion')} 
+                                    min={0} max={60} 
+                                    value={template.config.bodyFeaturePaddingX ?? 0} 
+                                    onChange={(v: number) => updateConfig('bodyFeaturePaddingX', v)} 
+                                    icon={SlidersHorizontal} 
+                                 />
+                                 <RangeControl 
+                                    label={t('إزاحة الميزة رأسياً', 'Vertical Offset')} 
+                                    min={-100} max={150} 
+                                    value={template.config.bodyFeatureOffsetY ?? 0} 
+                                    onChange={(v: number) => updateConfig('bodyFeatureOffsetY', v)} 
+                                    icon={Move} 
+                                 />
+                                 <RangeControl label={t('ارتفاع القسم', 'Height')} min={30} max={120} value={template.config.bodyFeatureHeight ?? 45} onChange={(v: number) => updateConfig('bodyFeatureHeight', v)} icon={Maximize2} />
+                                 <RangeControl label={t('انحناء الحواف', 'Radius')} min={0} max={50} value={template.config.bodyFeatureBorderRadius ?? 16} onChange={(v: number) => updateConfig('bodyFeatureBorderRadius', v)} icon={Ruler} />
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                 <ColorPicker label={t('لون الخلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
+                                 <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
+                                 <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={template.config.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
+                              </div>
+                           </div>
+                        )}
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -633,21 +696,42 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   <ColorPicker label={t('لون السمة الأساسي', 'Base Theme Color')} value={template.config.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
 
                   <div className="pt-6 border-t dark:border-gray-800 space-y-6">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('خلفية البطاقة (الأرضية)', 'Card Base Background')}</h4>
-                    <div className="space-y-4">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('خلفيات الصفحة والأرضية', 'Site & Card Base Backgrounds')}</h4>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/20 space-y-4">
+                       <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-1 flex items-center gap-2">
+                          <Repeat size={14} /> {t('استراتيجية خلفية الموقع', 'Page Background Strategy')}
+                       </label>
+                       <div className="grid grid-cols-2 gap-3">
+                          <button 
+                             onClick={() => updateConfig('pageBgStrategy', 'solid')}
+                             className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.pageBgStrategy !== 'mirror-header' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
+                          >
+                             <Pipette size={18} />
+                             <span className="text-[9px] font-black uppercase">{t('لون ثابت', 'Solid Color')}</span>
+                          </button>
+                          <button 
+                             onClick={() => updateConfig('pageBgStrategy', 'mirror-header')}
+                             className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.pageBgStrategy === 'mirror-header' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
+                          >
+                             <Layers size={18} />
+                             <span className="text-[9px] font-black uppercase">{t('مطابقة ألوان الترويسة الخلفية', 'Mirror Header Background')}</span>
+                          </button>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <ColorPicker 
-                          label={t('لون مخصص للأرضية', 'Custom Card Base Color')} 
+                          label={t('لون أرضية البطاقة', 'Card Base Bg')} 
                           value={template.config.cardBgColor || ''} 
                           onChange={(v: string) => updateConfig('cardBgColor', v)} 
                         />
-                        {template.config.cardBgColor && (
-                          <button 
-                            type="button"
-                            onClick={() => updateConfig('cardBgColor', '')}
-                            className="text-[9px] font-black text-red-500 uppercase hover:underline"
-                          >
-                            {t('إعادة تعيين للأرضية التلقائية', 'Reset to Automatic Background')}
-                          </button>
+                        {template.config.pageBgStrategy !== 'mirror-header' && (
+                          <ColorPicker 
+                            label={t('لون خلفية الصفحة', 'Page Background')} 
+                            value={template.config.pageBgColor || ''} 
+                            onChange={(v: string) => updateConfig('pageBgColor', v)} 
+                          />
                         )}
                     </div>
                     
@@ -655,9 +739,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                       <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
                       <button type="button" onClick={() => updateConfig('defaultIsDark', !template.config.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${template.config.defaultIsDark ? 'bg-blue-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.config.defaultIsDark ? 'right-8' : 'right-1') : (template.config.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
                     </div>
-                    <p className="text-[9px] text-gray-400 font-bold px-2 italic">
-                       {t('* ملاحظة: في حال اختيار لون أرضية مخصص، سيظل خيار ليل/نهار يتحكم بلون النصوص والعناصر فقط.', '* Note: If a custom background color is selected, the light/dark toggle will only control text and element colors.')}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -674,32 +755,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      <ToggleSwitch label={t('تفعيل المناسبة افتراضياً', 'Activate by Default')} value={template.config.showOccasionByDefault} onChange={(v: boolean) => updateConfig('showOccasionByDefault', v)} icon={CheckCircle2} />
                      
                      <div className="grid grid-cols-1 gap-6 pt-4 border-t dark:border-gray-800">
-                        <div className="space-y-4">
-                           <div className="flex items-center gap-2">
-                              <ImageIcon className="text-indigo-600" size={16} />
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('خلفية المناسبة (اختياري)', 'Occasion Background (Optional)')}</label>
-                           </div>
-                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-1 bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800">
-                              {BACKGROUND_PRESETS.map((url, i) => (
-                                <button type="button" key={i} onClick={() => { updateConfig('defaultBackgroundImage', url); updateConfig('defaultThemeType', 'image'); }} className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${template.config.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-md' : 'border-transparent opacity-60'}`}>
-                                   <img src={url} className="w-full h-full object-cover" />
-                                </button>
-                              ))}
-                           </div>
-                           <div className="flex gap-2">
-                             {['color', 'gradient', 'image'].map((type) => (
-                               <button 
-                                 type="button"
-                                 key={type} 
-                                 onClick={() => updateConfig('defaultThemeType', type as ThemeType)}
-                                 className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${template.config.defaultThemeType === type ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-900 text-gray-400 border border-gray-100 dark:border-gray-800'}`}
-                               >
-                                 {t(type, type.toUpperCase())}
-                               </button>
-                             ))}
-                           </div>
-                        </div>
-
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('صاحب الدعوة الافتراضي', 'Default Organizer Name')}</label>
                            <div className="relative">
@@ -740,7 +795,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                  <input type="datetime-local" value={template.config.occasionDate || ''} onChange={e => updateConfig('occasionDate', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all [direction:ltr]`} />
                               </div>
                            </div>
-
                            <div className="space-y-2">
                               <label className={t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}>{t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}</label>
                               <div className="relative">
@@ -755,7 +809,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <ColorPicker label={t('لون البادئة الافتراضي', 'Default Prefix Color')} value={template.config.occasionPrefixColor || '#2563eb'} onChange={(v: string) => updateConfig('occasionPrefixColor', v)} />
                            <ColorPicker label={t('لون الاسم الافتراضي', 'Default Name Color')} value={template.config.occasionNameColor || '#111827'} onChange={(v: string) => updateConfig('occasionNameColor', v)} />
-                           <ColorPicker label={t('لون الترحيب الافتراضي', 'Default Welcome Color')} value={template.config.occasionWelcomeColor || 'rgba(0,0,0,0.4)'} onChange={(v: string) => updateConfig('occasionWelcomeColor', v)} />
                            <ColorPicker label={t('اللون الأساسي للمناسبة', 'Primary Accent Color')} value={template.config.occasionPrimaryColor || '#7c3aed'} onChange={(v: string) => updateConfig('occasionPrimaryColor', v)} />
                            <ColorPicker label={t('لون خلفية الصندوق', 'Box Background Color')} value={template.config.occasionBgColor || '#ffffff'} onChange={(v: string) => updateConfig('occasionBgColor', v)} />
                         </div>
@@ -764,15 +817,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            <ToggleSwitch label={t('تأثير زجاجي للصندوق', 'Glass Occasion Box')} value={template.config.occasionGlassy} onChange={(v: boolean) => updateConfig('occasionGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
                            <RangeControl label={t('شفافية صندوق المناسبة', 'Occasion Box Transparency')} min={0} max={100} unit="%" value={template.config.occasionOpacity ?? 100} onChange={(v: number) => updateConfig('occasionOpacity', v)} icon={Sun} />
                         </div>
-
-                        <div className="grid grid-cols-1 gap-6">
-                           <RangeControl label={t('إزاحة كتلة الدعوة كاملة (نصوص وصندوق)', 'Full Invitation Block Displacement')} min={-200} max={300} value={template.config.invitationYOffset || 0} onChange={(v: number) => updateConfig('invitationYOffset', v)} icon={Move} />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <ToggleSwitch label={t('تفعيل العد التنازلي', 'Enable Countdown')} value={template.config.showCountdown} onChange={(v: boolean) => updateConfig('showCountdown', v)} icon={Timer} />
-                           <ToggleSwitch label={t('تحريك الصندوق (عائم)', 'Floating Animation')} value={template.config.occasionFloating} onChange={(v: boolean) => updateConfig('occasionFloating', v)} icon={Wind} />
-                        </div>
+                        <RangeControl label={t('إزاحة كتلة الدعوة كاملة', 'Full Invitation Block Displacement')} min={-200} max={300} value={template.config.invitationYOffset || 0} onChange={(v: number) => updateConfig('invitationYOffset', v)} icon={Move} />
                      </div>
                   </div>
                </div>
@@ -783,19 +828,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                      <div className="flex items-center gap-3"><QrCode className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('تخصيص الباركود', 'QR Code Customization')}</h4></div>
                      <ToggleSwitch label={t('إظهار الباركود افتراضياً', 'Show QR by Default')} value={template.config.showQrCodeByDefault} onChange={(v: boolean) => updateConfig('showQrCodeByDefault', v)} icon={QrCode} />
-                     
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <RangeControl label={t('حجم الباركود', 'QR Size')} min={40} max={200} value={template.config.qrSize || 90} onChange={(v: number) => updateConfig('qrSize', v)} icon={Maximize2} />
-                        <RangeControl label={t('سُمك الإطار', 'Border Width')} min={0} max={20} value={template.config.qrBorderWidth || 0} onChange={(v: number) => updateConfig('qrBorderWidth', v)} icon={Ruler} />
-                        <RangeControl label={t('انحناء الحواف', 'Border Radius')} min={0} max={100} value={template.config.qrBorderRadius || 0} onChange={(v: number) => updateConfig('qrBorderRadius', v)} icon={Layout} />
-                        <RangeControl label={t('إزاحة الباركود', 'QR Y Offset')} min={-50} max={150} value={template.config.qrOffsetY || 0} onChange={(v: number) => updateConfig('qrOffsetY', v)} icon={Move} />
-                     </div>
-
-                     <div className="space-y-4">
-                        <ColorPicker label={t('لون الباركود', 'QR Foreground')} value={template.config.qrColor || '#2563eb'} onChange={(v: string) => updateConfig('qrColor', v)} />
-                        <ColorPicker label={t('لون الخلفية', 'QR Background')} value={template.config.qrBgColor || 'transparent'} onChange={(v: string) => updateConfig('qrBgColor', v)} />
-                        <ColorPicker label={t('لون الإطار', 'QR Border Color')} value={template.config.qrBorderColor || '#f9fafb'} onChange={(v: string) => updateConfig('qrBorderColor', v)} />
-                     </div>
+                     <RangeControl label={t('حجم الباركود', 'QR Size')} min={40} max={200} value={template.config.qrSize || 90} onChange={(v: number) => updateConfig('qrSize', v)} icon={Maximize2} />
+                     <ColorPicker label={t('لون الباركود', 'QR Foreground')} value={template.config.qrColor || '#2563eb'} onChange={(v: string) => updateConfig('qrColor', v)} />
                   </div>
                </div>
             )}
@@ -814,62 +848,27 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 </div>
               </div>
               
-              {/* Fix: Preview Wrapper with isolation and hard clipping */}
               <div className={`transition-all duration-500 origin-top rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 relative border-[12px] border-gray-900 dark:border-gray-800 ${previewDevice === 'mobile' ? 'w-[360px]' : previewDevice === 'tablet' ? 'w-[480px]' : 'w-[400px]'}`} 
-                   style={{ 
-                     isolation: 'isolate', 
-                     transform: 'translateZ(0)',
-                     WebkitMaskImage: '-webkit-radial-gradient(white, black)' // Fix for Safari bleeding corners
-                   }}>
-                
-                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ clipPath: 'inset(0 round(2.6rem))', borderRadius: '2.6rem' }}>
+                   style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ borderRadius: '2.6rem' }}>
                    <CardPreview 
                      data={{ 
                        ...sampleCardData, 
                        name: template.config.defaultName || sampleCardData.name,
-                       templateId: template.id, 
+                       profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',
+                       isDark: template.config.defaultIsDark,
+                       showOccasion: template.config.showOccasionByDefault,
+                       showBodyFeature: template.config.showBodyFeatureByDefault,
+                       showQrCode: template.config.showQrCodeByDefault,
                        themeType: template.config.defaultThemeType, 
                        themeColor: template.config.defaultThemeColor, 
                        themeGradient: template.config.defaultThemeGradient,
-                       backgroundImage: template.config.defaultBackgroundImage,
-                       profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',
-                       isDark: template.config.defaultIsDark,
-                       cardBgColor: template.config.cardBgColor, 
-                       nameColor: template.config.nameColor,
-                       titleColor: template.config.titleColor,
-                       bioTextColor: template.config.bioTextColor,
-                       bioBgColor: template.config.bioBgColor,
-                       linksColor: template.config.linksColor,
-                       socialIconsColor: template.config.socialIconsColor,
-                       contactPhoneColor: template.config.contactPhoneColor,
-                       contactWhatsappColor: template.config.contactWhatsappColor,
-                       showOccasion: template.config.showOccasionByDefault,
-                       occasionTitle: template.config.occasionTitle,
-                       occasionPrimaryColor: template.config.occasionPrimaryColor,
-                       occasionDate: template.config.occasionDate,
-                       occasionGlassy: template.config.occasionGlassy,
-                       occasionOpacity: template.config.occasionOpacity,
-                       occasionPrefixColor: template.config.occasionPrefixColor,
-                       occasionNameColor: template.config.occasionNameColor,
-                       occasionWelcomeColor: template.config.occasionWelcomeColor,
-                       invitationPrefix: template.config.invitationPrefix,
-                       invitationWelcome: template.config.invitationWelcome,
-                       invitationYOffset: template.config.invitationYOffset,
-                       showQrCode: template.config.showQrCodeByDefault,
-                       showName: template.config.showNameByDefault,
-                       showTitle: template.config.showTitleByDefault,
-                       showCompany: template.config.showCompanyByDefault,
-                       showBio: template.config.showBioByDefault,
-                       showEmail: template.config.showEmailByDefault,
-                       showWebsite: template.config.showWebsiteByDefault,
-                       showPhone: template.config.showPhoneByDefault,
-                       showWhatsapp: template.config.showWhatsappByDefault,
-                       showSocialLinks: template.config.showSocialLinksByDefault,
-                       showButtons: template.config.showButtonsByDefault
+                       backgroundImage: template.config.defaultBackgroundImage
                      } as any} 
                      lang={lang} 
                      customConfig={template.config} 
                      hideSaveButton={true} 
+                     isFullFrame={true}
                    />
                 </div>
               </div>
@@ -908,7 +907,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
         </div>
       )}
 
-      {/* Custom Reset Confirmation Modal */}
       {showResetConfirm && (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-orange-100 dark:border-orange-900/20 animate-zoom-in">
@@ -929,7 +927,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 </button>
                 <button 
                   onClick={() => setShowResetConfirm(false)}
-                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-3xl font-black text-sm uppercase transition-all"
+                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase transition-all"
                 >
                   {t('إلغاء', 'Cancel')}
                 </button>

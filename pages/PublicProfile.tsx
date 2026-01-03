@@ -17,13 +17,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
-  // دالة لتحويل الـ Hex إلى RGB
   const hexToRgb = (hex: string) => {
     hex = hex.replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
     return { r, g, b, string: `${r}, ${g}, ${b}` };
   };
 
@@ -44,16 +43,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     const rgb = hexToRgb(primary);
     const root = document.documentElement;
 
-    // 1. تحديث متغيرات الألوان للدوائر المتحركة (الـ Mesh)
     root.style.setProperty('--brand-primary', primary);
     root.style.setProperty('--brand-secondary', secondary);
     
-    // 2. صبغ خلفية الموقع بالكامل بلون البطاقة (Tinting)
-    // في الوضع الفاتح نستخدم اللون بنسبة 4% وفي المظلم بنسبة 8%
-    const bgOpacity = data.isDark ? 0.08 : 0.04;
-    const baseBg = data.isDark ? '#050507' : '#f8fafc';
+    // الأولوية للون خلفية الصفحة المختار من لوحة التحكم
+    const bgStrategy = data.pageBgStrategy || customConfig?.pageBgStrategy || 'solid';
+    const customPageBg = data.pageBgColor || customConfig?.pageBgColor;
+    const baseBg = customPageBg || (data.isDark ? '#050507' : '#f8fafc');
     
-    // حقن استايل مخصص للخلفية لضمان عدم ظهور الأبيض والأسود الصريح
     const styleId = 'dynamic-card-bg';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -61,16 +58,67 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       styleEl.id = styleId;
       document.head.appendChild(styleEl);
     }
+    
+    let backgroundCss = `background-color: ${baseBg} !important;`;
+    
+    // تطبيق استراتيجية الخلفية المطابقة للهيدر
+    if (bgStrategy === 'mirror-header') {
+      if (data.themeType === 'image' && data.backgroundImage) {
+        backgroundCss = `
+          background-color: ${baseBg} !important;
+          background-image: url("${data.backgroundImage}") !important;
+          background-size: cover !important;
+          background-position: center bottom !important;
+          background-attachment: fixed !important;
+        `;
+      } else if (data.themeType === 'gradient' && data.themeGradient) {
+        backgroundCss = `
+          background-color: ${baseBg} !important;
+          background-image: ${data.themeGradient} !important;
+          background-attachment: fixed !important;
+        `;
+      } else {
+        backgroundCss = `background-color: ${data.themeColor} !important;`;
+      }
+      
+      // إضافة طبقة زجاجية مشتتة فوق الخلفية المكررة
+      backgroundCss += `
+        position: relative;
+      `;
+    } else {
+      // الوضع الطبيعي (Radial Gradients)
+      const bgOpacity = data.isDark ? 0.12 : 0.06;
+      backgroundCss += `
+        background-image: radial-gradient(circle at 50% 30%, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent 70%),
+                          radial-gradient(circle at 50% 70%, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent 70%) !important;
+      `;
+    }
+    
     styleEl.innerHTML = `
       .mesh-bg { 
-        background-color: ${baseBg} !important; 
-        background-image: radial-gradient(circle at top right, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent),
-                          radial-gradient(circle at bottom left, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent) !important;
+        ${backgroundCss}
       }
-      .mesh-circle { opacity: ${data.isDark ? 0.2 : 0.3} !important; }
+      ${bgStrategy === 'mirror-header' ? `
+      .mesh-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(80px) saturate(150%);
+        -webkit-backdrop-filter: blur(80px) saturate(150%);
+        background: ${data.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'};
+        z-index: -1;
+      }
+      ` : ''}
+      .mesh-circle { 
+        opacity: ${data.isDark ? 0.15 : 0.25} !important; 
+        left: 50% !important;
+        right: auto !important;
+        margin-left: -400px !important; 
+      }
+      .mesh-1 { top: -10% !important; }
+      .mesh-2 { bottom: -10% !important; }
     `;
 
-    // 3. تحديث الميتا وتفاصيل الصفحة
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) metaTheme.setAttribute('content', primary);
 
@@ -84,7 +132,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     return () => {
       if (styleEl) styleEl.innerHTML = '';
     };
-  }, [data, lang, isRtl]);
+  }, [data, lang, isRtl, customConfig]);
 
   if (data.isActive === false) {
     return (
@@ -151,7 +199,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
         </div>
       </main>
 
-      {/* شريط الإجراءات السفلي */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[100] animate-bounce-in">
          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center gap-3">
             <button 
