@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Language, CardData, CustomTemplate, TemplateCategory } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA } from '../constants';
 import { getAllTemplates, getAllCategories } from '../services/firebase';
@@ -75,9 +75,8 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
         </p>
       </div>
 
-      {/* Category Bar - Mobile Scrollable */}
       <div className="flex justify-start md:justify-center overflow-x-auto no-scrollbar -mx-4 px-4 pb-4">
-        <div className="flex items-center gap-2 md:gap-3 p-2 bg-white dark:bg-gray-900/50 rounded-2xl md:rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm md:shadow-[0_20px_50px_rgba(0,0,0,0.05)] backdrop-blur-xl">
+        <div className="flex items-center gap-2 md:gap-3 p-2 bg-white dark:bg-gray-900/50 rounded-2xl md:rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm backdrop-blur-xl">
           {categories.map(cat => {
             const theme = getCategoryTheme(isRtl ? cat.nameAr : cat.nameEn);
             const Icon = theme.icon;
@@ -101,7 +100,7 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 pt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 md:gap-12 pt-4">
         {filteredTemplates.map(tmpl => (
           <TemplateCard key={tmpl.id} tmpl={tmpl} lang={lang} onSelect={onSelect} sampleData={sampleCardData} />
         ))}
@@ -121,18 +120,48 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
 const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
+  const [mouseYPercentage, setMouseYPercentage] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const percentage = Math.max(0, Math.min(100, (relativeY / rect.height) * 100));
+    setMouseYPercentage(percentage);
+  };
+
+  const handleMouseLeave = () => {
+    setMouseYPercentage(0);
+  };
 
   return (
     <div className="group flex flex-col transition-all duration-500">
-      <div className={`relative aspect-[9/16] w-full bg-gray-50 dark:bg-[#0f0f12] rounded-[2.5rem] md:rounded-[3.5rem] border-2 shadow-sm overflow-hidden mb-6 md:mb-8 group-hover:shadow-[0_40px_100px_-20px_rgba(59,130,246,0.3)] group-hover:-translate-y-2 transition-all duration-700 ${tmpl.isFeatured ? 'border-amber-400/50' : 'border-gray-100 dark:border-gray-800'}`}>
+      <div 
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className={`relative aspect-[9/19] w-full bg-white dark:bg-black rounded-[3.5rem] shadow-xl overflow-hidden mb-6 group-hover:shadow-[0_50px_120px_-20px_rgba(0,0,0,0.4)] transition-all duration-700 border border-gray-100 dark:border-gray-800 cursor-ns-resize`}
+      >
+        
+        {/* The Phone Bezel */}
+        <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+        
         {tmpl.isFeatured && (
-          <div className="absolute top-4 md:top-8 left-4 md:left-8 z-50 flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 md:px-5 py-1.5 md:py-2.5 rounded-full font-black text-[8px] md:text-[10px] uppercase shadow-xl">
-            <Star size={12} className="md:size-[14px]" fill="currentColor" />
-            {isRtl ? 'تصميم مميز' : 'Premium Design'}
+          <div className="absolute top-8 left-8 z-50 flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
+            <Star size={10} fill="currentColor" />
+            {isRtl ? 'مميز' : 'Pro'}
           </div>
         )}
-        <div className="absolute inset-0 p-3 md:p-4 flex items-center justify-center overflow-hidden">
-           <div className="w-full h-full scale-[0.78] md:scale-[0.82] origin-top pointer-events-none transition-transform duration-700 group-hover:scale-[0.85]">
+        
+        {/* Manual Scroll Preview Content */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+           <div 
+             className="h-full w-full transition-transform duration-[450ms] ease-out origin-top scale-[0.98]"
+             style={{ 
+               transform: `translateY(-${mouseYPercentage * 0.55}%)` 
+             }}
+           >
               <CardPreview 
                 data={{ 
                   ...sampleData, 
@@ -144,6 +173,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
                   profileImage: tmpl.config.defaultProfileImage || sampleData.profileImage || '',
                   isDark: tmpl.config.defaultIsDark ?? sampleData.isDark,
                   showOccasion: tmpl.config.showOccasionByDefault ?? false,
+                  showName: true, showTitle: true, showBio: true, showQrCode: true, showButtons: true, showSocialLinks: true
                 }} 
                 lang={lang} 
                 customConfig={tmpl.config}
@@ -151,24 +181,30 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
               />
            </div>
         </div>
-        <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center z-[60] p-6 text-center">
+
+        {/* Action Button Overlay - Centered vertically and horizontally */}
+        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center z-[60]">
            <button 
-             onClick={() => onSelect(tmpl.id)}
-             className="bg-blue-600 text-white px-8 md:px-12 py-4 md:py-6 rounded-2xl md:rounded-[2.5rem] font-black text-xs md:text-sm uppercase shadow-2xl flex items-center gap-3 md:gap-4 transform translate-y-6 group-hover:translate-y-0 transition-all duration-700 hover:scale-110 active:scale-95"
+             onClick={(e) => {
+               e.stopPropagation();
+               onSelect(tmpl.id);
+             }}
+             className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-[11px] md:text-xs uppercase shadow-2xl flex items-center gap-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-700 hover:scale-110 active:scale-95 pointer-events-auto cursor-pointer"
            >
              {t('useTemplate')}
-             <Plus size={20} />
+             <Plus size={16} />
            </button>
         </div>
       </div>
-      <div className="px-4 md:px-8 text-center sm:text-start flex flex-col gap-1.5 md:gap-2">
-         <div className="flex items-center justify-center sm:justify-start gap-2 md:gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${tmpl.isFeatured ? 'bg-amber-500' : 'bg-blue-600'}`}></div>
-            <h3 className="text-lg md:text-xl font-black dark:text-white uppercase tracking-wider truncate">
+
+      <div className="px-6 text-center sm:text-start flex flex-col gap-1.5">
+         <div className="flex items-center justify-center sm:justify-start gap-2.5">
+            <div className={`w-2.5 h-2.5 rounded-full ${tmpl.isFeatured ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-600'}`}></div>
+            <h3 className="text-base md:text-lg font-black dark:text-white uppercase tracking-tight truncate">
               {isRtl ? tmpl.nameAr : tmpl.nameEn}
             </h3>
          </div>
-         <p className="text-[10px] md:text-[11px] font-bold text-gray-400 dark:text-gray-500 leading-relaxed uppercase tracking-widest px-1">
+         <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 leading-relaxed uppercase tracking-widest px-1">
            {isRtl ? tmpl.descAr : tmpl.descEn}
          </p>
       </div>

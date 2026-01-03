@@ -17,56 +17,74 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
 
+  // دالة لتحويل الـ Hex إلى RGB
+  const hexToRgb = (hex: string) => {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return { r, g, b, string: `${r}, ${g}, ${b}` };
+  };
+
+  const getColors = () => {
+    const primary = data.themeColor || '#3b82f6';
+    let secondary = primary;
+    if (data.themeType === 'gradient' && data.themeGradient) {
+      const match = data.themeGradient.match(/#[a-fA-F0-9]{3,6}/g);
+      if (match && match.length > 1) secondary = match[match.length - 1];
+    }
+    return { primary, secondary };
+  };
+
   useEffect(() => {
     if (!data || data.isActive === false) return;
 
-    // تجهيز البيانات الديناميكية للعميل
-    const clientName = data.name || (isRtl ? 'مستخدم هويتي' : 'NextID User');
-    const clientTitle = data.title || '';
-    const fullPageTitle = clientTitle ? `${clientName} | ${clientTitle}` : clientName;
-    const clientBio = data.bio || (isRtl ? `تفضل بزيارة بطاقتي الرقمية وتواصل معي.` : `View my digital business card.`);
-    const previewImage = data.profileImage || siteIcon || 'https://api.dicebear.com/7.x/shapes/svg?seed=identity';
+    const { primary, secondary } = getColors();
+    const rgb = hexToRgb(primary);
+    const root = document.documentElement;
 
-    // 1. تحديث عنوان التبويب في المتصفح
+    // 1. تحديث متغيرات الألوان للدوائر المتحركة (الـ Mesh)
+    root.style.setProperty('--brand-primary', primary);
+    root.style.setProperty('--brand-secondary', secondary);
+    
+    // 2. صبغ خلفية الموقع بالكامل بلون البطاقة (Tinting)
+    // في الوضع الفاتح نستخدم اللون بنسبة 4% وفي المظلم بنسبة 8%
+    const bgOpacity = data.isDark ? 0.08 : 0.04;
+    const baseBg = data.isDark ? '#050507' : '#f8fafc';
+    
+    // حقن استايل مخصص للخلفية لضمان عدم ظهور الأبيض والأسود الصريح
+    const styleId = 'dynamic-card-bg';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+      .mesh-bg { 
+        background-color: ${baseBg} !important; 
+        background-image: radial-gradient(circle at top right, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent),
+                          radial-gradient(circle at bottom left, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent) !important;
+      }
+      .mesh-circle { opacity: ${data.isDark ? 0.2 : 0.3} !important; }
+    `;
+
+    // 3. تحديث الميتا وتفاصيل الصفحة
+    const metaTheme = document.getElementById('meta-theme-color');
+    if (metaTheme) metaTheme.setAttribute('content', primary);
+
+    const clientName = data.name || (isRtl ? 'مستخدم هويتي' : 'NextID User');
+    const fullPageTitle = data.title ? `${clientName} | ${data.title}` : clientName;
     document.title = fullPageTitle;
 
-    // 2. وظيفة ذكية لتحديث أو إنشاء وسوم الميتا (Meta Tags) لضمان المعاينة
-    const setMetaTag = (property: string, content: string, isProperty = true) => {
-      const attribute = isProperty ? 'property' : 'name';
-      let element = document.querySelector(`meta[${attribute}="${property}"]`);
-      
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attribute, property);
-        document.head.appendChild(element);
-      }
-      element.setAttribute('content', content);
-    };
-
-    // تحديث كافة الوسوم المطلوبة لمنصات التواصل (WhatsApp, FB, X)
-    setMetaTag('description', clientBio, false);
-    setMetaTag('og:title', fullPageTitle);
-    setMetaTag('og:description', clientBio);
-    setMetaTag('og:image', previewImage);
-    setMetaTag('og:url', window.location.href);
-    setMetaTag('og:type', 'profile');
-    
-    setMetaTag('twitter:card', 'summary_large_image', false);
-    setMetaTag('twitter:title', fullPageTitle, false);
-    setMetaTag('twitter:description', clientBio, false);
-    setMetaTag('twitter:image', previewImage, false);
-
-    // تحديث أيقونة الموقع المصغرة لتكون صورة العميل (لمسة احترافية إضافية)
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    if (favicon && data.profileImage) {
-      favicon.href = data.profileImage;
-    }
+    if (favicon && data.profileImage) favicon.href = data.profileImage;
 
-    // تنظيف العناوين عند مغادرة الصفحة (اختياري)
     return () => {
-      document.title = isRtl ? 'هويتي الرقمية' : 'My Digital Identity';
+      if (styleEl) styleEl.innerHTML = '';
     };
-  }, [data, lang, siteIcon, isRtl]);
+  }, [data, lang, isRtl]);
 
   if (data.isActive === false) {
     return (
@@ -74,24 +92,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
          <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-xl">
             <AlertCircle size={48} />
          </div>
-         <h1 className="text-3xl font-black mb-4">
-            {isRtl ? 'البطاقة غير متاحة حالياً' : 'Card Currently Unavailable'}
-         </h1>
-         <p className="text-gray-500 dark:text-gray-400 max-w-xs font-bold leading-relaxed mb-10">
-            {isRtl ? 'تم تعطيل هذه البطاقة مؤقتاً بواسطة المسؤول أو صاحب البطاقة.' : 'This card has been temporarily disabled.'}
-         </p>
-         <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">
-            {isRtl ? 'العودة للرئيسية' : 'Back to Home'}
-         </a>
+         <h1 className="text-3xl font-black mb-4">{isRtl ? 'البطاقة غير متاحة' : 'Unavailable'}</h1>
+         <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">{isRtl ? 'العودة للرئيسية' : 'Back Home'}</a>
       </div>
     );
   }
-
-  const getPageBackgroundStyle = () => {
-    if (data.themeType === 'gradient') return { background: `${data.themeGradient}15` }; 
-    if (data.themeType === 'color') return { backgroundColor: `${data.themeColor}08` }; 
-    return {};
-  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -104,23 +109,21 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       } catch (err) {}
     }
   };
-  
-  return (
-    <article className={`min-h-screen flex flex-col items-center p-4 relative overflow-x-hidden transition-colors ${data.isDark ? 'bg-[#050507]' : 'bg-slate-50'}`} style={getPageBackgroundStyle()}>
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div 
-          className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-20 animate-pulse"
-          style={data.themeType === 'gradient' ? { background: data.themeGradient } : { backgroundColor: data.themeColor }}
-        />
-      </div>
 
+  const { primary } = getColors();
+  const rgb = hexToRgb(primary);
+
+  return (
+    <article 
+      className={`min-h-screen flex flex-col items-center p-4 relative transition-colors duration-1000 ${data.isDark ? 'dark' : ''}`}
+    >
       <main className="w-full max-w-sm z-10 animate-fade-in-up pt-10 pb-32">
         <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} />
         
         <div className="mt-12 text-center flex flex-col items-center gap-8">
           <nav>
             <a href="/" className="inline-flex items-center gap-3 px-8 py-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-2xl font-black text-sm shadow-2xl hover:scale-105 transition-all border group">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white group-hover:rotate-12 transition-transform">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white group-hover:rotate-12 transition-transform" style={{ backgroundColor: primary }}>
                  <Plus size={18} />
               </div>
               {lang === 'ar' ? 'أنشئ بطاقتك الرقمية الآن' : 'Create Your Digital Card Now'}
@@ -139,17 +142,22 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             </span>
           </a>
 
-          <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
-            {lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}
-          </p>
+          <div className="flex flex-col items-center gap-1 opacity-40">
+             <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em]">
+               {lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}
+             </p>
+             <div className="w-12 h-0.5 rounded-full" style={{ backgroundColor: primary }} />
+          </div>
         </div>
       </main>
 
+      {/* شريط الإجراءات السفلي */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[100] animate-bounce-in">
          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center gap-3">
             <button 
               onClick={() => downloadVCard(data)}
-              className="flex-1 flex items-center justify-center gap-3 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+              className="flex-1 flex items-center justify-center gap-3 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-lg transition-all active:scale-95"
+              style={{ backgroundColor: primary, boxShadow: `0 10px 25px -5px rgba(${rgb.string}, 0.4)` }}
             >
                <UserPlus size={18} />
                <span>{t('saveContact')}</span>
