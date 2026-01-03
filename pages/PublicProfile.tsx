@@ -60,9 +60,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     }
     
     let backgroundCss = `background-color: ${baseBg} !important;`;
+    let circleOpacity = 0; // افتراضياً نخفي الدوائر لضمان لون صلب
     
     // تطبيق استراتيجية الخلفية المطابقة للهيدر
     if (bgStrategy === 'mirror-header') {
+      circleOpacity = data.isDark ? 0.15 : 0.25;
       if (data.themeType === 'image' && data.backgroundImage) {
         backgroundCss = `
           background-color: ${baseBg} !important;
@@ -81,17 +83,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
         backgroundCss = `background-color: ${data.themeColor} !important;`;
       }
       
-      // إضافة طبقة زجاجية مشتتة فوق الخلفية المكررة
-      backgroundCss += `
-        position: relative;
-      `;
+      backgroundCss += `position: relative;`;
     } else {
-      // الوضع الطبيعي (Radial Gradients)
-      const bgOpacity = data.isDark ? 0.12 : 0.06;
-      backgroundCss += `
-        background-image: radial-gradient(circle at 50% 30%, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent 70%),
-                          radial-gradient(circle at 50% 70%, rgba(${rgb.r},${rgb.g},${rgb.b}, ${bgOpacity}), transparent 70%) !important;
-      `;
+      // الوضع الصلب (Solid Color) - تم إلغاء التدرج الشعاعي بناءً على طلبك
+      backgroundCss += `background-image: none !important;`;
+      circleOpacity = 0; // تأكيد إخفاء الدوائر العائمة تماماً ليكون اللون موحداً
     }
     
     styleEl.innerHTML = `
@@ -110,7 +106,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       }
       ` : ''}
       .mesh-circle { 
-        opacity: ${data.isDark ? 0.15 : 0.25} !important; 
+        opacity: ${circleOpacity} !important; 
         left: 50% !important;
         right: auto !important;
         margin-left: -400px !important; 
