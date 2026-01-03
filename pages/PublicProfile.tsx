@@ -1,10 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CardData, Language, TemplateConfig } from '../types';
 import CardPreview from '../components/CardPreview';
 import { TRANSLATIONS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
-import { Plus, UserPlus, Share2, AlertCircle, Coffee } from 'lucide-react';
+import { Plus, UserPlus, Share2, AlertCircle, Coffee, Loader2 } from 'lucide-react';
+import { generateShareUrl } from '../utils/share';
 
 interface PublicProfileProps {
   data: CardData;
@@ -16,6 +17,7 @@ interface PublicProfileProps {
 const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig, siteIcon }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const hexToRgb = (hex: string) => {
     hex = hex.replace('#', '');
@@ -40,13 +42,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     if (!data || data.isActive === false) return;
 
     const { primary, secondary } = getColors();
-    const rgb = hexToRgb(primary);
     const root = document.documentElement;
 
     root.style.setProperty('--brand-primary', primary);
     root.style.setProperty('--brand-secondary', secondary);
     
-    // الأولوية للون خلفية الصفحة المختار من لوحة التحكم
     const bgStrategy = data.pageBgStrategy || customConfig?.pageBgStrategy || 'solid';
     const customPageBg = data.pageBgColor || customConfig?.pageBgColor;
     const baseBg = customPageBg || (data.isDark ? '#050507' : '#f8fafc');
@@ -60,9 +60,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     }
     
     let backgroundCss = `background-color: ${baseBg} !important;`;
-    let circleOpacity = 0; // افتراضياً نخفي الدوائر لضمان لون صلب
+    let circleOpacity = 0; 
     
-    // تطبيق استراتيجية الخلفية المطابقة للهيدر
     if (bgStrategy === 'mirror-header') {
       circleOpacity = data.isDark ? 0.15 : 0.25;
       if (data.themeType === 'image' && data.backgroundImage) {
@@ -82,35 +81,16 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       } else {
         backgroundCss = `background-color: ${data.themeColor} !important;`;
       }
-      
       backgroundCss += `position: relative;`;
     } else {
-      // الوضع الصلب (Solid Color) - تم إلغاء التدرج الشعاعي بناءً على طلبك
       backgroundCss += `background-image: none !important;`;
-      circleOpacity = 0; // تأكيد إخفاء الدوائر العائمة تماماً ليكون اللون موحداً
+      circleOpacity = 0; 
     }
     
     styleEl.innerHTML = `
-      .mesh-bg { 
-        ${backgroundCss}
-      }
-      ${bgStrategy === 'mirror-header' ? `
-      .mesh-bg::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        backdrop-filter: blur(80px) saturate(150%);
-        -webkit-backdrop-filter: blur(80px) saturate(150%);
-        background: ${data.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'};
-        z-index: -1;
-      }
-      ` : ''}
-      .mesh-circle { 
-        opacity: ${circleOpacity} !important; 
-        left: 50% !important;
-        right: auto !important;
-        margin-left: -400px !important; 
-      }
+      .mesh-bg { ${backgroundCss} }
+      ${bgStrategy === 'mirror-header' ? `.mesh-bg::after { content: ''; position: absolute; inset: 0; backdrop-filter: blur(80px) saturate(150%); -webkit-backdrop-filter: blur(80px) saturate(150%); background: ${data.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'}; z-index: -1; }` : ''}
+      .mesh-circle { opacity: ${circleOpacity} !important; left: 50% !important; right: auto !important; margin-left: -400px !important; }
       .mesh-1 { top: -10% !important; }
       .mesh-2 { bottom: -10% !important; }
     `;
@@ -119,16 +99,66 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     if (metaTheme) metaTheme.setAttribute('content', primary);
 
     const clientName = data.name || (isRtl ? 'مستخدم هويتي' : 'NextID User');
-    const fullPageTitle = data.title ? `${clientName} | ${data.title}` : clientName;
-    document.title = fullPageTitle;
+    document.title = data.title ? `${clientName} | ${data.title}` : clientName;
 
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
     if (favicon && data.profileImage) favicon.href = data.profileImage;
 
-    return () => {
-      if (styleEl) styleEl.innerHTML = '';
-    };
+    return () => { if (styleEl) styleEl.innerHTML = ''; };
   }, [data, lang, isRtl, customConfig]);
+
+  const handleShare = async () => {
+    if (isCapturing) return;
+    setIsCapturing(true);
+
+    const url = generateShareUrl(data);
+    const professionalText = isRtl 
+      ? `*${data.name}*\nتواصل معي عبر بطاقتي الرقمية:\n${url}`
+      : `*${data.name}*\nConnect with me via my digital card:\n${url}`;
+
+    try {
+      // الانتظار للتأكد من جاهزية العنصر المخفي
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const target = document.getElementById('public-capture-area');
+      if (!target) throw new Error("Target not found");
+
+      // @ts-ignore
+      const canvas = await window.html2canvas(target, {
+        useCORS: true,
+        allowTaint: false,
+        scale: 2,
+        backgroundColor: data.isDark ? '#0a0a0c' : '#ffffff',
+        width: 400,
+        height: 700
+      });
+
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+
+      if (blob && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'card.jpg', { type: 'image/jpeg' })] })) {
+        await navigator.share({
+          files: [new File([blob], `${data.id}.jpg`, { type: 'image/jpeg' })],
+          title: data.name,
+          text: professionalText
+        });
+      } else {
+        // Fallback للمشاركة العادية بالنص إذا فشلت الصورة أو لم يدعمها المتصفح
+        if (navigator.share) {
+          await navigator.share({
+            title: data.name,
+            text: professionalText,
+            url: url
+          });
+        } else {
+          navigator.clipboard.writeText(url);
+          alert(isRtl ? "تم نسخ الرابط" : "Link copied");
+        }
+      }
+    } catch (err) {
+      console.error("Share error:", err);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
 
   if (data.isActive === false) {
     return (
@@ -142,25 +172,19 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     );
   }
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: data.name,
-          text: isRtl ? `تواصل معي عبر بطاقتي الرقمية: ${data.name}` : `Connect with me: ${data.name}`,
-          url: window.location.href,
-        });
-      } catch (err) {}
-    }
-  };
-
   const { primary } = getColors();
   const rgb = hexToRgb(primary);
 
   return (
-    <article 
-      className={`min-h-screen flex flex-col items-center p-4 relative transition-colors duration-1000 ${data.isDark ? 'dark' : ''}`}
-    >
+    <article className={`min-h-screen flex flex-col items-center p-4 relative transition-colors duration-1000 ${data.isDark ? 'dark' : ''}`}>
+      
+      {/* منطقة الالتقاط المخفية لضمان صورة نظيفة واحترافية */}
+      <div className="fixed top-0 left-0 -translate-x-[3000px] pointer-events-none" style={{ width: '400px' }}>
+          <div id="public-capture-area" className="bg-white dark:bg-black overflow-hidden" style={{ width: '400px', minHeight: '700px' }}>
+             <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} />
+          </div>
+      </div>
+
       <main className="w-full max-w-sm z-10 animate-fade-in-up pt-10 pb-32">
         <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} />
         
@@ -174,22 +198,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             </a>
           </nav>
 
-          <a 
-            href="https://buymeacoffee.com/guidai" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="group flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-          >
+          <a href="https://buymeacoffee.com/guidai" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-2 px-6 py-2.5 bg-white dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
             <Coffee size={14} className="text-[#FFDD00] group-hover:animate-bounce" />
-            <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-white transition-colors">
-              {isRtl ? 'ادعم استمرار المشروع' : 'Support this project'}
-            </span>
+            <span className="text-[10px] font-black uppercase text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-white transition-colors">{isRtl ? 'ادعم استمرار المشروع' : 'Support this project'}</span>
           </a>
 
           <div className="flex flex-col items-center gap-1 opacity-40">
-             <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em]">
-               {lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}
-             </p>
+             <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em]">{lang === 'ar' ? `هوية رقمية بواسطة ${TRANSLATIONS.appName.ar}` : `Digital ID by ${TRANSLATIONS.appName.en}`}</p>
              <div className="w-12 h-0.5 rounded-full" style={{ backgroundColor: primary }} />
           </div>
         </div>
@@ -207,10 +222,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             </button>
             <button 
               onClick={handleShare}
-              className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-3xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              disabled={isCapturing}
+              className="p-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-3xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               aria-label="Share"
             >
-               <Share2 size={20} />
+               {isCapturing ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
             </button>
          </div>
       </div>

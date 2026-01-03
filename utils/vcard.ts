@@ -1,8 +1,30 @@
 
 import { CardData } from '../types';
 
-export const downloadVCard = (data: CardData) => {
-  // تنظيف الروابط والبيانات مع إضافة حماية ضد القيم غير المعرفة
+/**
+ * وظيفة مساعدة لتحويل رابط صورة إلى Base64
+ * ضرورية لأن نظام vCard يتطلب الصورة مدمجة نصياً
+ */
+const imageUrlToBase64 = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.error("Failed to convert image for vCard:", e);
+    return null;
+  }
+};
+
+export const downloadVCard = async (data: CardData) => {
   const cleanName = (data.name || '').trim();
   const cleanTitle = (data.title || '').trim();
   const cleanOrg = (data.company || '').trim();
@@ -10,7 +32,6 @@ export const downloadVCard = (data: CardData) => {
   const cleanEmail = (data.email || '').trim();
   const cleanWeb = (data.website || '').trim();
 
-  // بناء محتوى vCard
   let vcard = [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -25,12 +46,21 @@ export const downloadVCard = (data: CardData) => {
     `NOTE:${data.bio || ''}`,
   ];
 
-  // إضافة الصورة إذا كانت بصيغة Base64 (التي نستخدمها في التطبيق)
-  if (data.profileImage && data.profileImage.startsWith('data:image/')) {
-    const base64Data = data.profileImage.split(',')[1];
-    const mimeType = data.profileImage.split(';')[0].split(':')[1].toUpperCase();
-    const type = mimeType.split('/')[1] || 'JPEG';
-    vcard.push(`PHOTO;TYPE=${type};ENCODING=b:${base64Data}`);
+  // التعامل مع الصورة الشخصية
+  if (data.profileImage) {
+    if (data.profileImage.startsWith('data:image/')) {
+      // إذا كانت الصورة قديمة (Base64)
+      const base64Data = data.profileImage.split(',')[1];
+      const mimeType = data.profileImage.split(';')[0].split(':')[1].toUpperCase();
+      const type = mimeType.split('/')[1] || 'JPEG';
+      vcard.push(`PHOTO;TYPE=${type};ENCODING=b:${base64Data}`);
+    } else if (data.profileImage.startsWith('http')) {
+      // إذا كانت الصورة جديدة (رابط من Storage) - نقوم بتحويلها
+      const base64Data = await imageUrlToBase64(data.profileImage);
+      if (base64Data) {
+        vcard.push(`PHOTO;TYPE=JPEG;ENCODING=b:${base64Data}`);
+      }
+    }
   }
 
   vcard.push('END:VCARD');

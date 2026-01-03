@@ -20,6 +20,7 @@
     <meta name="theme-color" id="meta-theme-color" content="#3b82f6">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -40,6 +41,8 @@
                         'marquee-slow': 'marquee 60s linear infinite',
                         'marquee-reverse': 'marquee-reverse 50s linear infinite',
                         'spin-slow': 'spin 3s linear infinite',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'zoom-in': 'zoomIn 0.3s ease-out forwards',
                     },
                     keyframes: {
                         float: {
@@ -57,6 +60,16 @@
                         spin: {
                             'from': { transform: 'rotate(0deg)' },
                             'to': { transform: 'rotate(360deg)' }
+                        },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        },
+                        zoomIn: {
+                            'from': { opacity: '0', transform: 'scale(0.95)' },
+                            'to': { opacity: '1', transform: 'scale(1)' }
                         }
                     }
                 },
@@ -77,7 +90,6 @@
             padding: 0;
         }
         
-        /* إخفاء شريط التمرير تماماً مع الحفاظ على العمل */
         .themed-scrollbar::-webkit-scrollbar {
             display: none !important;
             width: 0 !important;
@@ -87,8 +99,8 @@
         .themed-scrollbar {
             overflow-y: auto !important;
             overflow-x: hidden !important;
-            -ms-overflow-style: none !important;  /* IE and Edge */
-            scrollbar-width: none !important;  /* Firefox */
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
             scrollbar-gutter: auto !important;
         }
 
@@ -136,10 +148,17 @@
           to { opacity: 1; transform: translateY(0); }
         }
 
-        /* تحسين مظهر الماركي ليكون الاتجاه صحيح في الـ RTL */
         .marquee-container {
             mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        /* تنسيق مخصص لحاوية لقطة الشاشة المخفية */
+        #capture-container {
+            position: fixed;
+            left: -9999px;
+            top: -9999px;
+            width: 400px;
         }
     </style>
 <script type="importmap">
@@ -166,6 +185,8 @@
         <div class="mesh-circle mesh-2"></div>
     </div>
     <div id="root"></div>
+    <!-- حاوية لالتقاط الصور -->
+    <div id="capture-container"></div>
 <script type="module" src="/index.tsx"></script>
 </body>
 </html>

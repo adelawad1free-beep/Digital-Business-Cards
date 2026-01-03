@@ -28,7 +28,8 @@ import {
   getAggregateFromServer,
   sum
 } from "firebase/firestore";
-import { CardData, TemplateCategory, VisualStyle, CustomTemplate } from "../types";
+import { getStorage } from "firebase/storage"; // إضافة استيراد Storage
+import { CardData, TemplateCategory, VisualStyle } from "../types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
@@ -43,6 +44,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app); // تصدير خدمة Storage
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 

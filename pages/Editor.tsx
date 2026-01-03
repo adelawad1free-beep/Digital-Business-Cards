@@ -232,6 +232,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const labelClasses = "block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-widest px-1";
 
   const handleFinalSaveInternal = () => {
+    if (isUploading || isUploadingBg) {
+      alert(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
+      return;
+    }
     if (slugStatus === 'taken' || slugStatus === 'invalid') {
        alert(isRtl ? "يرجى اختيار رابط متاح قبل الحفظ" : "Please choose an available link before saving");
        return;
@@ -290,7 +294,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                             {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <Camera size={20} className="text-gray-300" />}
                             {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
                          </div>
-                         <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all"><Plus size={16} /></button>
+                         <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all disabled:opacity-50"><Plus size={16} /></button>
                          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
                       </div>
                       <div className="flex-1 w-full space-y-4">
@@ -380,7 +384,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                               {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30 scale-95' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
                            </div>
-                           <button onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50">
+                           <button type="button" disabled={isUploadingBg} onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
                               {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                               {t('رفع خلفية خاصة', 'Upload Background')}
                            </button>
@@ -408,10 +412,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                     <div className="flex flex-col md:flex-row gap-6 items-center">
                        <div className="relative shrink-0 group">
                           <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-white dark:border-gray-800 shadow-md bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
-                            {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon size={32} className="text-gray-200" />}
+                            {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon size={32} className="text-gray-300" />}
                             {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
                           </div>
-                          <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg"><Camera size={16} /></button>
+                          <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg disabled:opacity-50"><Camera size={16} /></button>
                           <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
                        </div>
                        <div className="flex-1 w-full space-y-4">
@@ -471,14 +475,14 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                                  {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                               </select>
                               <input type="url" value={socialInput.url} onChange={e => setSocialInput({...socialInput, url: e.target.value})} placeholder="https://..." className="flex-[2] bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20" />
-                              <button onClick={addSocialLink} className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all"><Plus size={20} /></button>
+                              <button type="button" onClick={addSocialLink} className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all"><Plus size={20} /></button>
                            </div>
                            <div className="flex flex-wrap gap-3 pt-4">
                               {formData.socialLinks?.map((link, idx) => (
                                 <div key={idx} className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in group">
                                    <SocialIcon platformId={link.platformId} size={18} className="text-emerald-600" />
                                    <span className="text-[10px] font-black uppercase text-gray-500 max-w-[100px] truncate">{link.platform}</span>
-                                   <button onClick={() => removeSocialLink(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                                   <button type="button" onClick={() => removeSocialLink(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                                 </div>
                               ))}
                            </div>
@@ -528,7 +532,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                               <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
                                  {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
                               </div>
-                              <button onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all">
+                              <button type="button" disabled={isUploadingBg} onClick={() => bgFileInputRef.current?.click()} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all disabled:opacity-50">
                                  {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                                  {t('رفع خلفية خاصة', 'Upload Background')}
                               </button>
@@ -574,9 +578,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           <div className="flex flex-col sm:flex-row gap-3 pt-8 md:pt-10">
             <button 
               onClick={handleFinalSaveInternal}
-              className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all"
+              disabled={isUploading || isUploadingBg}
+              className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
             >
-              <Save size={20} /> {t('حفظ التعديلات', 'Save Changes')}
+              { (isUploading || isUploadingBg) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
+              {t('حفظ التعديلات', 'Save Changes')}
             </button>
             <button 
               onClick={() => setShowMobilePreview(true)}

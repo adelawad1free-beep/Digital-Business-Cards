@@ -894,12 +894,29 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <input type="text" value={template.nameEn} onChange={e => updateTemplate('nameEn', e.target.value)} className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none" />
                     </div>
                  </div>
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('القسم (Category)', 'Section Category')}</label>
-                    <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none">
-                       <option value="">{t('اختر القسم...', 'Select Category...')}</option>
-                       {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
-                    </select>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('القسم (Category)', 'Section Category')}</label>
+                       <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none">
+                          <option value="">{t('اختر القسم...', 'Select Category...')}</option>
+                          {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('ترتيب العرض', 'Display Order')}</label>
+                       <input type="number" value={template.order} onChange={e => updateTemplate('order', parseInt(e.target.value) || 0)} className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none" />
+                    </div>
+                 </div>
+
+                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <Star className={template.isFeatured ? "text-amber-500" : "text-gray-300"} size={20} fill={template.isFeatured ? "currentColor" : "none"} />
+                       <span className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
+                    </div>
+                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-12 h-6 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-7' : 'right-1') : (template.isFeatured ? 'left-7' : 'left-1')}`} />
+                    </button>
                  </div>
               </div>
               <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>

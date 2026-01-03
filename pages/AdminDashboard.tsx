@@ -341,7 +341,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                              <td className="px-8 py-5">{t('القالب والتفاصيل', 'Template & Details')}</td>
                              <td className="px-8 py-5">{t('القسم', 'Category')}</td>
                              <td className="px-8 py-5 text-center">{t('الحالة', 'Status')}</td>
-                             <td className="px-8 py-5 text-center">{t('البصمة الوراثية (DNA)', 'Design DNA')}</td>
+                             <td className="px-8 py-5 text-center">{t('أولوية الترتيب', 'Display Order')}</td>
+                             <td className="px-8 py-5 text-center">{t('تمييز القالب', 'Featured')}</td>
                              <td className="px-8 py-5 text-center">{t('الاستخدام', 'Usage')}</td>
                              <td className="px-8 py-5 text-center">{t('الإجراءات', 'Actions')}</td>
                           </tr>
@@ -360,16 +361,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                                 </td>
                                 <td className="px-8 py-6 text-center"><button onClick={() => saveCustomTemplate({...tmpl, isActive: !tmpl.isActive}).then(fetchData)} className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${tmpl.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{tmpl.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{tmpl.isActive ? t('نشط', 'Active') : t('معطل', 'Disabled')}</button></td>
                                 <td className="px-8 py-6 text-center">
-                                   {tmpl.parentStyleId ? (
-                                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-xl border border-indigo-100">
-                                         <Zap size={10} fill="currentColor" />
-                                         <span className="text-[9px] font-black uppercase tracking-tighter">
-                                            {visualStyles.find(vs => vs.id === tmpl.parentStyleId) ? (isRtl ? visualStyles.find(vs => vs.id === tmpl.parentStyleId)!.nameAr : visualStyles.find(vs => vs.id === tmpl.parentStyleId)!.nameEn) : 'Linked DNA'}
-                                         </span>
-                                      </div>
-                                   ) : (
-                                      <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">{t('كلاسيك (لا يوجد DNA)', 'Classic / No DNA')}</span>
-                                   )}
+                                   <input 
+                                     type="number" 
+                                     value={tmpl.order || 0} 
+                                     onChange={(e) => saveCustomTemplate({...tmpl, order: parseInt(e.target.value) || 0}).then(fetchData)}
+                                     className="w-16 px-2 py-1 text-center bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 font-black text-blue-600 outline-none"
+                                   />
+                                </td>
+                                <td className="px-8 py-6 text-center">
+                                   <button 
+                                      onClick={() => saveCustomTemplate({...tmpl, isFeatured: !tmpl.isFeatured}).then(fetchData)}
+                                      className={`p-3 rounded-xl transition-all ${tmpl.isFeatured ? 'bg-amber-50 text-amber-500 border border-amber-200 shadow-sm' : 'bg-gray-50 text-gray-300'}`}
+                                   >
+                                      <Star size={20} fill={tmpl.isFeatured ? "currentColor" : "none"} />
+                                   </button>
                                 </td>
                                 <td className="px-8 py-6 text-center"><div className="flex flex-col"><span className="text-lg font-black text-indigo-600 leading-none">{tmpl.usageCount || 0}</span><span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('استخدام', 'Uses')}</span></div></td>
                                 <td className="px-8 py-6 text-center"><div className="flex justify-center gap-2"><button onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={18} /></button><button onClick={() => setTemplateToDelete(tmpl.id)} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} /></button></div></td>
