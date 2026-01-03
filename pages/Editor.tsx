@@ -94,8 +94,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          invitationWelcome: selectedTmpl.config.invitationWelcome || (isRtl ? 'بدعوتكم لحضور' : 'Welcomes you to'),
          bodyGlassy: selectedTmpl.config.bodyGlassy ?? false,
          bodyOpacity: selectedTmpl.config.bodyOpacity ?? 100,
-         showSocialLinks: true,
-         showQrCode: true
+         // تحسين: استقاء إعدادات الظهور من القالب المختار
+         showName: selectedTmpl.config.showNameByDefault ?? true,
+         showTitle: selectedTmpl.config.showTitleByDefault ?? true,
+         showCompany: selectedTmpl.config.showCompanyByDefault ?? true,
+         showBio: selectedTmpl.config.showBioByDefault ?? true,
+         showEmail: selectedTmpl.config.showEmailByDefault ?? true,
+         showPhone: selectedTmpl.config.showPhoneByDefault ?? true,
+         showWebsite: selectedTmpl.config.showWebsiteByDefault ?? true,
+         showWhatsapp: selectedTmpl.config.showWhatsappByDefault ?? true,
+         showSocialLinks: selectedTmpl.config.showSocialLinksByDefault ?? true,
+         showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
+         showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true
        } as CardData;
     }
     return baseData;
@@ -158,7 +168,19 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           themeGradient: newTmpl.config.defaultThemeGradient || prev.themeGradient,
           backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
-          showOccasion: newTmpl.config.showOccasionByDefault ?? prev.showOccasion
+          showOccasion: newTmpl.config.showOccasionByDefault ?? prev.showOccasion,
+          // تحديث إعدادات الظهور عند تغيير القالب
+          showName: newTmpl.config.showNameByDefault ?? prev.showName,
+          showTitle: newTmpl.config.showTitleByDefault ?? prev.showTitle,
+          showCompany: newTmpl.config.showCompanyByDefault ?? prev.showCompany,
+          showBio: newTmpl.config.showBioByDefault ?? prev.showBio,
+          showEmail: newTmpl.config.showEmailByDefault ?? prev.showEmail,
+          showPhone: newTmpl.config.showPhoneByDefault ?? prev.showPhone,
+          showWebsite: newTmpl.config.showWebsiteByDefault ?? prev.showWebsite,
+          showWhatsapp: newTmpl.config.showWhatsappByDefault ?? prev.showWhatsapp,
+          showSocialLinks: newTmpl.config.showSocialLinksByDefault ?? prev.showSocialLinks,
+          showButtons: newTmpl.config.showButtonsByDefault ?? prev.showButtons,
+          showQrCode: newTmpl.config.showQrCodeByDefault ?? prev.showQrCode
         }));
         return;
       }

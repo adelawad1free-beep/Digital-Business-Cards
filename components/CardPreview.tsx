@@ -90,9 +90,27 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const cardUrl = generateShareUrl(data);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(cardUrl)}&bgcolor=${qrBgColor === 'transparent' ? (isDark ? '0f0f12' : 'ffffff') : qrBgColor.replace('#', '')}&color=${qrColorVal}&margin=0`;
 
-  const hasContactButtons = (data.showPhone !== false && data.phone) || 
-                           (data.showWhatsapp !== false && data.whatsapp) || 
-                           (!hideSaveButton && data.showButtons !== false);
+  // تحسين: التحقق من القالب كخيار بديل في حال كانت البيانات غير معرفة
+  const isVisible = (dataField: boolean | undefined, configField: boolean | undefined) => {
+    if (dataField !== undefined) return dataField;
+    return configField !== false; // القيمة الافتراضية هي true إلا إذا نص القالب صراحة على false
+  };
+
+  const showName = isVisible(data.showName, config.showNameByDefault);
+  const showTitle = isVisible(data.showTitle, config.showTitleByDefault);
+  const showCompany = isVisible(data.showCompany, config.showCompanyByDefault);
+  const showBio = isVisible(data.showBio, config.showBioByDefault);
+  const showEmail = isVisible(data.showEmail, config.showEmailByDefault);
+  const showPhone = isVisible(data.showPhone, config.showPhoneByDefault);
+  const showWebsite = isVisible(data.showWebsite, config.showWebsiteByDefault);
+  const showWhatsapp = isVisible(data.showWhatsapp, config.showWhatsappByDefault);
+  const showSocialLinks = isVisible(data.showSocialLinks, config.showSocialLinksByDefault);
+  const showButtons = isVisible(data.showButtons, config.showButtonsByDefault);
+  const showQrCode = isVisible(data.showQrCode, config.showQrCodeByDefault);
+
+  const hasContactButtons = (showPhone && data.phone) || 
+                           (showWhatsapp && data.whatsapp) || 
+                           (!hideSaveButton && showButtons);
 
   const getHeaderStyles = (): React.CSSProperties => {
     const opacity = (config.headerOpacity ?? 100) / 100;
@@ -300,22 +318,22 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
            ) : (
              /* Standard Card View (When occasion is off) */
              <>
-               {data.showName !== false && (
+               {showName && (
                  <h2 className="font-black leading-tight" style={{ color: nameColor, transform: `translateY(${config.nameOffsetY}px)`, fontSize: `${config.nameSize}px` }}>
                    {data.name || '---'}
                  </h2>
                )}
-               {(data.showTitle !== false || data.showCompany !== false) && (
+               {(showTitle || showCompany) && (
                  <p className="font-bold opacity-80" style={{ color: titleColor, transform: `translateY(${config.titleOffsetY || 0}px)`, fontSize: '14px' }}>
-                   {data.showTitle !== false && data.title}
-                   {(data.showTitle !== false && data.showCompany !== false) && data.company && ' • '}
-                   {data.showCompany !== false && data.company}
+                   {showTitle && data.title}
+                   {(showTitle && showCompany) && data.company && ' • '}
+                   {showCompany && data.company}
                  </p>
                )}
              </>
            )}
 
-           {data.showBio !== false && data.bio && (
+           {showBio && data.bio && (
              <div className="p-5 rounded-[2rem] mx-auto border border-gray-100 dark:border-white/10 relative" style={{ backgroundColor: bioBgColor, transform: `translateY(${config.bioOffsetY}px)`, maxWidth: '90%' }}>
                 <Quote size={12} className="absolute top-3 left-4 opacity-20 text-blue-500" />
                <p className="font-bold leading-relaxed italic" style={{ color: bioTextColor, fontSize: `${config.bioSize}px` }}>
@@ -326,19 +344,19 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
            {/* Contact Links & Socials */}
            <div className="space-y-3 pt-6">
-              {data.showEmail !== false && data.email && (
+              {showEmail && data.email && (
                 <a href={`mailto:${data.email}`} className="flex items-center gap-3 justify-center text-sm font-bold opacity-60 hover:opacity-100 transition-opacity" style={{ color: linksColor, transform: `translateY(${config.emailOffsetY || 0}px)` }}>
                   <Mail size={16} /> {data.email}
                 </a>
               )}
-              {data.showWebsite !== false && data.website && (
+              {showWebsite && data.website && (
                 <a href={data.website} target="_blank" className="flex items-center gap-3 justify-center text-sm font-bold opacity-60 hover:opacity-100 transition-opacity" style={{ color: linksColor, transform: `translateY(${config.websiteOffsetY || 0}px)` }}>
                   <Globe size={16} /> {data.website}
                 </a>
               )}
            </div>
 
-           {data.showSocialLinks !== false && data.socialLinks?.length > 0 && (
+           {showSocialLinks && data.socialLinks?.length > 0 && (
              <div className="flex flex-wrap justify-center gap-3 py-6" style={{ transform: `translateY(${config.socialLinksOffsetY || 0}px)` }}>
                {data.socialLinks.map((link, idx) => (
                  <a key={idx} href={link.url} target="_blank" className="p-3.5 bg-gray-50 dark:bg-gray-800/80 rounded-2xl hover:scale-110 transition-all shadow-sm border dark:border-gray-700">
@@ -350,17 +368,17 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
            {hasContactButtons && (
               <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
-                {data.showPhone !== false && data.phone && (
+                {showPhone && data.phone && (
                   <a href={`tel:${data.phone}`} style={{ backgroundColor: phoneBtnColor }} className="flex-1 h-14 flex items-center justify-center gap-2 px-3 rounded-full text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all">
                     <Phone size={14} /> {t('call')}
                   </a>
                 )}
-                {data.showWhatsapp !== false && data.whatsapp && (
+                {showWhatsapp && data.whatsapp && (
                   <a href={`https://wa.me/${data.whatsapp}`} target="_blank" style={{ backgroundColor: whatsappBtnColor }} className="flex-1 h-14 flex items-center justify-center gap-2 px-3 rounded-full text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all">
                     <MessageCircle size={14} /> {t('whatsappBtn')}
                   </a>
                 )}
-                {!hideSaveButton && data.showButtons !== false && (
+                {!hideSaveButton && showButtons && (
                   <button onClick={() => downloadVCard(data)} className="flex-1 h-14 flex items-center justify-center gap-3 px-3 rounded-full bg-gray-900 text-white font-black text-[10px] shadow-lg hover:bg-black transition-all">
                     <UserPlus size={14} /> {t('saveContact')}
                   </button>
@@ -368,7 +386,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               </div>
            )}
 
-           {data.showQrCode !== false && (
+           {showQrCode && (
              <div className="pt-12 flex flex-col items-center gap-3" style={{ transform: `translateY(${qrOffsetY}px)` }}>
                <div className="transition-all duration-700 overflow-hidden shadow-2xl p-1 bg-white" 
                     style={{ 
