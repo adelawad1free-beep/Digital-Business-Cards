@@ -13,7 +13,7 @@ import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, Coffee, Heart } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, Coffee, Heart, LayoutGrid, CreditCard, Settings as SettingsIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>(() => {
@@ -159,6 +159,11 @@ const App: React.FC = () => {
     });
   };
 
+  const navigateTo = (tab: any) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (isInitializing) return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[999]">
       <Loader2 className="animate-spin text-blue-600 mb-6" size={64} />
@@ -207,40 +212,49 @@ const App: React.FC = () => {
       style={{ fontFamily: 'var(--site-font), sans-serif' }}
     >
       <header className="sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <div className="flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab('home')}>
-              <div className="w-10 h-10 bg-[var(--brand-primary)] rounded-2xl flex items-center justify-center text-white font-black shadow-lg overflow-hidden">
-                {siteConfig.siteLogo ? <img src={siteConfig.siteLogo} className="w-full h-full object-contain p-1" /> : "ID"}
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4 md:gap-10">
+            <div className="flex items-center gap-2 md:gap-4 cursor-pointer shrink-0" onClick={() => navigateTo('home')}>
+              <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--brand-primary)] rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black shadow-lg overflow-hidden shrink-0">
+                {siteConfig.siteLogo ? <img src={siteConfig.siteLogo} className="w-full h-full object-contain p-1" alt="Logo" /> : "ID"}
               </div>
-              <span className="text-xl font-black dark:text-white">{displaySiteName}</span>
+              <span className="text-lg md:text-xl font-black dark:text-white truncate max-w-[140px] md:max-w-none">{displaySiteName}</span>
             </div>
-            <nav className="hidden md:flex items-center gap-2">
-              <button onClick={() => setActiveTab('home')} className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-xl' : 'text-gray-500 hover:bg-gray-100'}`}>{t('home')}</button>
-              <button onClick={() => setActiveTab('templates')} className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-xl' : 'text-gray-500 hover:bg-gray-100'}`}>{t('templates')}</button>
-              {currentUser && <button onClick={() => setActiveTab('manager')} className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-xl' : 'text-gray-500 hover:bg-gray-100'}`}>{t('myCards')}</button>}
-              {isAdmin && <button onClick={() => setActiveTab('admin')} className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-xl' : 'text-gray-500 hover:bg-gray-100'}`}>{t('admin')}</button>}
+
+            <nav className="hidden lg:flex items-center gap-2">
+              <button onClick={() => navigateTo('home')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('home')}</button>
+              <button onClick={() => navigateTo('templates')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('templates')}</button>
+              {currentUser && <button onClick={() => navigateTo('manager')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('myCards')}</button>}
+              {isAdmin && <button onClick={() => navigateTo('admin')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('admin')}</button>}
             </nav>
           </div>
-          <div className="flex items-center gap-4">
-            <LanguageToggle currentLang={lang} onToggle={(l) => setLang(l)} />
-            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-3 text-gray-400 hover:text-blue-600 bg-gray-50 dark:bg-gray-800/50 rounded-2xl transition-all">
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            {currentUser ? (
-              <div className="flex items-center gap-2">
-                <button onClick={() => setActiveTab('account')} className="hidden sm:flex px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl text-[10px] font-black uppercase items-center gap-2 hover:bg-blue-50 transition-colors"><UserIcon size={14} /> {t('account')}</button>
-                <button onClick={() => signOut(auth).then(() => window.location.reload())} className="px-5 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2">{t('logout')}</button>
+
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1.5 md:gap-3">
+              <div className="scale-90 md:scale-100">
+                <LanguageToggle currentLang={lang} onToggle={(l) => setLang(l)} />
               </div>
-            ) : (
-              <button 
-                onClick={() => setShowAuthModal(true)} 
-                className="px-8 py-3 bg-blue-600 text-white rounded-[1.5rem] text-xs font-black uppercase shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-              >
-                <LogIn size={16} />
-                {t('login')}
+              <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 md:p-3 text-gray-400 hover:text-blue-600 bg-gray-50 dark:bg-gray-800/50 rounded-xl md:rounded-2xl transition-all shrink-0 shadow-sm border border-transparent dark:border-gray-700">
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
               </button>
-            )}
+            </div>
+
+            <div className="hidden md:flex items-center gap-2">
+              {currentUser ? (
+                <>
+                  <button onClick={() => navigateTo('account')} className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm"><UserIcon size={14} /> {t('account')}</button>
+                  <button onClick={() => signOut(auth).then(() => window.location.reload())} className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-sm">{t('logout')}</button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => setShowAuthModal(true)} 
+                  className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <LogIn size={16} />
+                  {t('login')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -251,25 +265,24 @@ const App: React.FC = () => {
         {activeTab === 'manager' && (
           <div className="max-w-6xl mx-auto space-y-12 animate-fade-in-up">
             <div className="flex items-center justify-between mb-8">
-               <h2 className="text-4xl font-black dark:text-white">{t('myCards')}</h2>
+               <h2 className="text-3xl md:text-4xl font-black dark:text-white">{t('myCards')}</h2>
                <button 
                 onClick={() => setActiveTab('templates')} 
-                className="p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all"
+                className="p-3.5 md:p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all"
                >
                  <Plus size={24} />
                </button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                {userCards.map((card) => (
                   <div 
                     key={card.id} 
-                    className="bg-white dark:bg-[#121215] p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-gray-50 dark:border-gray-800 group hover:-translate-y-1 transition-all duration-300"
+                    className="bg-white dark:bg-[#121215] p-5 md:p-6 rounded-[2.25rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-gray-50 dark:border-gray-800 group hover:-translate-y-1 transition-all duration-300"
                   >
-                     {/* Identity Section (Professional Thumbnail style) */}
-                     <div className={`flex items-start justify-between mb-8 ${isRtl ? 'flex-row' : 'flex-row-reverse'}`}>
+                     <div className={`flex items-start justify-between mb-6 md:mb-8 ${isRtl ? 'flex-row' : 'flex-row-reverse'}`}>
                         <div className={`flex flex-col ${isRtl ? 'items-start' : 'items-end'} min-w-0 flex-1`}>
-                           <h3 className="font-black text-xl text-gray-900 dark:text-white truncate w-full mb-2">
+                           <h3 className="font-black text-lg md:text-xl text-gray-900 dark:text-white truncate w-full mb-2">
                              {card.name || '---'}
                            </h3>
                            <div className="inline-flex items-center px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full">
@@ -277,56 +290,55 @@ const App: React.FC = () => {
                            </div>
                         </div>
                         
-                        <div className={`shrink-0 w-20 h-20 rounded-[1.75rem] border-4 border-white dark:border-gray-800 shadow-xl overflow-hidden bg-gray-50 dark:bg-gray-900 ${isRtl ? 'mr-4' : 'ml-4'}`}>
+                        <div className={`shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.75rem] border-4 border-white dark:border-gray-800 shadow-xl overflow-hidden bg-gray-50 dark:bg-gray-900 ${isRtl ? 'mr-4' : 'ml-4'}`}>
                            {card.profileImage ? (
-                             <img src={card.profileImage} className="w-full h-full object-cover" />
+                             <img src={card.profileImage} className="w-full h-full object-cover" alt="Profile" />
                            ) : (
                              <div className="w-full h-full flex items-center justify-center">
-                               <UserIcon size={28} className="text-gray-300"/>
+                               <UserIcon size={24} className="text-gray-300"/>
                              </div>
                            )}
                         </div>
                      </div>
 
-                     {/* Professional Action Buttons at bottom */}
-                     <div className="flex items-center justify-center gap-3">
+                     <div className="flex items-center justify-center gap-2 md:gap-3">
                         <button 
                           onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || '' })}
-                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                           title={isRtl ? "حذف" : "Delete"}
                         >
-                          <Trash2 size={20} />
+                          <Trash2 size={18} />
                         </button>
                         
                         <a 
                           href={`?u=${card.id}`} 
                           target="_blank" 
-                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                          rel="noopener noreferrer"
+                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                           title={isRtl ? "معاينة" : "Preview"}
                         >
-                          <ExternalLink size={20} />
+                          <ExternalLink size={18} />
                         </a>
 
                         <button 
                           onClick={() => { setEditingCard(card); setSelectedTemplateId(card.templateId); setActiveTab('editor'); }}
-                          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-blue-50 dark:bg-blue-900/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                           title={isRtl ? "تعديل" : "Edit"}
                         >
-                          <Edit2 size={20} />
+                          <Edit2 size={18} />
                         </button>
                      </div>
                   </div>
                ))}
                
-               {/* Add New Card Slot */}
                <button 
                  onClick={() => setActiveTab('templates')}
-                 className="flex flex-col items-center justify-center p-8 rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 hover:border-blue-200 hover:bg-blue-50/10 transition-all group min-h-[180px]"
+                 className="flex flex-col items-center justify-center p-8 rounded-[2.25rem] md:rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 hover:border-blue-200 hover:bg-blue-50/10 transition-all group min-h-[160px]"
                >
-                 <div className="w-14 h-14 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm mb-4">
-                    <Plus size={28} />
+                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm mb-4">
+                    <Plus size={24} />
                  </div>
-                 <span className="text-xs font-black text-gray-400 group-hover:text-blue-600 uppercase tracking-widest transition-colors">
+                 <span className="text-[11px] md:text-xs font-black text-gray-400 group-hover:text-blue-600 uppercase tracking-widest transition-colors text-center">
                    {isRtl ? 'إضافة بطاقة جديدة' : 'Add New Card'}
                  </span>
                </button>
@@ -354,9 +366,52 @@ const App: React.FC = () => {
         {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
       </main>
 
-      <footer className="w-full pt-16 pb-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
+      {/* Bottom Navigation for Mobile */}
+      <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[110] animate-bounce-in">
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-2 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between">
+           <button 
+             onClick={() => navigateTo('home')}
+             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'home' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
+           >
+              <HomeIcon size={20} strokeWidth={activeTab === 'home' ? 3 : 2} />
+              <span className="text-[8px] font-black uppercase tracking-widest">{t('home')}</span>
+           </button>
+           <button 
+             onClick={() => navigateTo('templates')}
+             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'templates' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
+           >
+              <LayoutGrid size={20} strokeWidth={activeTab === 'templates' ? 3 : 2} />
+              <span className="text-[8px] font-black uppercase tracking-widest">{t('templates')}</span>
+           </button>
+           
+           <div className="relative -mt-10 px-2">
+              <button 
+                onClick={() => navigateTo('templates')}
+                className="w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-4 border-white dark:border-[#0a0a0c]"
+              >
+                <Plus size={28} strokeWidth={3} />
+              </button>
+           </div>
+
+           <button 
+             onClick={() => navigateTo('manager')}
+             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'manager' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
+           >
+              <CreditCard size={20} strokeWidth={activeTab === 'manager' ? 3 : 2} />
+              <span className="text-[8px] font-black uppercase tracking-widest">{t('myCards')}</span>
+           </button>
+           <button 
+             onClick={() => currentUser ? navigateTo('account') : setShowAuthModal(true)}
+             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'account' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
+           >
+              <UserIcon size={20} strokeWidth={activeTab === 'account' ? 3 : 2} />
+              <span className="text-[8px] font-black uppercase tracking-widest">{currentUser ? t('account') : t('login')}</span>
+           </button>
+        </div>
+      </nav>
+
+      <footer className="w-full pt-16 pb-32 lg:pb-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
-            {/* Buy Me A Coffee - Elegant Integration */}
             <div className="animate-fade-in">
               <a 
                 href="https://buymeacoffee.com/guidai" 
@@ -382,9 +437,9 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                  {isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}
-                  <span className="mx-2 opacity-30">|</span>
+                <div className="flex flex-col sm:flex-row items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                  <span>{isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}</span>
+                  <span className="hidden sm:inline mx-2 opacity-30">|</span>
                   <a href="mailto:info@nextid.my" className="text-blue-600 hover:underline">info@nextid.my</a>
                 </div>
                 <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
@@ -399,9 +454,9 @@ const App: React.FC = () => {
       
       {deleteConfirmation && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3rem] md:rounded-[3.5rem] p-8 md:p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
             <Trash2 size={48} className="mx-auto text-red-500 mb-6" />
-            <h3 className="text-2xl font-black mb-10 dark:text-white">{isRtl ? "تأكيد الحذف" : "Confirm Delete"}</h3>
+            <h3 className="text-2xl font-black mb-8 dark:text-white">{isRtl ? "تأكيد الحذف" : "Confirm Delete"}</h3>
             <div className="flex flex-col gap-3">
               <button onClick={async () => {
                 setSaveLoading(true);
@@ -412,8 +467,8 @@ const App: React.FC = () => {
                   setDeleteConfirmation(null);
                 } catch (e) { alert("Error deleting card"); }
                 finally { setSaveLoading(false); }
-              }} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase">نعم، احذف</button>
-              <button onClick={() => setDeleteConfirmation(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              }} className="py-4 md:py-5 bg-red-600 text-white rounded-2xl md:rounded-3xl font-black text-sm uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all">نعم، احذف</button>
+              <button onClick={() => setDeleteConfirmation(null)} className="py-4 md:py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-2xl md:rounded-3xl font-black text-sm uppercase transition-all">إلغاء</button>
             </div>
           </div>
         </div>
@@ -436,6 +491,31 @@ const App: React.FC = () => {
         .mesh-1 { background: var(--brand-primary); }
         .mesh-2 { background: var(--brand-secondary); }
         body { font-family: var(--site-font), sans-serif !important; }
+
+        @keyframes slide-in-right {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes slide-in-left {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .animate-slide-in-left {
+          animation: slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
       `}} />
     </div>
   );

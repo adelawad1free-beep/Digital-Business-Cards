@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { auth, updateUserSecurity, getAuthErrorMessage } from '../services/firebase';
+import { signOut, deleteUser } from 'firebase/auth';
 import { Language } from '../types';
 import { 
   User, Lock, Mail, ShieldCheck, Key, Loader2, 
-  AlertTriangle, CheckCircle2, UserCircle 
+  AlertTriangle, CheckCircle2, UserCircle, LogOut, Trash2, X
 } from 'lucide-react';
 
 interface UserAccountProps {
@@ -16,6 +17,7 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
   const user = auth.currentUser;
   
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [securityData, setSecurityData] = useState({
     currentPassword: '',
@@ -25,6 +27,36 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
   });
 
   const t = (ar: string, en: string) => isRtl ? ar : en;
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // ملاحظة: قد يطلب Firebase إعادة تسجيل الدخول (Re-authentication) إذا مر وقت طويل على الجلسة
+      await deleteUser(user);
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Delete Error:", error);
+      setStatus({ 
+        type: 'error', 
+        message: error.code === 'auth/requires-recent-login' 
+          ? t("يجب تسجيل الدخول مرة أخرى قبل حذف الحساب لدواعي الأمان.", "Please re-login before deleting your account for security.")
+          : getAuthErrorMessage(error.code, isRtl ? 'ar' : 'en') 
+      });
+      setShowDeleteConfirm(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,9 +109,18 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
               <p className="text-sm font-bold text-gray-400 mt-1">{user?.email}</p>
            </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 rounded-full border border-emerald-100 dark:border-emerald-800/30">
-           <ShieldCheck size={16} />
-           <span className="text-[10px] font-black uppercase tracking-widest">{t('حساب محمي', 'Secure Account')}</span>
+        <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 rounded-full border border-emerald-100 dark:border-emerald-800/30">
+               <ShieldCheck size={16} />
+               <span className="text-[10px] font-black uppercase tracking-widest">{t('حساب محمي', 'Secure Account')}</span>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black text-[10px] uppercase shadow-sm hover:bg-red-600 hover:text-white transition-all"
+            >
+              <LogOut size={16} />
+              {t('خروج', 'Logout')}
+            </button>
         </div>
       </div>
 
@@ -97,6 +138,20 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
               <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400 leading-relaxed">
                 {t('لتغيير البريد أو كلمة المرور، يجب إدخال كلمة المرور الحالية أولاً لدواعي الأمان.', 'Current password is required to change email or password.')}
               </p>
+           </div>
+
+           {/* Danger Zone */}
+           <div className="bg-red-50/50 dark:bg-red-900/5 p-8 rounded-[2.5rem] border border-red-100 dark:border-red-900/20 space-y-4">
+              <h3 className="font-black text-red-600 text-sm uppercase tracking-widest">{t('منطقة الخطر', 'Danger Zone')}</h3>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold leading-relaxed">
+                {t('سيتم حذف حسابك وكافة بطاقاتك الرقمية بشكل نهائي ولا يمكن استعادتها.', 'This will permanently delete your account and all your cards.')}
+              </p>
+              <button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full py-3 bg-white dark:bg-gray-800 text-red-600 border border-red-100 dark:border-red-900/30 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm"
+              >
+                {t('حذف الحساب نهائياً', 'Delete Account')}
+              </button>
            </div>
         </div>
 
@@ -173,6 +228,37 @@ const UserAccount: React.FC<UserAccountProps> = ({ lang }) => {
            </form>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-red-100 dark:border-red-900/20">
+             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={40} />
+             </div>
+             <h3 className="text-2xl font-black dark:text-white mb-4">{t('تأكيد الحذف النهائي', 'Confirm Permanent Delete')}</h3>
+             <p className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                {t('هل أنت متأكد من رغبتك في حذف حسابك؟ لا يمكن التراجع عن هذه الخطوة وسيتم مسح كافة بياناتك فوراً.', 'Are you sure? This action is permanent and all your data will be wiped immediately.')}
+             </p>
+             <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleDeleteAccount}
+                  disabled={loading}
+                  className="w-full py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                  {t('نعم، احذف حسابي', 'Yes, Delete My Account')}
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-3xl font-black text-sm uppercase transition-all"
+                >
+                  {t('إلغاء', 'Cancel')}
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

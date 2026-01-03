@@ -1,9 +1,19 @@
 
 import React, { useState } from 'react';
 import { auth, signInWithGoogle, sendPasswordReset } from '../services/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  setPersistence, 
+  browserLocalPersistence, 
+  browserSessionPersistence 
+} from 'firebase/auth';
 import { Language } from '../types';
-import { X, Mail, Lock, Loader2, UserPlus, LogIn, Key, ArrowLeft, Info, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { 
+  X, Mail, Lock, Loader2, UserPlus, LogIn, Key, 
+  ArrowLeft, Info, CheckCircle2, AlertTriangle, 
+  ExternalLink, Eye, EyeOff 
+} from 'lucide-react';
 
 interface AuthModalProps {
   lang: Language;
@@ -17,6 +27,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
   const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<React.ReactNode>('');
   const [resetSent, setResetSent] = useState(false);
@@ -60,6 +72,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
     setError('');
     
     try {
+      // ضبط ثبات الجلسة بناءً على خيار "تذكرني"
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+
       if (view === 'login') {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         onSuccess(userCredential.user.uid);
@@ -93,7 +108,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
     }
   };
 
-  const inputClasses = `w-full ${isRtl ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all font-medium`;
+  const inputClasses = `w-full ${isRtl ? 'pr-12 pl-12' : 'pl-12 pr-12'} py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all font-medium`;
   const labelClasses = "text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1 mb-2 block";
 
   return (
@@ -176,25 +191,55 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
               </div>
 
               {view !== 'forgot' && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className={labelClasses}>{t('كلمة المرور', 'Password')}</label>
-                    <button 
-                      type="button" onClick={() => setView('forgot')}
-                      className="text-[10px] font-black text-blue-600 uppercase hover:underline mb-2"
-                    >
-                      {t('نسيت كلمة السر؟', 'Forgot?')}
-                    </button>
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className={labelClasses}>{t('كلمة المرور', 'Password')}</label>
+                      <button 
+                        type="button" onClick={() => setView('forgot')}
+                        className="text-[10px] font-black text-blue-600 uppercase hover:underline mb-2"
+                      >
+                        {t('نسيت كلمة السر؟', 'Forgot?')}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        required value={password} onChange={e => setPassword(e.target.value)}
+                        className={inputClasses}
+                        placeholder="••••••••"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors`}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="relative">
-                    <Lock className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
-                    <input 
-                      type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                      className={inputClasses}
-                      placeholder="••••••••"
-                    />
+
+                  {/* Remember Me Checkbox */}
+                  <div className="flex items-center gap-3 px-1">
+                    <label className="flex items-center cursor-pointer group">
+                      <div className="relative">
+                        <input 
+                          type="checkbox" 
+                          checked={rememberMe} 
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-5 h-5 rounded-md border-2 transition-all ${rememberMe ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-600 bg-transparent'}`}>
+                          {rememberMe && <CheckCircle2 size={14} className="text-white m-auto" />}
+                        </div>
+                      </div>
+                      <span className="mr-2 ml-2 text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest select-none group-hover:text-blue-600 transition-colors">
+                        {t('تذكرني', 'Remember Me')}
+                      </span>
+                    </label>
                   </div>
-                </div>
+                </>
               )}
 
               {error && (
@@ -215,7 +260,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ lang, onClose, onSuccess }) => {
 
             <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
               <button 
-                onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(''); }}
+                onClick={() => { setView(view === 'login' ? 'signup' : 'login'); setError(''); setShowPassword(false); }}
                 className="text-sm font-bold text-blue-600 hover:underline"
               >
                 {view === 'login' 

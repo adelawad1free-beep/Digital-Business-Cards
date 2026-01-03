@@ -1,18 +1,16 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { VisualStyle, Language, TemplateConfig, ThemeType } from '../types';
 import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL } from '../services/firebase';
-import { THEME_GRADIENTS, THEME_COLORS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
+import { THEME_GRADIENTS, THEME_COLORS, BACKGROUND_PRESETS, PATTERN_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from './CardPreview';
 import { 
   Palette, Plus, Save, Trash2, Edit3, X, Loader2, Sparkles, 
-  Sun, Moon, Pipette, ImageIcon, UploadCloud, CheckCircle2, 
-  LayoutGrid, ToggleLeft, ToggleRight, Search, SlidersHorizontal, 
-  GlassWater, Box, Type, LayoutTemplate, Layers, ChevronLeft, 
+  Sun, Moon, ImageIcon, UploadCloud, 
+  Search, GlassWater, Box, LayoutTemplate, Layers, ChevronLeft, 
   ChevronRight, Monitor, Zap, Wind, Waves, Square, AlignLeft, 
-  AlignRight, Columns, Minus, Maximize2, Move, FileCode, HardDrive, Code2, Wand2, Grid, Shapes,
-  Check, RefreshCcw, Info, AlignCenter, Tag, Ruler
+  AlignRight, Columns, Maximize2, Move, RefreshCcw, Grid, Shapes,
+  Tag, Ruler
 } from 'lucide-react';
 
 interface StyleManagerProps {
@@ -22,14 +20,12 @@ interface StyleManagerProps {
 const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
   const isRtl = lang === 'ar';
   const bgInputRef = useRef<HTMLInputElement>(null);
-  const headerAssetInputRef = useRef<HTMLInputElement>(null);
   
   const [styles, setStyles] = useState<VisualStyle[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingStyle, setEditingStyle] = useState<Partial<VisualStyle> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
-  const [uploadingAsset, setUploadingAsset] = useState(false);
   const [searchTerm, setSearching] = useState('');
   const [styleToDelete, setStyleToDelete] = useState<string | null>(null);
 
@@ -127,18 +123,17 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
     }));
   };
 
-  const handleAssetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadingAsset(true);
+    setUploadingBg(true);
     try {
       const b = await uploadImageToCloud(file);
       if (b) {
-        updateConfig('headerCustomAsset', b);
-        updateConfig('headerType', 'custom-asset');
+        updateConfig('defaultBackgroundImage', b);
       }
     } finally {
-      setUploadingAsset(false);
+      setUploadingBg(false);
     }
   };
 
@@ -375,40 +370,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
-                 {/* 3. الأنماط الهندسية (The Patterns) */}
-                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
-                    <div className="flex items-center justify-between">
-                       <div className="flex items-center gap-4"><Grid className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('معرض الأنماط التكرارية', 'Pattern Overlay Gallery')}</h3></div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                       {PATTERN_PRESETS.map(pattern => (
-                         <button 
-                           key={pattern.id}
-                           onClick={() => updateConfig('headerPatternId', pattern.id)}
-                           className={`group relative aspect-square rounded-2xl border-2 transition-all overflow-hidden bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center gap-2 ${editingStyle.config?.headerPatternId === pattern.id ? 'border-indigo-600 ring-4 ring-indigo-500/10 scale-105' : 'border-gray-100 dark:border-gray-700 hover:border-indigo-200'}`}
-                         >
-                            {pattern.id !== 'none' ? (
-                              <div 
-                                className="w-full h-full opacity-60 group-hover:opacity-100 transition-opacity" 
-                                style={{ 
-                                  backgroundImage: `url("data:image/svg+xml;base64,${window.btoa(pattern.svg.replace('currentColor', '#3b82f6'))}")`,
-                                  backgroundSize: '20px 20px'
-                                }}
-                              />
-                            ) : (
-                              <RefreshCcw size={20} className="text-gray-300" />
-                            )}
-                            <span className="absolute bottom-1 text-[7px] font-black uppercase dark:text-gray-400">{pattern.name}</span>
-                         </button>
-                       ))}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <RangeControl label={t('شفافية النمط', 'Pattern Opacity')} min={0} max={100} unit="%" value={editingStyle.config?.headerPatternOpacity ?? 20} onChange={(v: number) => updateConfig('headerPatternOpacity', v)} icon={Sun} />
-                       <RangeControl label={t('حجم النمط', 'Pattern Scale')} min={20} max={300} unit="%" value={editingStyle.config?.headerPatternScale ?? 100} onChange={(v: number) => updateConfig('headerPatternScale', v)} icon={Maximize2} />
-                    </div>
-                 </div>
-
-                 {/* 4. الألوان والسمة */}
+                 {/* 3. الألوان والسمة */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Sparkles className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('البصمة الوراثية للسمة', 'Visual DNA')}</h3></div>
                     <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl">
@@ -418,6 +380,56 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                            <span className="text-[9px] font-black uppercase tracking-widest">{t(type, type.toUpperCase())}</span>
                          </button>
                        ))}
+                    </div>
+
+                    {editingStyle.config?.defaultThemeType === 'color' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <label className="text-[10px] font-black text-gray-400 uppercase">{t('لوحة الألوان السريعة', 'Quick Color Palette')}</label>
+                         <div className="grid grid-cols-5 sm:grid-cols-10 gap-3">
+                            {THEME_COLORS.map((clr, i) => (
+                              <button key={i} onClick={() => updateConfig('defaultThemeColor', clr)} className={`h-8 w-8 rounded-full border-2 transition-all hover:scale-125 ${editingStyle.config?.defaultThemeColor === clr ? 'border-indigo-600 scale-125 shadow-lg' : 'border-white dark:border-gray-600'}`} style={{ backgroundColor: clr }} />
+                            ))}
+                         </div>
+                      </div>
+                    )}
+
+                    {editingStyle.config?.defaultThemeType === 'gradient' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <label className="text-[10px] font-black text-gray-400 uppercase">{t('اختر التدرج اللوني المفضل', 'Select Color Gradient')}</label>
+                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                            {THEME_GRADIENTS.map((grad, i) => (
+                              <button key={i} onClick={() => updateConfig('defaultThemeGradient', grad)} className={`h-12 rounded-2xl border-2 transition-all ${editingStyle.config?.defaultThemeGradient === grad ? 'border-indigo-600 scale-110 shadow-lg' : 'border-transparent opacity-60'}`} style={{ background: grad }} />
+                            ))}
+                         </div>
+                      </div>
+                    )}
+
+                    {editingStyle.config?.defaultThemeType === 'image' && (
+                      <div className="space-y-6 animate-fade-in">
+                         <label className="text-[10px] font-black text-gray-400 uppercase">{t('خلفيات فنية افتراضية', 'Artistic Background Presets')}</label>
+                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                            {BACKGROUND_PRESETS.map((url, i) => (
+                              <button key={i} onClick={() => updateConfig('defaultBackgroundImage', url)} className={`h-24 rounded-2xl border-2 overflow-hidden transition-all ${editingStyle.config?.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-xl' : 'border-transparent opacity-60'}`}>
+                                 <img src={url} className="w-full h-full object-cover" alt={`Preset ${i}`} />
+                              </button>
+                            ))}
+                         </div>
+                         <div className="pt-4 border-t dark:border-gray-800">
+                            <input type="file" ref={bgInputRef} onChange={handleBgUpload} className="hidden" accept="image/*" />
+                            <button onClick={() => bgInputRef.current?.click()} className="w-full py-5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-100 transition-all">
+                               {uploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+                               {t('رفع خلفية خاصة للنمط', 'Upload Custom Background')}
+                            </button>
+                         </div>
+                      </div>
+                    )}
+
+                    <div className="pt-6 border-t dark:border-gray-800 space-y-6">
+                       <ColorInput label={t('لون السمة الأساسي', 'Base Theme Color')} value={editingStyle.config?.defaultThemeColor} onChange={(v: string) => updateConfig('defaultThemeColor', v)} />
+                       <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                          <div className="flex items-center gap-3"><Moon className="text-gray-400" size={18} /><span className="text-xs font-black dark:text-white uppercase tracking-widest">{t('الوضع ليلي افتراضياً', 'Default Dark Mode')}</span></div>
+                          <button onClick={() => updateConfig('defaultIsDark', !editingStyle.config?.defaultIsDark)} className={`w-14 h-7 rounded-full relative transition-all ${editingStyle.config?.defaultIsDark ? 'bg-indigo-600 shadow-lg' : 'bg-gray-200 dark:bg-gray-700'}`}><div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (editingStyle.config?.defaultIsDark ? 'right-8' : 'right-1') : (editingStyle.config?.defaultIsDark ? 'left-8' : 'left-1')}`} /></button>
+                       </div>
                     </div>
                  </div>
               </div>
@@ -440,10 +452,10 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                                title: t('تأثير شفاف مذهل', 'Stunning Transparency'),
                                company: 'NEXT-ID PREMIUM',
                                bio: t('تم تفعيل التأثير الزجاجي الفاخر. يمنح هذا التصميم البطاقة عمقاً استثنائياً وشفافية تجذب الأنظار.', 'Premium Glassmorphism activated. This design gives the card exceptional depth and eye-catching transparency.'),
-                               themeType: 'image',
+                               themeType: editingStyle.config?.defaultThemeType || 'gradient',
                                themeColor: editingStyle.config?.defaultThemeColor || '#2563eb',
                                themeGradient: editingStyle.config?.defaultThemeGradient || THEME_GRADIENTS[0],
-                               backgroundImage: BACKGROUND_PRESETS[1],
+                               backgroundImage: editingStyle.config?.defaultBackgroundImage || BACKGROUND_PRESETS[1],
                                isDark: editingStyle.config?.defaultIsDark || false,
                                socialLinks: [
                                   { platformId: 'linkedin', platform: 'LinkedIn', url: '#' }

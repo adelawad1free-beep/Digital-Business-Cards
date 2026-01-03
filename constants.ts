@@ -143,7 +143,7 @@ export const SAMPLE_DATA: Record<string, Partial<CardData>> = {
     email: 'ahmed.m@example.com',
     phone: '+966 50 123 4567',
     whatsapp: '966501234567',
-    website: 'https://ahmed.dev',
+    website: 'https://ahmed@example.com',
     isDark: false,
     themeType: 'gradient',
     themeGradient: THEME_GRADIENTS[0],
