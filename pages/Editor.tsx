@@ -102,7 +102,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          showPhone: selectedTmpl.config.showPhoneByDefault ?? true,
          showWebsite: selectedTmpl.config.showWebsiteByDefault ?? true,
          showWhatsapp: selectedTmpl.config.showWhatsappByDefault ?? true,
-         // Fix: Corrected 'Kyle_selectedTmpl' to 'selectedTmpl'
          showSocialLinks: selectedTmpl.config.showSocialLinksByDefault ?? true,
          showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
          showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true
@@ -220,7 +219,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploading(true);
     try { 
-      // رفع الصورة الشخصية بدقة عادية
       const b = await uploadImageToCloud(file, 'avatar'); 
       if (b) handleChange('profileImage', b); 
     } finally { setIsUploading(false); }
@@ -230,7 +228,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploadingBg(true);
     try { 
-      // رفع الخلفية بدقة عالية (background)
       const b = await uploadImageToCloud(file, 'background'); 
       if (b) handleChange('backgroundImage', b); 
     } finally { setIsUploadingBg(false); }
@@ -664,7 +661,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                        {formData.themeType === 'color' && (
                          <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 animate-fade-in p-2">
                             {THEME_COLORS.map((color, i) => (
-                              <button key={i} onClick={() => handleChange('themeColor', color)} className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === color ? 'border-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/30' : 'border-white dark:border-gray-800 shadow-sm'}`} style={{ backgroundColor: color }} />
+                              <button key={i} onClick={() => handleChange('themeColor', color)} className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === color ? 'border-blue-600 ring-4 ring-blue-100 dark:ring-indigo-900/30' : 'border-white dark:border-gray-800 shadow-sm'}`} style={{ backgroundColor: color }} />
                             ))}
                          </div>
                        )}
@@ -672,7 +669,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                        {formData.themeType === 'gradient' && (
                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-fade-in">
                             {THEME_GRADIENTS.map((grad, i) => (
-                              <button key={i} onClick={() => handleChange('themeGradient', grad)} className={`h-16 rounded-2xl border-2 transition-all hover:scale-[1.02] ${formData.themeGradient === grad ? 'border-blue-600 shadow-lg' : 'border-gray-100 dark:border-gray-800 shadow-sm'}`} style={{ background: grad }} />
+                              <button key={i} onClick={() => handleChange('themeGradient', grad)} className={`h-16 rounded-2xl border-2 transition-all hover:scale-[1.02] ${formData.themeGradient === grad ? 'border-indigo-600 shadow-lg' : 'border-gray-100 dark:border-gray-800 shadow-sm'}`} style={{ background: grad }} />
                             ))}
                          </div>
                        )}
@@ -840,8 +837,13 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('معاينة حية', 'Live Preview')}</span>
                 </div>
              </div>
-             <div className="transition-all duration-500 border-[10px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] shadow-2xl overflow-hidden mx-auto bg-white dark:bg-black w-full">
-                <div className="h-[650px] overflow-y-auto no-scrollbar scroll-smooth">
+             {/* حاوية المعاينة مع نظام حماية الحواف Clip-path */}
+             <div className="relative transition-all duration-500 rounded-[3.5rem] shadow-2xl overflow-hidden mx-auto bg-white dark:bg-black w-full" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+                {/* الإطار الأسود المرتفع Bezel Layer */}
+                <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+                
+                {/* المحتوى الداخلي مع قص برمجى دقيق */}
+                <div className="h-[650px] overflow-y-auto overflow-x-hidden no-scrollbar scroll-smooth relative z-0" style={{ clipPath: 'inset(1px round 2.8rem)' }}>
                    <CardPreview 
                      data={formData} 
                      lang={lang} 
@@ -855,7 +857,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       </div>
 
       {showMobilePreview && (
-        <div className="fixed inset-0 z-[600] lg:hidden flex flex-col bg-white dark:bg-[#0a0a0c] animate-fade-in">
+        <div className="fixed inset-0 z-[600] flex flex-col bg-white dark:bg-[#0a0a0c] animate-fade-in">
            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-3">
                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
@@ -870,13 +872,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
            </div>
            
            <div className="flex-1 overflow-y-auto no-scrollbar bg-gray-50 dark:bg-[#050507] p-4 flex items-start justify-center">
-              <div className="w-full max-w-[380px] shadow-2xl rounded-[2.5rem] overflow-hidden">
-                 <CardPreview 
-                   data={formData} 
-                   lang={lang} 
-                   customConfig={currentTemplate?.config}
-                   hideSaveButton={true} 
-                 />
+              <div className="w-full max-w-[380px] shadow-2xl rounded-[3.5rem] overflow-hidden relative" style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+                 {/* Bezel Overlay for full clipping on mobile modal */}
+                 <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+                 
+                 <div className="h-[680px] overflow-y-auto overflow-x-hidden no-scrollbar relative z-0" style={{ clipPath: 'inset(1px round 2.8rem)' }}>
+                    <CardPreview 
+                      data={formData} 
+                      lang={lang} 
+                      customConfig={currentTemplate?.config}
+                      hideSaveButton={true} 
+                    />
+                 </div>
               </div>
            </div>
 

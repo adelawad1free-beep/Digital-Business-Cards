@@ -175,7 +175,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     if (!file) return;
     setUploadingBg(true);
     try {
-      // رفع الخلفية بدقة عالية (background) لضمان عدم بكسلة الصورة
       const b = await uploadImageToCloud(file, 'background');
       if (b) {
         updateConfig('defaultBackgroundImage', b);
@@ -411,7 +410,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                              {['compact', 'normal', 'relaxed'].map(s => (
-                                <button key={s} onClick={() => updateConfig('spacing', s)} className={`py-3 rounded-xl border-2 transition-all font-black text-[8px] uppercase ${template.config.spacing === s ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <button key={s} onClick={() => { updateConfig('spacing', s) }} className={`py-3 rounded-xl border-2 transition-all font-black text-[8px] uppercase ${template.config.spacing === s ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
                                    {t(s === 'compact' ? 'مضغوط' : (s === 'normal' ? 'عادي' : 'مريح'), s.toUpperCase())}
                                 </button>
                              ))}
@@ -457,7 +456,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   
                   <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-black/20 p-2 rounded-[2rem]">
                        {['color', 'gradient', 'image'].map(type => (
-                         <button key={type} onClick={() => updateConfig('defaultThemeType', type)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 flex-1 ${template.config.defaultThemeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400 border-transparent shadow-sm'}`}>
+                         <button key={type} onClick={() => updateConfig('defaultThemeType', type as ThemeType)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 flex-1 ${template.config.defaultThemeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400 border-transparent shadow-sm'}`}>
                            {type === 'color' ? <Palette size={20}/> : type === 'gradient' ? <Sparkles size={20}/> : <ImageIcon size={20}/>}
                            <span className="text-[10px] font-black uppercase tracking-widest">{t(type === 'color' ? 'لون ثابت' : type === 'gradient' ? 'تدرج' : 'صورة', type.toUpperCase())}</span>
                          </button>
@@ -586,7 +585,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('تاريخ ووقت المناسبة', 'Event Date & Time')}</label>
+                              <label className={t('تاريخ ووقت المناسبة', 'Event Date & Time')}>{t('تاريخ ووقت المناسبة', 'Event Date & Time')}</label>
                               <div className="relative">
                                  <Calendar className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-500`} size={16} />
                                  <input type="datetime-local" value={template.config.occasionDate || ''} onChange={e => updateConfig('occasionDate', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all [direction:ltr]`} />
@@ -594,7 +593,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            </div>
 
                            <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}</label>
+                              <label className={t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}>{t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}</label>
                               <div className="relative">
                                  <MapPin className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-red-500`} size={16} />
                                  <input type="url" value={template.config.occasionMapUrl || ''} onChange={e => updateConfig('occasionMapUrl', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all`} placeholder="https://maps.google.com/..." />
@@ -665,8 +664,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                    <button onClick={() => setPreviewDevice('desktop')} className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-400'}`}><Monitor size={18}/></button>
                 </div>
               </div>
-              <div className={`transition-all duration-500 origin-top border-[10px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`}>
-                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth">
+              
+              {/* متصفح المعاينة المحدث بـ Bezel Layer و Clip-path */}
+              <div className={`transition-all duration-500 origin-top rounded-[3.5rem] shadow-2xl overflow-hidden bg-white dark:bg-gray-950 relative ${previewDevice === 'mobile' ? 'w-[320px]' : previewDevice === 'tablet' ? 'w-[440px]' : 'w-[360px]'}`} style={{ isolation: 'isolate', transform: 'translateZ(0)' }}>
+                {/* طبقة الإطار السوداء الحقيقية (Bezel) */}
+                <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+                
+                {/* المحتوى الداخلي مع حماية القص القوية */}
+                <div className="themed-scrollbar overflow-x-hidden h-[620px] scroll-smooth relative z-0" style={{ clipPath: 'inset(1px round 2.8rem)' }}>
                    <CardPreview 
                      data={{ 
                        ...sampleCardData, 
