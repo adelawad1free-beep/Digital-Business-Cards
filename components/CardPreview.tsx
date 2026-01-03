@@ -12,6 +12,7 @@ interface CardPreviewProps {
   lang: Language;
   customConfig?: TemplateConfig; 
   hideSaveButton?: boolean; 
+  isFullFrame?: boolean; // New prop to handle clipping inside frames
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -56,7 +57,7 @@ const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: stri
   );
 };
 
-const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false }) => {
+const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
 
@@ -230,7 +231,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
   return (
     <div 
-      className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden rounded-[2.25rem] ${isDark ? 'text-white' : 'text-gray-900'}`}
+      className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'}`}
       style={{ backgroundColor: finalCardBgColor }}
     >
       

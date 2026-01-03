@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState, useRef } from 'react';
 import { Language, CardData, CustomTemplate, TemplateCategory } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA } from '../constants';
 import { getAllTemplates, getAllCategories } from '../services/firebase';
 import CardPreview from '../components/CardPreview';
 import { Layout, Palette, Loader2, Plus, FolderOpen, Briefcase, PartyPopper, LayoutGrid, Star } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface TemplatesGalleryProps {
   lang: Language;
@@ -137,30 +137,37 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
 
   return (
     <div className="group flex flex-col transition-all duration-500">
-      {/* Fix: Aspect ratio updated to 10/18 for a slightly taller but still wide preview */}
       <div 
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         className={`relative aspect-[10/18] w-full bg-white dark:bg-black rounded-[3.5rem] shadow-xl overflow-hidden mb-8 group-hover:shadow-[0_50px_120px_-20px_rgba(0,0,0,0.4)] transition-all duration-700 border border-gray-100 dark:border-gray-800 cursor-ns-resize`}
+        style={{ isolation: 'isolate' }}
       >
         
-        {/* The Phone Bezel */}
-        <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
+        {/* إطار الهاتف الخارجي (Bezel) */}
+        <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50 shadow-inner"></div>
         
         {tmpl.isFeatured && (
-          <div className="absolute top-8 left-8 z-50 flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
+          <div className="absolute top-8 left-8 z-[60] flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
             <Star size={10} fill="currentColor" />
             {isRtl ? 'مميز' : 'Pro'}
           </div>
         )}
         
-        {/* Manual Scroll Preview Content with Hard Clipping */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ isolation: 'isolate', transform: 'translateZ(0)', clipPath: 'inset(1px round(2.6rem))' }}>
-           <div 
-             className="h-full w-full transition-transform duration-[450ms] ease-out origin-top scale-[0.98]"
+        {/* منطقة المحتوى المتحرك مع ضبط القص (Clipping) الصارم */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" 
              style={{ 
-               transform: `translateY(-${mouseYPercentage * 0.55}%)` 
+               borderRadius: '2.6rem', 
+               clipPath: 'inset(12px round 2.6rem)', 
+               zIndex: 10,
+               transform: 'translateZ(0)'
+             }}>
+           <div 
+             className="h-full w-full transition-transform duration-[500ms] ease-out origin-top"
+             style={{ 
+               transform: `translateY(-${mouseYPercentage * 0.45}%)`, // تقليل نسبة الحركة قليلاً لضمان عدم الوصول للنهاية بسرعة
+               willChange: 'transform'
              }}
            >
               <CardPreview 
@@ -179,11 +186,12 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
                 lang={lang} 
                 customConfig={tmpl.config}
                 hideSaveButton={true} 
+                isFullFrame={true} // ضمان تطابق الحواف الداخلية
               />
            </div>
         </div>
 
-        {/* Action Button Overlay */}
+        {/* طبقة زر الإجراء (Overlay) */}
         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center z-[60]">
            <button 
              onClick={(e) => {
