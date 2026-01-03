@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
@@ -186,12 +187,15 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
   const sampleCardData = (SAMPLE_DATA[lang] || SAMPLE_DATA['en']) as CardData;
 
-  const RangeControl = ({ label, value, min, max, onChange, unit = "px", icon: Icon }: any) => (
+  const RangeControl = ({ label, value, min, max, onChange, unit = "px", icon: Icon, hint }: any) => (
     <div className="bg-white dark:bg-gray-900 p-5 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm space-y-4 transition-all hover:border-blue-200">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
            {Icon && <Icon size={14} className="text-blue-500" />}
-           <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
+           <div className="flex flex-col">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
+              {hint && <span className="text-[8px] text-gray-300 font-bold">{hint}</span>}
+           </div>
         </div>
         <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full">{value}{unit}</span>
       </div>
@@ -266,7 +270,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
             
             {activeTab === 'header' && (
               <div className="space-y-8 animate-fade-in">
-                 {/* Header Tab Content... */}
                  <div className="bg-indigo-50 dark:bg-indigo-950/20 p-8 rounded-[3rem] border border-indigo-100 dark:border-indigo-900/30 space-y-6 shadow-sm">
                     <div className="flex items-center justify-between">
                        <div className="flex items-center gap-3">
@@ -383,7 +386,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ToggleSwitch label={t('تأثير زجاجي شفاف (Glassmorphism)', 'Premium Glass Body')} value={template.config.bodyGlassy} onChange={(v: boolean) => updateConfig('bodyGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
-                        <RangeControl label={t('شفافية جسم البطاقة', 'Body Transparency')} min={0} max={100} unit="%" value={template.config.bodyOpacity ?? 100} onChange={(v: number) => updateConfig('bodyOpacity', v)} icon={Sun} />
+                        <RangeControl 
+                           label={t('شفافية جسم البطاقة', 'Body Transparency')} 
+                           min={0} max={100} unit="%" 
+                           value={template.config.bodyOpacity ?? 100} 
+                           onChange={(v: number) => updateConfig('bodyOpacity', v)} 
+                           icon={Sun} 
+                           hint={t('اضبطه على 0 للكتابة مباشرة فوق الصورة', 'Set to 0 to write directly over background')}
+                        />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
                         <RangeControl label={t('إزاحة منطقة المحتوى (أعلى/أسفل)', 'Body Y Offset')} min={-1000} max={500} value={template.config.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
                      </div>
@@ -516,7 +526,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      <ToggleSwitch label={t('تفعيل المناسبة افتراضياً', 'Activate by Default')} value={template.config.showOccasionByDefault} onChange={(v: boolean) => updateConfig('showOccasionByDefault', v)} icon={CheckCircle2} />
                      
                      <div className="grid grid-cols-1 gap-6 pt-4 border-t dark:border-gray-800">
-                        {/* Background Selection for Occasion inside Admin Builder */}
                         <div className="space-y-4">
                            <div className="flex items-center gap-2">
                               <ImageIcon className="text-indigo-600" size={16} />
@@ -550,7 +559,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            </div>
                         </div>
 
-                        {/* Admin Text Controls for Protocol */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            <div className="space-y-2">
                               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('نص البادئة الافتراضي (يتشرف)', 'Default Prefix')}</label>

@@ -90,10 +90,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const cardUrl = generateShareUrl(data);
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(cardUrl)}&bgcolor=${qrBgColor === 'transparent' ? (isDark ? '0f0f12' : 'ffffff') : qrBgColor.replace('#', '')}&color=${qrColorVal}&margin=0`;
 
-  // تحسين: التحقق من القالب كخيار بديل في حال كانت البيانات غير معرفة
   const isVisible = (dataField: boolean | undefined, configField: boolean | undefined) => {
     if (dataField !== undefined) return dataField;
-    return configField !== false; // القيمة الافتراضية هي true إلا إذا نص القالب صراحة على false
+    return configField !== false; 
   };
 
   const showName = isVisible(data.showName, config.showNameByDefault);
@@ -171,24 +170,26 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const bodyStyles: React.CSSProperties = {
     marginTop: headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px'),
     transform: `translateY(${config.bodyOffsetY || 0}px)`, 
-    backgroundColor: isBodyGlassy 
-      ? (isDark ? `rgba(18,18,21,${bodyOpacity})` : `rgba(255,255,255,${bodyOpacity})`) 
-      : (isDark ? '#0f0f12' : '#ffffff'),
+    // تحسين: الخلفية تدعم الشفافية دائماً سواء كان التأثير الزجاجي مفعلاً أم لا
+    backgroundColor: isDark 
+      ? `rgba(15, 15, 18, ${bodyOpacity})` 
+      : `rgba(255, 255, 255, ${bodyOpacity})`,
     borderRadius: `${config.bodyBorderRadius ?? 48}px ${config.bodyBorderRadius ?? 48}px 0 0`,
     paddingTop: '24px',
     position: 'relative',
     zIndex: 20,
-    width: (headerType.startsWith('side') || isBodyGlassy) ? 'calc(100% - 32px)' : '100%',
-    margin: (headerType.startsWith('side') || isBodyGlassy) ? '0 auto' : '0',
+    width: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? 'calc(100% - 32px)' : '100%',
+    margin: (headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1) ? '0 auto' : '0',
+    // التأثير الزجاجي يضيف الضبابية فقط
     backdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
     WebkitBackdropFilter: isBodyGlassy ? 'blur(20px)' : 'none',
-    border: isBodyGlassy ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : 'none',
+    border: (isBodyGlassy || bodyOpacity < 1) ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : 'none',
     textAlign: config.contentAlign || 'center',
     marginLeft: headerType === 'side-left' ? '28%' : (headerType === 'side-right' ? '2%' : 'auto'),
     marginRight: headerType === 'side-right' ? '28%' : (headerType === 'side-left' ? '2%' : 'auto'),
     minHeight: '400px',
     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: isBodyGlassy ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
+    boxShadow: (isBodyGlassy || bodyOpacity < 1) ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
   const displayOccasionTitle = data.occasionTitle || config.occasionTitle || '';
@@ -196,7 +197,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   
   const isOccasionActive = data.showOccasion !== false && (data.occasionTitle || config.showOccasionByDefault);
 
-  // Invitation Settings & Colors
   const invPrefix = data.invitationPrefix !== undefined ? data.invitationPrefix : (config.invitationPrefix || t('invitationPrefix'));
   const invWelcome = data.invitationWelcome !== undefined ? data.invitationWelcome : (config.invitationWelcome || t('invitationWelcome'));
   const invYOffset = data.invitationYOffset !== undefined ? data.invitationYOffset : (config.invitationYOffset || 0);
@@ -205,7 +205,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const invNameColor = data.occasionNameColor || config.occasionNameColor || nameColor;
   const invWelcomeColor = data.occasionWelcomeColor || config.occasionWelcomeColor || (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)');
 
-  // Occasion Glassmorphism
   const isOccasionGlassy = data.occasionGlassy ?? config.occasionGlassy;
   const occasionOpacity = (data.occasionOpacity ?? config.occasionOpacity ?? 100) / 100;
   
@@ -221,12 +220,11 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const occasionBaseColor = data.occasionBgColor || config.occasionBgColor || (isDark ? '#ef4444' : '#fce7e7');
   const occasionBg = isOccasionGlassy 
     ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` 
-    : occasionBaseColor;
+    : (occasionOpacity < 1 ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` : occasionBaseColor);
 
   return (
     <div className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden rounded-[2.25rem] ${isDark ? 'bg-[#0f0f12] text-white' : 'bg-white text-gray-900'}`}>
       
-      {/* Background Layer for Glassmorphism */}
       <div className="absolute inset-0 z-[-1] opacity-40">
         {themeType === 'image' && backgroundImage && <img src={backgroundImage} className="w-full h-full object-cover blur-sm scale-110" />}
         {themeType === 'gradient' && <div className="w-full h-full" style={{ background: themeGradient }} />}
@@ -236,7 +234,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
           {headerType === 'custom-asset' && config.headerSvgRaw && (
              <div className="absolute inset-0 flex items-start justify-center overflow-hidden" style={{ color: themeType === 'gradient' ? '#ffffff' : themeColor, opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: config.headerSvgRaw.replace('<svg', `<svg style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none"`) }} />
           )}
-          {/* Pattern Overlay */}
           {config.headerPatternId && config.headerPatternId !== 'none' && (
             <div className="absolute inset-0 pointer-events-none opacity-[0.2]" 
                  style={{ 
@@ -263,10 +260,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
         <div className={`w-full ${config.spacing === 'compact' ? 'space-y-2' : config.spacing === 'relaxed' ? 'space-y-6' : 'space-y-4'}`} style={{ marginTop: headerType === 'overlay' ? '20px' : '24px' }}>
            
-           {/* Section: Full Invitation Block - Controlled by invYOffset */}
            {isOccasionActive ? (
              <div className="transition-transform duration-300" style={{ transform: `translateY(${invYOffset}px)` }}>
-                {/* Header Text Group */}
                 <div className="animate-fade-in text-center space-y-1 mb-4">
                     {invPrefix && (
                       <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-60 mb-1" style={{ color: invPrefixColor }}>
@@ -283,11 +278,10 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                     )}
                 </div>
 
-                {/* The Occasion Card */}
                 <div className={`p-8 rounded-[3.5rem] shadow-2xl border relative overflow-hidden ${data.occasionFloating !== false ? 'animate-float' : ''}`}
                     style={{ 
                       backgroundColor: occasionBg,
-                      borderColor: isOccasionGlassy ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
+                      borderColor: (isOccasionGlassy || occasionOpacity < 1) ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
                       backdropFilter: isOccasionGlassy ? 'blur(20px)' : 'none',
                       WebkitBackdropFilter: isOccasionGlassy ? 'blur(20px)' : 'none',
                     }}>
@@ -316,7 +310,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                 </div>
              </div>
            ) : (
-             /* Standard Card View (When occasion is off) */
              <>
                {showName && (
                  <h2 className="font-black leading-tight" style={{ color: nameColor, transform: `translateY(${config.nameOffsetY}px)`, fontSize: `${config.nameSize}px` }}>
@@ -342,7 +335,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
              </div>
            )}
 
-           {/* Contact Links & Socials */}
            <div className="space-y-3 pt-6">
               {showEmail && data.email && (
                 <a href={`mailto:${data.email}`} className="flex items-center gap-3 justify-center text-sm font-bold opacity-60 hover:opacity-100 transition-opacity" style={{ color: linksColor, transform: `translateY(${config.emailOffsetY || 0}px)` }}>
