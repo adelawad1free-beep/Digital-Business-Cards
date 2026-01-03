@@ -1,11 +1,13 @@
 
 /**
  * خدمة معالجة الصور وتحويلها لـ Base64 للتخزين داخل Firestore
- * هذا الحل يتجاوز الحاجة لـ Firebase Storage أو خدمات خارجية
+ * تم تحديثها لدعم دقة عالية للخلفيات ودقة متوسطة للصور الشخصية
  */
-export const uploadImageToCloud = async (file: File): Promise<string | null> => {
+export const uploadImageToCloud = async (
+  file: File, 
+  type: 'avatar' | 'background' | 'logo' = 'avatar'
+): Promise<string | null> => {
   try {
-    // نقوم بضغط الصورة وتصغير أبعادها لضمان عدم تجاوز حجم وثيقة Firestore (1MB)
     const compressAndGetBase64 = (f: File): Promise<string> => new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(f);
@@ -14,8 +16,20 @@ export const uploadImageToCloud = async (file: File): Promise<string | null> => 
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          // نستخدم أبعاد متوسطة (400px) كافية للبطاقة الرقمية وتقلل الحجم جداً
-          const MAX_SIZE = 400; 
+          
+          // تحديد الأبعاد بناءً على نوع الصورة
+          // الخلفية تحتاج دقة أعلى لتظهر بوضوح عند التكبير أو على الشاشات الكبيرة
+          let MAX_SIZE = 400; 
+          let quality = 0.7;
+
+          if (type === 'background') {
+            MAX_SIZE = 1200; // دقة عالية للخلفيات
+            quality = 0.85;  // جودة ضغط أقل للحفاظ على التفاصيل
+          } else if (type === 'logo') {
+            MAX_SIZE = 600;
+            quality = 0.8;
+          }
+
           let width = img.width;
           let height = img.height;
 
@@ -34,10 +48,16 @@ export const uploadImageToCloud = async (file: File): Promise<string | null> => 
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
           
-          // تحويل الصورة إلى JPEG بضغط 0.6 (توازن مثالي بين الحجم والجودة)
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          // تحسين تنعيم الصورة عند التصغير
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+          }
+          
+          // تحويل الصورة إلى JPEG بالدقة المطلوبة
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
           resolve(compressedBase64);
         };
         img.onerror = () => reject("Image Load Error");
@@ -45,7 +65,7 @@ export const uploadImageToCloud = async (file: File): Promise<string | null> => 
       reader.onerror = () => reject("File Read Error");
     });
 
-    console.log("Processing image locally for Firestore storage...");
+    console.log(`Processing ${type} image locally...`);
     const base64Result = await compressAndGetBase64(file);
     return base64Result;
   } catch (error) {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { VisualStyle, Language, TemplateConfig, ThemeType } from '../types';
 import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL } from '../services/firebase';
@@ -128,7 +129,8 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
     if (!file) return;
     setUploadingBg(true);
     try {
-      const b = await uploadImageToCloud(file);
+      // استخدام نوع 'background' لرفع صورة النمط بدقة عالية (1200px)
+      const b = await uploadImageToCloud(file, 'background');
       if (b) {
         updateConfig('defaultBackgroundImage', b);
       }
@@ -296,7 +298,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
 
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               <div className="lg:col-span-8 space-y-8">
-                 {/* 0. هوية النمط (Style Identity) */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Tag className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('تعريف النمط المبتكر', 'Style Identity & Naming')}</h3></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -325,7 +326,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
-                 {/* 1. قص الترويسة الهندسي (Shape Engine) */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Shapes className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('محرك هندسة الترويسات', 'Structural Shape Engine')}</h3></div>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -359,7 +359,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
-                 {/* 2. هندسة جسم البطاقة (Body Geometry) */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Box className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('هندسة إطار البيانات', 'Body Geometry & Effects')}</h3></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -370,7 +369,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
-                 {/* 3. الألوان والسمة */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Sparkles className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('البصمة الوراثية للسمة', 'Visual DNA')}</h3></div>
                     <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl">
@@ -434,7 +432,6 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                  </div>
               </div>
 
-              {/* 5. المعاينة الحية */}
               <div className="lg:col-span-4 sticky top-[100px] self-start space-y-6">
                  <div className="bg-white dark:bg-[#050507] p-5 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden relative">
                     <div className="mb-6 flex items-center justify-between px-4">

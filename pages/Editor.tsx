@@ -94,7 +94,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          invitationWelcome: selectedTmpl.config.invitationWelcome || (isRtl ? 'بدعوتكم لحضور' : 'Welcomes you to'),
          bodyGlassy: selectedTmpl.config.bodyGlassy ?? false,
          bodyOpacity: selectedTmpl.config.bodyOpacity ?? 100,
-         // تحسين: استقاء إعدادات الظهور من القالب المختار
          showName: selectedTmpl.config.showNameByDefault ?? true,
          showTitle: selectedTmpl.config.showTitleByDefault ?? true,
          showCompany: selectedTmpl.config.showCompanyByDefault ?? true,
@@ -103,6 +102,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          showPhone: selectedTmpl.config.showPhoneByDefault ?? true,
          showWebsite: selectedTmpl.config.showWebsiteByDefault ?? true,
          showWhatsapp: selectedTmpl.config.showWhatsappByDefault ?? true,
+         // Fix: Corrected 'Kyle_selectedTmpl' to 'selectedTmpl'
          showSocialLinks: selectedTmpl.config.showSocialLinksByDefault ?? true,
          showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
          showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true
@@ -151,8 +151,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   const currentTemplate = templates.find(t => t.id === formData.templateId);
   const supportsOccasion = currentTemplate?.config?.showOccasionByDefault;
-  const relatedTemplates = templates.filter(t => t.categoryId === currentTemplate?.categoryId);
-
+  
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') { 
       value = (value || '').toLowerCase().replace(/[^a-z0-9-]/g, ''); 
@@ -169,7 +168,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           backgroundImage: newTmpl.config.defaultBackgroundImage || prev.backgroundImage,
           isDark: newTmpl.config.defaultIsDark ?? prev.isDark,
           showOccasion: newTmpl.config.showOccasionByDefault ?? prev.showOccasion,
-          // تحديث إعدادات الظهور عند تغيير القالب
           showName: newTmpl.config.showNameByDefault ?? prev.showName,
           showTitle: newTmpl.config.showTitleByDefault ?? prev.showTitle,
           showCompany: newTmpl.config.showCompanyByDefault ?? prev.showCompany,
@@ -221,13 +219,21 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploading(true);
-    try { const b = await uploadImageToCloud(file); if (b) handleChange('profileImage', b); } finally { setIsUploading(false); }
+    try { 
+      // رفع الصورة الشخصية بدقة عادية
+      const b = await uploadImageToCloud(file, 'avatar'); 
+      if (b) handleChange('profileImage', b); 
+    } finally { setIsUploading(false); }
   };
 
   const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploadingBg(true);
-    try { const b = await uploadImageToCloud(file); if (b) handleChange('backgroundImage', b); } finally { setIsUploadingBg(false); }
+    try { 
+      // رفع الخلفية بدقة عالية (background)
+      const b = await uploadImageToCloud(file, 'background'); 
+      if (b) handleChange('backgroundImage', b); 
+    } finally { setIsUploadingBg(false); }
   };
 
   const addSocialLink = () => {
@@ -280,9 +286,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   return (
     <div className="max-w-[1440px] mx-auto">
       <style dangerouslySetInnerHTML={{ __html: `
-        /* تحسين أيقونة التقويم الافتراضية في المتصفحات */
         input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-          filter: invert(30%) sepia(100%) saturate(2000%) hue-rotate(330deg); /* تلوين الأيقونة باللون الأحمر */
+          filter: invert(30%) sepia(100%) saturate(2000%) hue-rotate(330deg);
           cursor: pointer;
           padding: 5px;
           margin-right: ${isRtl ? '10px' : '0'};
@@ -310,7 +315,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
             
             {isSimpleMode ? (
               <div className="space-y-8 animate-fade-in relative z-10">
-                {/* 1. Link Section */}
                 <div className="p-5 md:p-8 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 dark:from-blue-900/10 dark:via-[#121215] dark:to-indigo-900/5 rounded-[2rem] md:rounded-[3rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-xl shadow-blue-500/5 space-y-6 group transition-all relative overflow-hidden">
                    <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between">
@@ -346,7 +350,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    </div>
                 </div>
 
-                {/* 2. Basic Info (Organizer & Protocols) */}
                 <div className="p-6 bg-blue-50/50 dark:bg-blue-900/5 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 space-y-6">
                    <div className="flex flex-col md:flex-row gap-6 items-center">
                       <div className="relative shrink-0">
@@ -376,7 +379,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    </div>
                 </div>
 
-                {/* 3. Event Details */}
                 <div className="p-6 bg-rose-50/30 dark:bg-rose-900/5 rounded-[2rem] border border-rose-100/50 dark:border-rose-900/10 space-y-6">
                    <div className="flex items-center gap-3">
                       <PartyPopper className="text-rose-500" size={20} />
@@ -423,7 +425,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                    </div>
                 </div>
 
-                {/* 4. Appearance Selection */}
                 <div className="p-6 bg-indigo-50/30 dark:bg-indigo-900/5 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-900/10 space-y-6">
                    <div className="flex items-center gap-3">
                       <Palette className="text-indigo-600" size={20} />
@@ -485,7 +486,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                 </div>
               </div>
             ) : (
-              /* Non-simple Mode Tabs */
               <div className="space-y-8 mt-4">
                 {activeTab === 'identity' && (
                   <div className="space-y-6 animate-fade-in relative z-10">
@@ -635,7 +635,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                        </div>
                     </div>
 
-                    {/* QR Code Toggle at the end */}
                     <div className="pt-6 border-t dark:border-gray-800">
                        <div className="p-4 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-gray-100 dark:border-gray-800">
                           <ToggleSwitch 
@@ -833,7 +832,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           </div>
         </div>
 
-        {/* Desktop Preview Sidebar */}
         <div className="hidden lg:block w-[400px] sticky top-[100px]">
           <div className="bg-white dark:bg-[#050507] p-6 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden">
              <div className="mb-6 flex items-center justify-between px-4">

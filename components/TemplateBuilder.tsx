@@ -175,7 +175,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     if (!file) return;
     setUploadingBg(true);
     try {
-      const b = await uploadImageToCloud(file);
+      // رفع الخلفية بدقة عالية (background) لضمان عدم بكسلة الصورة
+      const b = await uploadImageToCloud(file, 'background');
       if (b) {
         updateConfig('defaultBackgroundImage', b);
         updateConfig('defaultThemeType', 'image');
