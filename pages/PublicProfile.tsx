@@ -93,15 +93,19 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
 
-    if (data.profileImage) {
+    // تحديث أيقونة التبويب بصورة صاحب البطاقة مؤقتاً
+    if (data.profileImage && favicon) {
       updateMeta('meta[property="og:image"]', 'content', data.profileImage);
       updateMeta('meta[name="twitter:image"]', 'content', data.profileImage);
-      if (favicon) favicon.href = data.profileImage;
+      favicon.href = data.profileImage;
     }
 
     return () => { 
       if (styleEl) styleEl.innerHTML = ''; 
-      if (favicon && siteIcon) favicon.href = siteIcon;
+      // استعادة أيقونة الموقع الأصلية عند مغادرة الصفحة
+      if (favicon && siteIcon) {
+        favicon.href = siteIcon;
+      }
     };
   }, [data, lang, isRtl, customConfig, siteIcon]);
 

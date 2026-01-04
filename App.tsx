@@ -13,6 +13,7 @@ import TemplatesGallery from './pages/TemplatesGallery';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
+import Footer from './components/Footer';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { Sun, Moon, Loader2, Plus, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, LayoutGrid, CreditCard, Mail, Coffee, Heart, Trash2 } from 'lucide-react';
@@ -29,7 +30,7 @@ const AppContent: React.FC = () => {
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [isCardDeleted, setIsCardDeleted] = useState(false); // حالة جديدة للبطاقة المحذوفة
+  const [isCardDeleted, setIsCardDeleted] = useState(false); 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharingData, setSharingData] = useState<CardData | null>(null);
@@ -62,10 +63,11 @@ const AppContent: React.FC = () => {
     navigate(`/${lang}${cleanPath}`);
   };
 
-  // Fix: Added handleCloseShare function to close the share modal and clear data
   const handleCloseShare = () => {
     setShowShareModal(false);
     setSharingData(null);
+    // بعد إغلاق نافذة المشاركة، نعود لقائمة البطاقات
+    navigateWithLang('/my-cards');
   };
 
   useEffect(() => {
@@ -86,7 +88,6 @@ const AppContent: React.FC = () => {
       if (settings) setSiteConfig(prev => ({ ...prev, ...settings }));
       if (templates) setCustomTemplates(templates as CustomTemplate[]);
       
-      // التحقق من وجود البطاقة في الرابط
       if (slug) {
         try {
           const card = await getCardBySerial(slug);
@@ -94,7 +95,6 @@ const AppContent: React.FC = () => {
             setPublicCard(card as CardData);
             setIsDarkMode(card.isDark);
           } else {
-            // البطاقة محذوفة أو غير موجودة
             setIsCardDeleted(true);
           }
         } catch (e) {
@@ -131,6 +131,20 @@ const AppContent: React.FC = () => {
     root.style.setProperty('--brand-primary', siteConfig.primaryColor);
     root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
     root.style.setProperty('--site-font', siteConfig.fontFamily);
+
+    if (siteConfig.siteIcon) {
+      const link = document.getElementById('site-favicon') as HTMLLinkElement;
+      if (link) {
+        link.href = siteConfig.siteIcon;
+        link.rel = 'icon';
+      } else {
+        const newLink = document.createElement('link');
+        newLink.id = 'site-favicon';
+        newLink.rel = 'icon';
+        newLink.href = siteConfig.siteIcon;
+        document.head.appendChild(newLink);
+      }
+    }
   }, [isDarkMode, lang, siteConfig]);
 
   if (isInitializing) return (
@@ -143,7 +157,6 @@ const AppContent: React.FC = () => {
     </div>
   );
 
-  // شاشة البطاقة المحذوفة
   if (isCardDeleted) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${isDarkMode ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
@@ -247,12 +260,32 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<Home lang={lang} onStart={() => navigateWithLang('/templates')} />} />
           <Route path="/templates" element={<TemplatesGallery lang={lang} onSelect={(id) => { setSelectedTemplateId(id); setEditingCard(null); navigateWithLang('/editor'); }} />} />
           <Route path="/my-cards" element={currentUser ? <MyCards lang={lang} cards={userCards} onAdd={() => navigateWithLang('/templates')} onEdit={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDelete={(id, uid) => deleteUserCard(uid, id).then(() => window.location.reload())} /> : <Navigate to={`/${lang}/`} replace />} />
-          <Route path="/editor" element={<Editor lang={lang} onSave={async (d) => { await saveCardToDB({cardData: d}); window.location.reload(); }} templates={customTemplates} onCancel={() => navigateWithLang('/')} forcedTemplateId={selectedTemplateId || undefined} initialData={editingCard || undefined} />} />
+          <Route path="/editor" element={
+            <Editor 
+              lang={lang} 
+              onSave={async (d, oldId) => { 
+                await saveCardToDB({cardData: d, oldId}); 
+                setSharingData(d);
+                setShowShareModal(true);
+                // تحديث قائمة البطاقات محلياً بدلاً من إعادة التحميل
+                if (currentUser) {
+                  const updatedCards = await getUserCards(currentUser.uid);
+                  setUserCards(updatedCards as CardData[]);
+                }
+              }} 
+              templates={customTemplates} 
+              onCancel={() => navigateWithLang('/my-cards')} 
+              forcedTemplateId={selectedTemplateId || undefined} 
+              initialData={editingCard || undefined} 
+            />
+          } />
           <Route path="/account" element={currentUser ? <UserAccount lang={lang} /> : <Navigate to={`/${lang}/`} replace />} />
           <Route path="/admin" element={isAdmin ? <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDeleteRequest={(id, uid) => deleteUserCard(uid, id).then(() => window.location.reload())} /> : <Navigate to={`/${lang}/`} replace />} />
           <Route path="*" element={<Navigate to={`/${lang}/`} replace />} />
         </Routes>
       </main>
+
+      <Footer lang={lang} />
 
       <BottomNav />
       {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); navigateWithLang('/my-cards'); }} />}
