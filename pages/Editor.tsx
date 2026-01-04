@@ -7,14 +7,14 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn
+  QrCode, Share2, Trash2, LogIn, Shapes
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
 import AuthModal from '../components/AuthModal';
-import { BACKGROUND_PRESETS, SAMPLE_DATA, SOCIAL_PLATFORMS, THEME_COLORS, THEME_GRADIENTS, TRANSLATIONS } from '../constants';
-import { isSlugAvailable, auth } from '../services/firebase';
+import { BACKGROUND_PRESETS, AVATAR_PRESETS, SAMPLE_DATA, SOCIAL_PLATFORMS, THEME_COLORS, THEME_GRADIENTS, TRANSLATIONS } from '../constants';
+import { isSlugAvailable, auth, getSiteSettings } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import { CardData, CustomTemplate, Language } from '../types';
 import { generateSerialId } from '../utils/share';
@@ -50,12 +50,24 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const [lastScrollY, setLastScrollY] = useState(0);
   const [previewMouseY, setPreviewMouseY] = useState(0);
   
-  // حالات جديدة للتنبيه وتسجيل الدخول
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const [showDirectAuth, setShowDirectAuth] = useState(false);
 
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
+  
+  const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
+
+  useEffect(() => {
+    getSiteSettings().then(settings => {
+      if (settings) {
+        setUploadConfig({
+          storageType: settings.imageStorageType || 'database',
+          uploadUrl: settings.serverUploadUrl || ''
+        });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -177,7 +189,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     );
   };
 
-  // وظيفة التحقق المحسنة
   const checkAuthAndClick = (ref: React.RefObject<HTMLInputElement>) => {
     if (!auth.currentUser) {
       setShowAuthWarning(true);
@@ -190,7 +201,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploading(true);
     try { 
-      const b = await uploadImageToCloud(file, 'avatar'); 
+      const b = await uploadImageToCloud(file, 'avatar', uploadConfig as any); 
       if (b) {
         handleChange('profileImage', b); 
       }
@@ -201,7 +212,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const file = e.target.files?.[0]; if (!file) return;
     setIsUploadingBg(true);
     try { 
-      const b = await uploadImageToCloud(file, 'background'); 
+      const b = await uploadImageToCloud(file, 'background', uploadConfig as any); 
       if (b) {
         setFormData(prev => ({ ...prev, backgroundImage: b, themeType: 'image' }));
       }
@@ -261,7 +272,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   return (
     <div className="max-w-[1440px] mx-auto">
-      {/* نافذة التنبيه بهوية الموقع */}
       {showAuthWarning && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
            <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
@@ -483,6 +493,28 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                              <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className={inputClasses} placeholder={t('مثلاً: مهندس برمجيات', 'Ex: Software Engineer')} />
                           </div>
                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t dark:border-gray-800">
+                       <div className="flex items-center gap-3 mb-4">
+                          <Shapes className="text-blue-600" size={18} />
+                          <h4 className="text-xs font-black dark:text-white uppercase tracking-widest">{isRtl ? 'مكتبة الكركترات والايموجي' : 'Emoji & Character Library'}</h4>
+                       </div>
+                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
+                          {AVATAR_PRESETS.map((url, i) => (
+                             <button 
+                               key={i} 
+                               type="button" 
+                               onClick={() => handleChange('profileImage', url)} 
+                               className={`aspect-square rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-800 border-2 ${formData.profileImage === url ? 'border-blue-600 scale-105 shadow-md' : 'border-transparent hover:border-blue-100'}`}
+                             >
+                                <img src={url} className="w-full h-full object-contain p-1" alt={`Preset ${i}`} />
+                             </button>
+                          ))}
+                       </div>
+                       <p className="text-[9px] font-bold text-gray-400 mt-2 px-2 uppercase tracking-tight opacity-60">
+                          {isRtl ? '* اختر كركتر مميز ليكون صورتك الشخصية بضغطة واحدة.' : '* Pick a unique character to be your profile picture with one tap.'}
+                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">

@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { VisualStyle, Language, TemplateConfig, ThemeType, PageBgStrategy } from '../types';
-import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL } from '../services/firebase';
+import { getAllVisualStyles, saveVisualStyle, deleteVisualStyle, auth, ADMIN_EMAIL, getSiteSettings } from '../services/firebase';
 import { THEME_GRADIENTS, THEME_COLORS, BACKGROUND_PRESETS, PATTERN_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import CardPreview from './CardPreview';
@@ -11,7 +11,7 @@ import {
   Search, GlassWater, Box, LayoutTemplate, Layers, ChevronLeft, 
   ChevronRight, Monitor, Zap, Wind, Waves, Square, AlignLeft, 
   AlignRight, Columns, Maximize2, Move, RefreshCcw, Grid, Shapes,
-  Tag, Ruler, Pipette, Repeat, SlidersHorizontal, Sparkle
+  Tag, Ruler, Pipette, Repeat, SlidersHorizontal, Sparkle, Link as LinkIcon
 } from 'lucide-react';
 
 interface StyleManagerProps {
@@ -29,12 +29,24 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
   const [uploadingBg, setUploadingBg] = useState(false);
   const [searchTerm, setSearching] = useState('');
   const [styleToDelete, setStyleToDelete] = useState<string | null>(null);
+  
+  // إضافة إعدادات الرفع
+  const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
 
   const t = (ar: string, en: string) => isRtl ? ar : en;
 
   useEffect(() => {
     if (auth.currentUser && auth.currentUser.email === ADMIN_EMAIL) {
       fetchStyles();
+      // جلب إعدادات الموقع عند التحميل
+      getSiteSettings().then(settings => {
+        if (settings) {
+          setUploadConfig({
+            storageType: settings.imageStorageType || 'database',
+            uploadUrl: settings.serverUploadUrl || ''
+          });
+        }
+      });
     } else {
       setLoading(false);
     }
@@ -140,7 +152,8 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
     if (!file) return;
     setUploadingBg(true);
     try {
-      const b = await uploadImageToCloud(file, 'background');
+      // تمرير إعدادات الرفع هنا
+      const b = await uploadImageToCloud(file, 'background', uploadConfig as any);
       if (b) {
         updateConfig('defaultBackgroundImage', b);
       }
@@ -309,6 +322,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
 
            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               <div className="lg:col-span-8 space-y-8">
+                 {/* قسم هندسة الترويسات */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Shapes className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('محرك هندسة الترويسات', 'Structural Shape Engine')}</h3></div>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -342,6 +356,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
+                 {/* قسم هندسة إطار البيانات */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Box className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('هندسة إطار البيانات', 'Body Geometry & Effects')}</h3></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -391,6 +406,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                     </div>
                  </div>
 
+                 {/* قسم البصمة الوراثية للسمة */}
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <div className="flex items-center gap-4"><Sparkles className="text-indigo-600" size={24}/><h3 className="text-lg font-black dark:text-white uppercase tracking-widest">{t('البصمة الوراثية للسمة', 'Visual DNA')}</h3></div>
                     <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl">
@@ -426,19 +442,39 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
 
                     {editingStyle.config?.defaultThemeType === 'image' && (
                       <div className="space-y-6 animate-fade-in">
-                         <label className="text-[10px] font-black text-gray-400 uppercase">{t('خلفيات فنية افتراضية', 'Artistic Background Presets')}</label>
-                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                            {BACKGROUND_PRESETS.map((url, i) => (
-                              <button key={i} onClick={() => updateConfig('defaultBackgroundImage', url)} className={`h-24 rounded-2xl border-2 overflow-hidden transition-all ${editingStyle.config?.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-xl' : 'border-transparent opacity-60'}`}>
-                                 <img src={url} className="w-full h-full object-cover" alt={`Preset ${i}`} />
-                              </button>
-                            ))}
+                         <div className="space-y-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase block tracking-widest">{t('رابط خلفية خاصة (URL)', 'Custom Background URL')}</label>
+                            <div className="relative">
+                               <LinkIcon className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-indigo-400`} size={16} />
+                               <input 
+                                 type="url" 
+                                 value={editingStyle.config?.defaultBackgroundImage || ''} 
+                                 onChange={e => updateConfig('defaultBackgroundImage', e.target.value)} 
+                                 placeholder="https://example.com/high-quality-bg.jpg" 
+                                 className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} !py-3.5 font-mono text-[11px]`}
+                               />
+                            </div>
+                            <p className="text-[9px] font-bold text-gray-400 italic px-2">
+                               {isRtl ? "* أدخل رابط مباشر لصورة عالية الجودة ليتم استخدامها كخلفية افتراضية للنمط." : "* Enter a direct link to a high-quality image to be used as the default background."}
+                            </p>
                          </div>
+
+                         <div className="pt-4 space-y-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase">{t('أو اختر من المكتبة الجاهزة', 'Or choose from presets')}</label>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                               {BACKGROUND_PRESETS.map((url, i) => (
+                                 <button key={i} onClick={() => updateConfig('defaultBackgroundImage', url)} className={`h-24 rounded-2xl border-2 overflow-hidden transition-all ${editingStyle.config?.defaultBackgroundImage === url ? 'border-indigo-600 scale-105 shadow-xl' : 'border-transparent opacity-60'}`}>
+                                    <img src={url} className="w-full h-full object-cover" alt={`Preset ${i}`} />
+                                 </button>
+                               ))}
+                            </div>
+                         </div>
+                         
                          <div className="pt-4 border-t dark:border-gray-800">
                             <input type="file" ref={bgInputRef} onChange={handleBgUpload} className="hidden" accept="image/*" />
                             <button onClick={() => bgInputRef.current?.click()} className="w-full py-5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-3xl font-black text-xs uppercase flex items-center justify-center gap-3 border border-indigo-100 dark:border-indigo-900/40 hover:bg-indigo-100 transition-all">
                                {uploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-                               {t('رفع خلفية خاصة للنمط', 'Upload Custom Background')}
+                               {t('أو ارفع ملف من جهازك', 'Or upload from your device')}
                             </button>
                          </div>
                       </div>
@@ -485,6 +521,7 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                  </div>
               </div>
 
+              {/* قسم المعاينة */}
               <div className="lg:col-span-4 sticky top-[100px] self-start space-y-6">
                  <div className="bg-white dark:bg-[#050507] p-5 rounded-[4rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden relative">
                     <div className="mb-6 flex items-center justify-between px-4">
@@ -517,11 +554,24 @@ const StyleManager: React.FC<StyleManagerProps> = ({ lang }) => {
                        </div>
                     </div>
                  </div>
+
+                 {/* حقول معلومات النمط */}
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-5">
+                    <div className="space-y-2">
+                       <label className={labelTextClasses}>{t('اسم النمط (AR)', 'Style Name (AR)')}</label>
+                       <input type="text" value={editingStyle.nameAr || ''} onChange={e => setEditingStyle({...editingStyle, nameAr: e.target.value})} className={inputClasses} />
+                    </div>
+                    <div className="space-y-2">
+                       <label className={labelTextClasses}>{t('اسم النمط (EN)', 'Style Name (EN)')}</label>
+                       <input type="text" value={editingStyle.nameEn || ''} onChange={e => setEditingStyle({...editingStyle, nameEn: e.target.value})} className={inputClasses} />
+                    </div>
+                 </div>
               </div>
            </div>
         </div>
       )}
 
+      {/* مودال الحذف */}
       {styleToDelete && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
           <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl border border-gray-100 dark:border-gray-800 animate-fade-in">

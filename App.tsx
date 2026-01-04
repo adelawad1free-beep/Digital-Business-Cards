@@ -1,528 +1,369 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { Language, CardData, CustomTemplate } from './types';
-import { TRANSLATIONS, SAMPLE_DATA, LANGUAGES_CONFIG } from './constants';
+import { TRANSLATIONS, LANGUAGES_CONFIG } from './constants';
 import Editor from './pages/Editor';
 import PublicProfile from './pages/PublicProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import UserAccount from './pages/UserAccount';
 import Home from './pages/Home';
+import MyCards from './pages/MyCards';
 import TemplatesGallery from './pages/TemplatesGallery';
 import LanguageToggle from './components/LanguageToggle';
 import ShareModal from './components/ShareModal';
 import AuthModal from './components/AuthModal';
 import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSiteSettings, deleteUserCard, getAllTemplates } from './services/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { Sun, Moon, Loader2, Plus, Edit2, Trash2, ExternalLink, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, Coffee, Heart, LayoutGrid, CreditCard, Settings as SettingsIcon } from 'lucide-react';
+import { Sun, Moon, Loader2, Plus, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, LayoutGrid, CreditCard, Mail, Coffee, Heart, ExternalLink } from 'lucide-react';
 
-const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>(() => {
-    const savedLang = localStorage.getItem('preferred_lang');
-    if (savedLang && Object.keys(LANGUAGES_CONFIG).includes(savedLang)) return savedLang as Language;
-    const browserLang = navigator.language.split('-')[0];
-    return Object.keys(LANGUAGES_CONFIG).includes(browserLang) ? (browserLang as Language) : 'ar';
-  });
+const AppContent: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+  
+  const langParam = params.lang as Language;
+  const lang = (Object.keys(LANGUAGES_CONFIG).includes(langParam) ? langParam : (localStorage.getItem('preferred_lang') as Language || 'ar')) as Language;
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
-  const [cardNotFoundError, setCardNotFoundError] = useState(false);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'admin' | 'home' | 'manager' | 'account' | 'templates'>('home');
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharingData, setSharingData] = useState<CardData | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, ownerId: string } | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [editingCard, setEditingCard] = useState<CardData | null>(null);
   
   const [siteConfig, setSiteConfig] = useState({ 
     siteNameAr: 'هويتي الرقمية', 
     siteNameEn: 'My Digital Identity', 
     siteLogo: '',
     siteIcon: '',
-    maintenanceMode: false,
     primaryColor: '#3b82f6',
     secondaryColor: '#8b5cf6',
-    fontFamily: 'Cairo'
+    fontFamily: 'Cairo',
+    analyticsCode: ''
   });
   
   const [isInitializing, setIsInitializing] = useState(true);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [editingCard, setEditingCard] = useState<CardData | null>(null);
+  const initFlag = useRef(false);
 
   const isAdmin = currentUser?.email === ADMIN_EMAIL;
-  const isRtl = LANGUAGES_CONFIG[lang].dir === 'rtl';
+  const isRtl = LANGUAGES_CONFIG[lang]?.dir === 'rtl';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
 
-  const t = (key: string, fallback?: string) => {
-    if (fallback && !TRANSLATIONS[key]) return fallback;
-    if (!TRANSLATIONS[key]) return key;
-    return TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'] || key;
+  const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
+
+  const navigateWithLang = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    navigate(`/${lang}${cleanPath}`);
   };
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [activeTab, editingCard]);
+    const initializeApp = async () => {
+      if (initFlag.current) return;
+      initFlag.current = true;
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
-    root.dir = LANGUAGES_CONFIG[lang].dir;
-    root.lang = lang;
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    localStorage.setItem('preferred_lang', lang);
+      const searchParams = new URLSearchParams(window.location.search);
+      const slug = searchParams.get('u')?.trim().toLowerCase();
 
-    root.style.setProperty('--brand-primary', siteConfig.primaryColor);
-    root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
-    root.style.setProperty('--site-font', siteConfig.fontFamily);
-    
-    const fontId = 'dynamic-google-font';
-    let linkEl = document.getElementById(fontId) as HTMLLinkElement;
-    if (!linkEl) {
-      linkEl = document.createElement('link');
-      linkEl.id = fontId;
-      linkEl.rel = 'stylesheet';
-      document.head.appendChild(linkEl);
-    }
-    linkEl.href = `https://fonts.googleapis.com/css2?family=${siteConfig.fontFamily.replace(/\s+/g, '+')}:wght@300;400;700;900&display=swap`;
-
-    const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    if (favicon && siteConfig.siteIcon) favicon.href = siteConfig.siteIcon;
-  }, [isDarkMode, lang, siteConfig]);
-
-  useEffect(() => {
-    const bootstrap = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const slug = params.get('u')?.trim().toLowerCase();
-
-      try {
-        const [settings, templates] = await Promise.all([
-          getSiteSettings().catch(() => null),
-          getAllTemplates().catch(() => [])
-        ]);
-        if (settings) setSiteConfig(prev => ({ ...prev, ...settings }));
-        if (templates) setCustomTemplates(templates as CustomTemplate[]);
-      } catch (e) {}
+      const promises: Promise<any>[] = [
+        getSiteSettings().catch(() => null),
+        getAllTemplates().catch(() => [])
+      ];
 
       if (slug) {
-        try {
-          const card = await getCardBySerial(slug);
-          if (card) {
-            setPublicCard(card as CardData);
-            setIsDarkMode(card.isDark);
-            setIsInitializing(false);
-            return;
-          } else {
-            setCardNotFoundError(true);
-            setIsInitializing(false);
-            return;
-          }
-        } catch (e) {
-          setCardNotFoundError(true);
-          setIsInitializing(false);
-          return;
-        }
+        promises.push(getCardBySerial(slug).catch(() => null));
+      }
+
+      const [settings, templates, card] = await Promise.all(promises);
+
+      if (settings) setSiteConfig(prev => ({ ...prev, ...settings }));
+      if (templates) setCustomTemplates(templates as CustomTemplate[]);
+      
+      if (card) {
+        setPublicCard(card as CardData);
+        setIsDarkMode(card.isDark);
       }
 
       onAuthStateChanged(auth, async (user) => {
         setCurrentUser(user);
-        if (user) {
+        if (user && !slug) {
           try {
             const cards = await getUserCards(user.uid);
             setUserCards(cards as CardData[]);
           } catch (e) {}
-        } else {
-          setUserCards([]); // تأمين تفريغ البطاقات عند تسجيل الخروج
         }
         setIsInitializing(false);
       });
     };
 
-    bootstrap();
+    initializeApp();
   }, []);
 
-  const handleSave = async (data: CardData, oldId?: string) => {
-    if (!auth.currentUser) { setShowAuthModal(true); return; }
-    setSaveLoading(true);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  // Analytics injection effect - UPDATED TO FIX SCRIPT EXECUTION
+  useEffect(() => {
+    if (siteConfig.analyticsCode) {
+      // 1. تنظيف السكربتات القديمة لمنع التكرار
+      const oldScripts = document.querySelectorAll('.custom-analytics-script');
+      oldScripts.forEach(el => el.remove());
+
+      // 2. تحويل النص البرمجي إلى عناصر DOM
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(`<div>${siteConfig.analyticsCode}</div>`, 'text/html');
+      const scripts = doc.querySelectorAll('script');
+
+      scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        newScript.className = 'custom-analytics-script';
+
+        // نسخ كافة الخصائص (src, async, defer, etc.)
+        Array.from(oldScript.attributes).forEach(attr => {
+          newScript.setAttribute(attr.name, attr.value);
+        });
+
+        // نسخ المحتوى النصي (إذا كان سكربت داخلي)
+        if (oldScript.innerHTML) {
+          newScript.innerHTML = oldScript.innerHTML;
+        }
+
+        document.head.appendChild(newScript);
+      });
+      
+      console.log("Analytics scripts injected and executed.");
+    }
+  }, [siteConfig.analyticsCode]);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
+    root.dir = LANGUAGES_CONFIG[lang]?.dir || 'rtl';
+    root.lang = lang;
+    localStorage.setItem('preferred_lang', lang);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+
+    root.style.setProperty('--brand-primary', siteConfig.primaryColor);
+    root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
+    root.style.setProperty('--site-font', siteConfig.fontFamily);
+
+    if (siteConfig.siteIcon) {
+      const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
+      if (favicon) {
+        favicon.href = siteConfig.siteIcon;
+      }
+    }
+  }, [isDarkMode, lang, siteConfig]);
+
+  const handleEditorSave = async (data: CardData) => {
     try {
-      await saveCardToDB({ cardData: data, oldId });
-      const cards = await getUserCards(auth.currentUser.uid);
-      setUserCards(cards as CardData[]);
-      setEditingCard(data);
+      await saveCardToDB({cardData: data});
+      const updatedCards = await getUserCards(currentUser!.uid);
+      setUserCards(updatedCards as CardData[]);
+      setSharingData(data);
       setShowShareModal(true);
-      setActiveTab('manager');
     } catch (e) {
-      alert(isRtl ? "فشل الحفظ" : "Save failed");
-    } finally { setSaveLoading(false); }
+      alert(isRtl ? "حدث خطأ أثناء الحفظ" : "Error while saving");
+    }
   };
 
-  const handleAuthSuccess = (userId: string) => {
-    setShowAuthModal(false);
-    getUserCards(userId).then(cards => {
-      setUserCards(cards as CardData[]);
-      setActiveTab('manager');
-    });
-  };
-
-  const navigateTo = (tab: any) => {
-    setActiveTab(tab);
+  const handleCloseShare = () => {
+    setShowShareModal(false);
+    setSharingData(null);
+    navigateWithLang('/my-cards');
   };
 
   if (isInitializing) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[999]">
-      <Loader2 className="animate-spin text-blue-600 mb-6" size={64} />
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-[12px] font-black text-blue-600 uppercase tracking-[0.4em] animate-pulse">{t('هويتي الرقمية', 'NextID Identity')}</p>
-        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest opacity-60">{t('جاري التحقق من الهوية...', 'Verifying Identity...')}</p>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#050507] z-[9999]">
+      <div className="relative">
+        <div className="w-16 h-16 border-4 border-blue-100 dark:border-blue-900/20 rounded-full"></div>
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
       </div>
+      <p className="mt-6 text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] animate-pulse">{t('appName')}</p>
     </div>
   );
 
-  if (cardNotFoundError) return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center transition-colors ${isDarkMode ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
-      <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl animate-bounce-in">
-        <AlertCircle size={48} />
-      </div>
-      <h1 className="text-3xl font-black mb-4">
-        {isRtl ? 'عذراً، البطاقة غير موجودة' : 'Card Not Found'}
-      </h1>
-      <p className="text-gray-500 dark:text-gray-400 max-w-xs font-bold leading-relaxed mb-12">
-        {isRtl 
-          ? 'يبدو أن الرابط الذي اتبعته غير صحيح أو أن البطاقة قد تم حذفها بواسطة صاحبها.' 
-          : 'The link you followed is incorrect or the card has been deleted by its owner.'}
-      </p>
-      <button 
-        onClick={() => {
-          setCardNotFoundError(false);
-          setActiveTab('home');
-          window.history.replaceState({}, '', window.location.pathname);
-        }}
-        className="px-12 py-5 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
-      >
-        <HomeIcon size={18} />
-        {isRtl ? 'العودة للرئيسية' : 'Back to Home'}
-      </button>
-    </div>
-  );
-  
   if (publicCard) {
     const customTmpl = customTemplates.find(t => t.id === publicCard.templateId);
     return <PublicProfile data={publicCard} lang={lang} customConfig={customTmpl?.config} siteIcon={siteConfig.siteIcon} />;
   }
 
-  return (
-    <div 
-      className={`min-h-screen flex flex-col transition-colors duration-300 w-full ${isDarkMode ? 'bg-[#0a0a0c]' : 'bg-[#f8fafc]'} ${isRtl ? 'rtl' : 'ltr'}`}
-      style={{ fontFamily: 'var(--site-font), sans-serif' }}
-    >
-      <header className="sticky top-0 z-[100] w-full bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4 md:gap-10">
-            <div className="flex items-center gap-2 md:gap-4 cursor-pointer shrink-0" onClick={() => navigateTo('home')}>
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-[var(--brand-primary)] rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black shadow-lg overflow-hidden shrink-0">
-                {siteConfig.siteLogo ? <img src={siteConfig.siteLogo} className="w-full h-full object-contain p-1" alt="Logo" /> : "ID"}
-              </div>
-              <span className="text-lg md:text-xl font-black dark:text-white truncate max-w-[140px] md:max-w-none">{displaySiteName}</span>
-            </div>
+  const BottomNav = () => {
+    const navItems = [
+      { id: 'home', path: '/', icon: HomeIcon, label: t('home') },
+      { id: 'templates', path: '/templates', icon: LayoutGrid, label: t('templates') },
+      { id: 'add', path: '/templates', icon: Plus, label: '', isAction: true },
+      { id: 'my-cards', path: '/my-cards', icon: CreditCard, label: t('myCards'), private: true },
+      { id: 'account', path: '/account', icon: UserIcon, label: t('account'), private: true },
+    ];
 
-            <nav className="hidden lg:flex items-center gap-2">
-              <button onClick={() => navigateTo('home')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'home' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('home')}</button>
-              <button onClick={() => navigateTo('templates')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'templates' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('templates')}</button>
-              {/* Fix: "My Cards" now visible to everyone */}
-              <button onClick={() => navigateTo('manager')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('myCards')}</button>
-              {isAdmin && <button onClick={() => navigateTo('admin')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-100'}`}>{t('admin')}</button>}
+    return (
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-[1000] animate-fade-in-up">
+        <div className="bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-around relative">
+          {navItems.map((item) => {
+            const isActive = location.pathname.endsWith(`/${lang}${item.path === '/' ? '' : item.path}`) || (item.path === '/' && location.pathname.endsWith(`/${lang}/`));
+            
+            if (item.isAction) {
+              return (
+                <button 
+                  key={item.id}
+                  onClick={() => navigateWithLang(item.path)}
+                  className="relative -top-6 w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-600/40 border-4 border-white dark:border-gray-900 active:scale-90 transition-transform"
+                >
+                  <Plus size={32} strokeWidth={3} />
+                </button>
+              );
+            }
+
+            if (item.private && !currentUser) {
+                return (
+                  <button 
+                    key={item.id}
+                    onClick={() => setShowAuthModal(true)}
+                    className="flex flex-col items-center gap-1 p-2 text-gray-400"
+                  >
+                    <item.icon size={22} />
+                    <span className="text-[10px] font-black">{item.label}</span>
+                  </button>
+                );
+            }
+
+            return (
+              <button 
+                key={item.id}
+                onClick={() => navigateWithLang(item.path)}
+                className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+              >
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[10px] font-black">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`min-h-screen flex flex-col ${isRtl ? 'rtl' : 'ltr'}`} style={{ fontFamily: 'var(--site-font), sans-serif' }}>
+      <header className="sticky top-0 z-[100] w-full bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateWithLang('/')}>
+              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs">
+                ID
+              </div>
+              <span className="text-lg font-black dark:text-white">{displaySiteName}</span>
+            </div>
+            <nav className="hidden md:flex items-center gap-2">
+              <button onClick={() => navigateWithLang('/')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${location.pathname.endsWith(`/${lang}`) || location.pathname.endsWith(`/${lang}/`) ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t('home')}</button>
+              <button onClick={() => navigateWithLang('/templates')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${location.pathname.includes('/templates') ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t('templates')}</button>
+              {currentUser && <button onClick={() => navigateWithLang('/my-cards')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${location.pathname.includes('/my-cards') ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t('myCards')}</button>}
+              {isAdmin && <button onClick={() => navigateWithLang('/admin')} className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase transition-all ${location.pathname.includes('/admin') ? 'text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{t('admin')}</button>}
             </nav>
           </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-1.5 md:gap-3">
-              <div className="scale-90 md:scale-100">
-                <LanguageToggle currentLang={lang} onToggle={(l) => setLang(l)} />
+          <div className="flex items-center gap-3">
+            <LanguageToggle currentLang={lang} />
+            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-sm">{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+            {currentUser ? (
+              <div className="hidden md:flex items-center gap-2">
+                <button onClick={() => navigateWithLang('/account')} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-[10px] font-black uppercase shadow-sm flex items-center gap-2"><UserIcon size={14} />{t('account')}</button>
+                <button onClick={() => signOut(auth)} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase">{t('logout')}</button>
               </div>
-              <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 md:p-3 text-gray-400 hover:text-blue-600 bg-gray-50 dark:bg-gray-800/50 rounded-xl md:rounded-2xl transition-all shrink-0 shadow-sm border border-transparent dark:border-gray-700">
-                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            </div>
-
-            <div className="hidden md:flex items-center gap-2">
-              {currentUser ? (
-                <>
-                  <button onClick={() => navigateTo('account')} className="px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-blue-50 transition-colors shadow-sm"><UserIcon size={14} /> {t('account')}</button>
-                  <button onClick={() => signOut(auth).then(() => window.location.reload())} className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-sm">{t('logout')}</button>
-                </>
-              ) : (
-                <button 
-                  onClick={() => setShowAuthModal(true)} 
-                  className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <LogIn size={16} />
-                  {t('login')}
-                </button>
-              )}
-            </div>
+            ) : (
+              <button onClick={() => setShowAuthModal(true)} className="hidden md:block px-6 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">{t('login')}</button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-12 pb-32 md:pb-12">
-        {activeTab === 'home' && <Home lang={lang} onStart={() => setActiveTab('templates')} />}
-        {activeTab === 'templates' && <TemplatesGallery lang={lang} onSelect={(id) => { setSelectedTemplateId(id); setEditingCard(null); setActiveTab('editor'); }} />}
-        {activeTab === 'manager' && (
-          <div className="max-w-6xl mx-auto space-y-12 animate-fade-in-up">
-            <div className="flex items-center justify-between mb-8">
-               <h2 className="text-3xl md:text-4xl font-black dark:text-white">{t('myCards')}</h2>
-               <button 
-                onClick={() => setActiveTab('templates')} 
-                className="p-3.5 md:p-4 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all"
-               >
-                 <Plus size={24} />
-               </button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-               {userCards.map((card) => (
-                  <div 
-                    key={card.id} 
-                    className="bg-white dark:bg-[#121215] p-5 md:p-6 rounded-[2.25rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-gray-50 dark:border-gray-800 group hover:-translate-y-1 transition-all duration-300"
-                  >
-                     <div className={`flex items-start justify-between mb-6 md:mb-8 ${isRtl ? 'flex-row' : 'flex-row-reverse'}`}>
-                        <div className={`flex flex-col ${isRtl ? 'items-start' : 'items-end'} min-w-0 flex-1`}>
-                           <h3 className="font-black text-lg md:text-xl text-gray-900 dark:text-white truncate w-full mb-2">
-                             {card.name || '---'}
-                           </h3>
-                           <div className="inline-flex items-center px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full">
-                              <span className="text-[10px] font-black tracking-widest">{card.id}</span>
-                           </div>
-                        </div>
-                        
-                        <div className={`shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-[1.75rem] border-4 border-white dark:border-gray-800 shadow-xl overflow-hidden bg-gray-50 dark:bg-gray-900 ${isRtl ? 'mr-4' : 'ml-4'}`}>
-                           {card.profileImage ? (
-                             <img src={card.profileImage} className="w-full h-full object-cover" alt="Profile" />
-                           ) : (
-                             <div className="w-full h-full flex items-center justify-center">
-                               <UserIcon size={24} className="text-gray-300"/>
-                             </div>
-                           )}
-                        </div>
-                     </div>
-
-                     <div className="flex items-center justify-center gap-2 md:gap-3">
-                        <button 
-                          onClick={() => setDeleteConfirmation({ id: card.id, ownerId: card.ownerId || '' })}
-                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                          title={isRtl ? "حذف" : "Delete"}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                        
-                        <a 
-                          href={`?u=${card.id}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                          title={isRtl ? "معاينة" : "Preview"}
-                        >
-                          <ExternalLink size={18} />
-                        </a>
-
-                        <button 
-                          onClick={() => { setEditingCard(card); setSelectedTemplateId(card.templateId); setActiveTab('editor'); }}
-                          className="w-11 h-11 md:w-12 md:h-12 flex items-center justify-center rounded-xl md:rounded-2xl bg-blue-50 dark:bg-blue-900/10 text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                          title={isRtl ? "تعديل" : "Edit"}
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                     </div>
-                  </div>
-               ))}
-               
-               <button 
-                 onClick={() => setActiveTab('templates')}
-                 className="flex flex-col items-center justify-center p-8 rounded-[2.25rem] md:rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 hover:border-blue-200 hover:bg-blue-50/10 transition-all group min-h-[160px]"
-               >
-                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm mb-4">
-                    <Plus size={24} />
-                 </div>
-                 <span className="text-[11px] md:text-xs font-black text-gray-400 group-hover:text-blue-600 uppercase tracking-widest transition-colors text-center">
-                   {isRtl ? 'إضافة بطاقة جديدة' : 'Add New Card'}
-                 </span>
-               </button>
-            </div>
-            
-            {userCards.length === 0 && (
-              <div className="py-20 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">
-                {t('noCardsYet')}
-              </div>
-            )}
-          </div>
-        )}
-        {activeTab === 'editor' && (
-          <Editor 
-            lang={lang} 
-            onSave={handleSave} 
-            initialData={editingCard || undefined} 
-            isAdminEdit={isAdmin} 
-            templates={customTemplates} 
-            onCancel={() => setActiveTab('manager')}
-            forcedTemplateId={selectedTemplateId || undefined}
-          />
-        )}
-        {activeTab === 'admin' && isAdmin && <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); setSelectedTemplateId(c.templateId); setActiveTab('editor'); }} onDeleteRequest={(id, owner) => setDeleteConfirmation({ id, ownerId: owner })} />}
-        {activeTab === 'account' && currentUser && <UserAccount lang={lang} />}
+      <main className="flex-1 p-4 md:p-8">
+        <Routes>
+          <Route path="/" element={<Home lang={lang} onStart={() => navigateWithLang('/templates')} />} />
+          <Route path="/templates" element={<TemplatesGallery lang={lang} onSelect={(id) => { setSelectedTemplateId(id); setEditingCard(null); navigateWithLang('/editor'); }} />} />
+          <Route path="/my-cards" element={currentUser ? <MyCards lang={lang} cards={userCards} onAdd={() => navigateWithLang('/templates')} onEdit={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDelete={(id, uid) => deleteUserCard(uid, id).then(() => window.location.reload())} /> : <Navigate to={`/${lang}/`} replace />} />
+          <Route path="/editor" element={<Editor lang={lang} onSave={handleEditorSave} templates={customTemplates} onCancel={() => navigateWithLang('/')} forcedTemplateId={selectedTemplateId || undefined} initialData={editingCard || undefined} />} />
+          <Route path="/account" element={currentUser ? <UserAccount lang={lang} /> : <Navigate to={`/${lang}/`} replace />} />
+          <Route path="/admin" element={isAdmin ? <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDeleteRequest={() => {}} /> : <Navigate to={`/${lang}/`} replace />} />
+          <Route path="*" element={<Navigate to={`/${lang}/`} replace />} />
+        </Routes>
       </main>
 
-      {/* Bottom Navigation for Mobile */}
-      <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[110] animate-bounce-in">
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-2 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between">
-           <button 
-             onClick={() => navigateTo('home')}
-             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'home' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
-           >
-              <HomeIcon size={20} strokeWidth={activeTab === 'home' ? 3 : 2} />
-              <span className="text-[8px] font-black uppercase tracking-widest">{t('home')}</span>
-           </button>
-           <button 
-             onClick={() => navigateTo('templates')}
-             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'templates' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
-           >
-              <LayoutGrid size={20} strokeWidth={activeTab === 'templates' ? 3 : 2} />
-              <span className="text-[8px] font-black uppercase tracking-widest">{t('templates')}</span>
-           </button>
-           
-           <div className="relative -mt-10 px-2">
-              <button 
-                onClick={() => navigateTo('templates')}
-                className="w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-4 border-white dark:border-[#0a0a0c]"
-              >
-                <Plus size={28} strokeWidth={3} />
-              </button>
-           </div>
+      <BottomNav />
 
-           <button 
-             onClick={() => navigateTo('manager')}
-             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'manager' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
-           >
-              <CreditCard size={20} strokeWidth={activeTab === 'manager' ? 3 : 2} />
-              <span className="text-[8px] font-black uppercase tracking-widest">{t('myCards')}</span>
-           </button>
-           <button 
-             onClick={() => currentUser ? navigateTo('account') : setShowAuthModal(true)}
-             className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 transition-all ${activeTab === 'account' ? 'text-blue-600 scale-110' : 'text-gray-400'}`}
-           >
-              <UserIcon size={20} strokeWidth={activeTab === 'account' ? 3 : 2} />
-              <span className="text-[8px] font-black uppercase tracking-widest">{currentUser ? t('account') : t('login')}</span>
-           </button>
-        </div>
-      </nav>
+      <footer className="w-full bg-white dark:bg-[#0a0a0c] border-t border-gray-100 dark:border-gray-800 py-16 px-6 pb-32 lg:pb-16">
+        <div className="max-w-4xl mx-auto flex flex-col items-center">
+          <div className="w-full mb-12 text-center animate-fade-in">
+             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-50 dark:bg-yellow-900/10 text-yellow-700 dark:text-yellow-500 text-[10px] font-black uppercase tracking-widest mb-6 border border-yellow-100 dark:border-yellow-900/20">
+                <Heart size={12} className="fill-current" />
+                {isRtl ? 'ادعم استمرار المشروع مجاناً' : 'Support our free project'}
+             </div>
+             
+             <h3 className="text-xl md:text-2xl font-black dark:text-white mb-6 leading-relaxed">
+               {isRtl ? 'تبرع بكوب قهوة ليسر الموقع مجاناً للأبد' : 'Buy Me a Coffee to keep this site free forever'}
+             </h3>
 
-      <footer className="w-full pt-16 pb-32 lg:pb-12 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
-            <div className="animate-fade-in">
-              <a 
-                href="https://buymeacoffee.com/guidai" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group relative flex items-center gap-4 px-8 py-4 bg-[#FFDD00] hover:bg-[#FFC400] text-black rounded-[2rem] shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <div className="p-2 bg-white/40 rounded-full group-hover:rotate-12 transition-transform duration-500">
-                   <Coffee size={24} className="animate-pulse" />
-                </div>
-                <div className="flex flex-col items-start leading-tight">
-                  <span className="text-[10px] font-black uppercase opacity-60 tracking-widest">
-                    {isRtl ? 'ادعم استمرارية الموقع مجاناً' : 'Keep this project free'}
-                  </span>
-                  <span className="text-sm font-black uppercase">
-                    {isRtl ? 'تبرع بكوب قهوة' : 'Buy me a coffee'}
-                  </span>
-                </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-bounce">
-                   <Heart size={12} fill="currentColor" />
-                </div>
-              </a>
-            </div>
+             <a 
+               href="https://buymeacoffee.com/guidai" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#FFDD00] text-black rounded-[2.5rem] font-black text-lg shadow-2xl shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all overflow-hidden"
+             >
+                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                <Coffee size={24} className="relative z-10 group-hover:animate-bounce" />
+                <span className="relative z-10">{isRtl ? 'تبرع بكوب قهوة' : 'Buy Me a Coffee'}</span>
+             </a>
+          </div>
 
-            <div className="flex flex-col items-center gap-2">
-                <div className="flex flex-col sm:flex-row items-center gap-2 text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                  <span>{isRtl ? 'كافة الحقوق محفوظة 2025' : 'All Rights Reserved 2025'}</span>
-                  <span className="hidden sm:inline mx-2 opacity-30">|</span>
-                  <a href="mailto:info@nextid.my" className="text-blue-600 hover:underline">info@nextid.my</a>
-                </div>
-                <div className="text-[9px] font-bold text-gray-300 dark:text-gray-600 uppercase tracking-[0.3em]">
-                  {isRtl ? 'بواسطة هويتي الرقمية' : 'By My Digital Identity'}
-                </div>
-            </div>
+          <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-100 dark:via-gray-800 to-transparent mb-10"></div>
+
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-center">
+             <div className="flex items-center gap-2 text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-tight">
+                <span>{isRtl ? 'كافة الحقوق محفوظة' : 'All Rights Reserved'}</span>
+                <span className="text-blue-600">2025</span>
+             </div>
+             
+             <div className="hidden md:block w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+             
+             <a href="mailto:info@nextid.my" className="group flex items-center gap-2.5 px-5 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-full border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-900 transition-all">
+                <Mail size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors">info@nextid.my</span>
+             </a>
+          </div>
+
+          <div className="mt-8 flex items-center gap-2 opacity-20 text-[9px] font-black uppercase tracking-[0.4em] text-gray-400">
+             <span>Digital Identity Platform</span>
+          </div>
         </div>
       </footer>
 
-      {showShareModal && editingCard && <ShareModal data={editingCard} lang={lang} onClose={() => setShowShareModal(false)} />}
-      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={handleAuthSuccess} />}
+      {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); navigateWithLang('/my-cards'); }} />}
       
-      {deleteConfirmation && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3rem] md:rounded-[3.5rem] p-8 md:p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
-            <Trash2 size={48} className="mx-auto text-red-500 mb-6" />
-            <h3 className="text-2xl font-black mb-8 dark:text-white">{isRtl ? "تأكيد الحذف" : "Confirm Delete"}</h3>
-            <div className="flex flex-col gap-3">
-              <button onClick={async () => {
-                setSaveLoading(true);
-                try {
-                  await deleteUserCard(deleteConfirmation.ownerId, deleteConfirmation.id);
-                  const cards = await getUserCards(currentUser!.uid);
-                  setUserCards(cards as CardData[]);
-                  setDeleteConfirmation(null);
-                } catch (e) { alert("Error deleting card"); }
-                finally { setSaveLoading(false); }
-              }} className="py-4 md:py-5 bg-red-600 text-white rounded-2xl md:rounded-3xl font-black text-sm uppercase shadow-lg shadow-red-500/20 active:scale-95 transition-all">نعم، احذف</button>
-              <button onClick={() => setDeleteConfirmation(null)} className="py-4 md:py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl md:rounded-3xl font-black text-sm uppercase transition-all">إلغاء</button>
-            </div>
-          </div>
-        </div>
+      {showShareModal && sharingData && (
+        <ShareModal 
+          data={sharingData} 
+          lang={lang} 
+          onClose={handleCloseShare} 
+          isNewSave={true} 
+        />
       )}
-      
-      {saveLoading && <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/80 backdrop-blur-xl"><Loader2 className="animate-spin text-blue-600 mb-6" size={64} /><p className="text-white font-black uppercase tracking-widest text-sm">{isRtl ? 'جاري المعالجة...' : 'Processing...'}</p></div>}
-      
-      <style dangerouslySetInnerHTML={{ __html: `
-        :root {
-          --brand-primary: ${siteConfig.primaryColor};
-          --brand-secondary: ${siteConfig.secondaryColor};
-          --site-font: '${siteConfig.fontFamily}';
-        }
-        .bg-blue-600 { background-color: var(--brand-primary) !important; }
-        .text-blue-600 { color: var(--brand-primary) !important; }
-        .border-blue-600 { border-color: var(--brand-primary) !important; }
-        .hover\\:bg-blue-600:hover { background-color: var(--brand-primary) !important; }
-        .hover\\:text-blue-600:hover { color: var(--brand-primary) !important; }
-        
-        .mesh-1 { background: var(--brand-primary); }
-        .mesh-2 { background: var(--brand-secondary); }
-        body { font-family: var(--site-font), sans-serif !important; }
-
-        @keyframes slide-in-right {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        @keyframes slide-in-left {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        .animate-slide-in-right {
-          animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        .animate-slide-in-left {
-          animation: slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .no-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
-        }
-      `}} />
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/:lang/*" element={<AppContent />} />
+        <Route path="/" element={<Navigate to="/ar/" replace />} />
+      </Routes>
+    </HashRouter>
   );
 };
 

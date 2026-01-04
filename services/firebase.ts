@@ -30,6 +30,9 @@ import {
 } from "firebase/firestore";
 import { CardData, TemplateCategory, VisualStyle } from "../types";
 
+// Exporting doc and getDoc from firebase/firestore to resolve import errors in pages/AdminDashboard.tsx
+export { doc, getDoc };
+
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
   authDomain: "my-digital-identity.firebaseapp.com",

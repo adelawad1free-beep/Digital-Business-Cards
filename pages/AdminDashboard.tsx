@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { 
   getAdminStats, ADMIN_EMAIL, deleteUserCard, 
+  getDoc, doc, db,
   getSiteSettings, updateSiteSettings, updateAdminSecurity,
   saveCustomTemplate, getAllTemplates, deleteTemplate,
   getAllCategories, saveTemplateCategory, deleteTemplateCategory,
@@ -18,7 +19,8 @@ import {
   Globe, Power, Save, Search, LayoutGrid,
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, 
   Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle, Pin, PinOff, ArrowUpAZ,
-  MoreVertical, ToggleLeft, ToggleRight, MousePointer2, TrendingUp, Filter, ListFilter, Activity, Type, FolderEdit, Check, FolderOpen, Tag, PlusCircle, Zap
+  MoreVertical, ToggleLeft, ToggleRight, MousePointer2, TrendingUp, Filter, ListFilter, Activity, Type, FolderEdit, Check, FolderOpen, Tag, PlusCircle, Zap, HardDrive, Database, Link as LinkIcon, FolderSync, Server,
+  Info, BarChart, Copy, FileJson, Code
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -43,6 +45,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [categoryData, setCategoryData] = useState({ id: '', nameAr: '', nameEn: '', order: 0, isActive: true });
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
+  const [showPhpCode, setShowPhpCode] = useState(false);
 
   const [settings, setSettings] = useState({ 
     siteNameAr: '', 
@@ -52,8 +55,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     maintenanceMode: false,
     primaryColor: '#3b82f6',
     secondaryColor: '#8b5cf6',
-    fontFamily: 'Cairo'
+    fontFamily: 'Cairo',
+    imageStorageType: 'database', 
+    serverUploadUrl: '',
+    analyticsCode: ''
   });
+
+  const phpSampleCode = `<?php
+/**
+ * NEXTID - Optimized PHP Upload Handler
+ * يسمح برفع الصور من الموقع إلى سيرفرك الخاص
+ */
+
+// السماح بالطلبات من أي مصدر (CORS)
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Content-Type: application/json");
+
+// التعامل مع طلبات Preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
+    $uploadDir = 'upload/'; // اسم المجلد كما هو في سيرفرك
+    
+    if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
+    if (!is_writable($uploadDir)) {
+        http_response_code(500);
+        echo json_encode(["error" => "Directory is not writable. Set CHMOD 777."]);
+        exit;
+    }
+    
+    $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
+        http_response_code(400); echo json_encode(["error" => "Invalid file type"]); exit;
+    }
+
+    $fileName = time() . '_' . uniqid() . '.' . $ext;
+    $targetPath = $uploadDir . $fileName;
+
+    if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://";
+        $actualPath = $protocol . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/' . $targetPath;
+        echo json_encode(["url" => $actualPath]);
+    } else {
+        http_response_code(500); echo json_encode(["error" => "Upload failed"]);
+    }
+} else {
+    http_response_code(400); echo json_encode(["error" => "Invalid request"]);
+}
+?>`;
 
   const fontOptions = [
     { name: 'Cairo', value: 'Cairo' },
@@ -85,7 +136,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
           maintenanceMode: stData.maintenanceMode || false,
           primaryColor: stData.primaryColor || '#3b82f6',
           secondaryColor: stData.secondaryColor || '#8b5cf6',
-          fontFamily: stData.fontFamily || 'Cairo'
+          fontFamily: stData.fontFamily || 'Cairo',
+          imageStorageType: stData.imageStorageType || 'database',
+          serverUploadUrl: stData.serverUploadUrl || '',
+          analyticsCode: stData.analyticsCode || ''
         });
       }
       setCustomTemplates(tData as CustomTemplate[]);
@@ -161,7 +215,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     setSavingSettings(true);
     try {
       await updateSiteSettings(settings);
-      window.location.reload();
+      alert(isRtl ? "تم حفظ كافة الإعدادات بنجاح" : "All settings saved successfully");
     } catch (e) {
       console.error("Save settings error:", e);
       alert(isRtl ? "فشل حفظ الإعدادات" : "Error saving settings");
@@ -515,26 +569,131 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
           <div className="w-full space-y-10 animate-fade-in">
              <div className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-10">
                 <div className="space-y-6">
-                   <div className="flex items-center gap-4"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><ImageIcon size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('الهوية البصرية للموقع', 'Visual Identity')}</h2></div>
+                   <div className="flex items-center gap-4"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><ImageIcon size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('الهوية البصرية للمنصة', 'Platform Visual Identity')}</h2></div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 flex flex-col items-center gap-4">
-                        <label className={`${labelTextClasses} text-center`}>{t('شعار الموقع', 'Logo')}</label>
-                        <div className="w-full h-32 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border overflow-hidden flex items-center justify-center relative">
-                          {settings.siteLogo ? <img src={settings.siteLogo} className="w-full h-full object-contain p-2" /> : <ImageIcon size={32} className="text-gray-200" />}
-                          {uploadingLogo && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
+                        <label className={`${labelTextClasses} text-center`}>{t('اسم الموقع (النصي)', 'Site Brand Name')}</label>
+                        <div className="w-full h-32 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border overflow-hidden flex flex-col items-center justify-center p-4">
+                           <div className="flex items-center gap-2 mb-2">
+                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-[10px]">ID</div>
+                             <span className="font-black dark:text-white text-sm">{isRtl ? settings.siteNameAr : settings.siteNameEn}</span>
+                           </div>
+                           <p className="text-[8px] text-gray-400 font-bold uppercase">{t('معاينة الهيدر', 'Header Preview')}</p>
                         </div>
-                        <input type="file" ref={logoInputRef} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setUploadingLogo(true); const b = await uploadImageToCloud(f); if (b) setSettings({...settings, siteLogo: b}); setUploadingLogo(false); }} accept="image/*" className="hidden" />
-                        <button onClick={() => logoInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><UploadCloud size={14} className="text-blue-500" /> {t('تغيير الشعار', 'Change Logo')}</button>
+                        <p className="text-[10px] text-gray-500 font-bold text-center leading-relaxed italic">{t('* الشعار في الهيدر يظهر دائماً كـ ID بجانب اسم الموقع.', '* Header logo is fixed as ID text next to site name.')}</p>
                       </div>
+                      
                       <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 flex flex-col items-center gap-4">
-                        <label className={`${labelTextClasses} text-center`}>{t('أيقونة المتصفح', 'Favicon')}</label>
+                        <label className={`${labelTextClasses} text-center`}>{t('أيقونة المتصفح (Favicon)', 'Browser Tab Icon')}</label>
                         <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 shadow-sm border overflow-hidden flex items-center justify-center relative mx-auto">
                           {settings.siteIcon ? <img src={settings.siteIcon} className="w-full h-full object-contain p-1" /> : <Layout size={24} className="text-gray-200" />}
                           {uploadingIcon && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}
                         </div>
-                        <input type="file" ref={iconInputRef} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setUploadingIcon(true); const b = await uploadImageToCloud(f); if (b) setSettings({...settings, siteIcon: b}); setUploadingIcon(false); }} accept="image/*" className="hidden" />
-                        <button onClick={() => iconInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><UploadCloud size={14} className="text-blue-500" /> {t('تغيير الأيقونة', 'Change Icon')}</button>
+                        <input type="file" ref={iconInputRef} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setUploadingIcon(true); const b = await uploadImageToCloud(f, 'logo', { storageType: settings.imageStorageType as any, uploadUrl: settings.serverUploadUrl }); if (b) setSettings({...settings, siteIcon: b}); setUploadingIcon(false); }} accept="image/*" className="hidden" />
+                        <button onClick={() => iconInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><UploadCloud size={14} className="text-blue-500" /> {t('تغيير أيقونة التبويب', 'Change Tab Icon')}</button>
+                        <p className="text-[9px] text-gray-400 font-bold">{t('تظهر في شريط عنوان المتصفح فقط', 'Visible in browser address bar only')}</p>
                       </div>
+                   </div>
+                </div>
+
+                <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
+                   <div className="flex items-center gap-4"><div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl"><Server size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('إعدادات مجلد رفع الصور', 'Image Upload Destination')}</h2></div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-4">
+                         <label className={labelTextClasses}>{t('مكان تخزين الملفات', 'Files Destination')}</label>
+                         <div className="flex bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
+                            <button 
+                              onClick={() => setSettings({...settings, imageStorageType: 'database'})}
+                              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'database' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                               <Database size={14} /> {t('قاعدة البيانات', 'Database')}
+                            </button>
+                            <button 
+                              onClick={() => setSettings({...settings, imageStorageType: 'server'})}
+                              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'server' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                               <HardDrive size={14} /> {t('سيرفر خاص', 'Private Server')}
+                            </button>
+                         </div>
+                         <p className="text-[10px] text-gray-400 px-2 leading-relaxed">
+                            {settings.imageStorageType === 'database' 
+                              ? t('* يتم تخزين الصور مباشرة في Firestore كنصوص. (سهل، مجاني، ولكنه محدود الحجم)', '* Stored in Firestore. (Easiest, free, size-limited).')
+                              : t('* يتم رفع الصور إلى مجلد خارجي على سيرفرك الخاص لتوفير مساحة قاعدة البيانات.', '* Uploads to a folder on your server via a script URL.')}
+                         </p>
+                      </div>
+
+                      {settings.imageStorageType === 'server' && (
+                        <div className="space-y-4 animate-fade-in-up">
+                           <label className={labelTextClasses}>{t('رابط معالج الرفع (API/URL)', 'Server Upload Handler URL')}</label>
+                           <div className="relative">
+                              <LinkIcon className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={16} />
+                              <input 
+                                type="url" 
+                                value={settings.serverUploadUrl} 
+                                onChange={(e) => setSettings({...settings, serverUploadUrl: e.target.value})} 
+                                className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} !py-3.5 font-mono text-[11px]`} 
+                                placeholder="https://nextid.my/upload.php"
+                              />
+                           </div>
+                           <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/20 space-y-4">
+                              <div className="flex gap-3">
+                                 <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                                 <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase">{t('تنبيه هام للربط', 'Critical Configuration')}</p>
+                                    <p className="text-[9px] font-bold text-amber-700 dark:text-amber-400 leading-relaxed">
+                                       {isRtl 
+                                        ? "الرابط يجب أن يشير لملف برمجي يستلم الصور (مثل upload.php) وليس لمجلد فقط. هذا الملف يجب أن يعيد رابط الصورة بصيغة JSON." 
+                                        : "URL must point to a script (e.g., upload.php) that processes POST requests and returns image link in JSON."}
+                                    </p>
+                                 </div>
+                              </div>
+                              <button 
+                                onClick={() => setShowPhpCode(!showPhpCode)}
+                                className="w-full py-2 bg-amber-600 text-white rounded-lg font-black text-[9px] uppercase shadow-sm flex items-center justify-center gap-2"
+                              >
+                                 <Code size={14} />
+                                 {showPhpCode ? t('إخفاء الكود', 'Hide Code') : t('عرض كود PHP الجاهز للسيرفر', 'Show Sample PHP Script')}
+                              </button>
+                           </div>
+                        </div>
+                      )}
+                   </div>
+
+                   {settings.imageStorageType === 'server' && showPhpCode && (
+                     <div className="animate-fade-in-up space-y-4">
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-2 text-indigo-600">
+                              <FileJson size={16} />
+                              <span className="text-[10px] font-black uppercase">{t('نموذج كود PHP (انسخه إلى سيرفرك)', 'Sample PHP Code (Copy to server)')}</span>
+                           </div>
+                           <button 
+                              onClick={() => { navigator.clipboard.writeText(phpSampleCode); alert(isRtl ? 'تم نسخ الكود' : 'Code Copied'); }}
+                              className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-[9px] font-black hover:bg-gray-200 transition-colors"
+                           >
+                              <Copy size={12} /> {t('نسخ الكود', 'Copy Code')}
+                           </button>
+                        </div>
+                        <pre className="p-6 bg-gray-900 text-emerald-400 rounded-2xl text-[10px] font-mono overflow-x-auto border-2 border-indigo-500/20 shadow-xl">
+                           {phpSampleCode}
+                        </pre>
+                     </div>
+                   )}
+                </div>
+
+                <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
+                   <div className="flex items-center gap-4"><div className="p-3 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-2xl"><BarChart size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('إعدادات تتبع الزوار (Analytics)', 'Analytics Integration')}</h2></div>
+                   <div className="space-y-4">
+                      <label className={labelTextClasses}>{t('كود التتبع (Google Analytics / Facebook Pixel / etc.)', 'Tracking Snippet Code')}</label>
+                      <textarea 
+                        value={settings.analyticsCode} 
+                        onChange={(e) => setSettings({...settings, analyticsCode: e.target.value})} 
+                        className={`${inputClasses} font-mono text-[11px] min-h-[150px] resize-y py-4`} 
+                        placeholder="<!-- Paste your scripts here -->"
+                      />
+                      <p className="text-[10px] text-gray-400 px-2 leading-relaxed italic">
+                        {isRtl ? "* سيتم حقن هذا الكود تلقائياً في ترويسة الموقع (Head) لتتبع حركة الزوار." : "* This code will be automatically injected into the Site Head to track traffic."}
+                      </p>
                    </div>
                 </div>
 
@@ -653,7 +812,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('سيؤدي هذا إلى حذف القسم. القوالب المرتبطة به ستصبح "بدون تصنيف". هل أنت متأكد؟', 'Deleting this category will make all linked templates uncategorized. Are you sure?')}</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteCategory} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، حذف القسم</button>
-              <button onClick={() => setCategoryToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              <button onClick={() => setCategoryToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
             </div>
           </div>
         </div>

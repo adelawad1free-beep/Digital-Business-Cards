@@ -1,22 +1,27 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language, CardData, TemplateConfig, CustomTemplate } from '../types';
 import { generateShareUrl } from '../utils/share';
-import { Copy, Check, Download, X, Send, Hash, UserCheck, ImageIcon, Loader2 } from 'lucide-react';
+import { Copy, Check, Download, X, Send, Hash, ImageIcon, Loader2, UserPlus } from 'lucide-react';
 import CardPreview from './CardPreview';
 import { getAllTemplates } from '../services/firebase';
+import { downloadVCard } from '../utils/vcard';
+import { TRANSLATIONS } from '../constants';
 
 interface ShareModalProps {
   data: CardData;
   lang: Language;
   onClose: () => void;
+  isNewSave?: boolean; // خاصية جديدة لتمييز إذا كانت البطاقة قد حُفظت للتو
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose, isNewSave }) => {
   const [copied, setCopied] = useState(false);
   const [url, setUrl] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [customConfig, setCustomConfig] = useState<TemplateConfig | undefined>(undefined);
+  const isRtl = lang === 'ar';
+  const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
 
   useEffect(() => {
     setUrl(generateShareUrl(data));
@@ -63,7 +68,6 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 600));
-
       const captureTarget = document.getElementById('share-card-capture-area');
       if (!captureTarget) throw new Error("Capture target not found");
 
@@ -95,7 +99,6 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
       }
     } catch (err) {
       console.error("Capture Error:", err);
-      alert(lang === 'ar' ? "يرجى المحاولة مرة أخرى" : "Please try again");
     } finally {
       setIsCapturing(false);
     }
@@ -104,81 +107,81 @@ const ShareModal: React.FC<ShareModalProps> = ({ data, lang, onClose }) => {
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&bgcolor=ffffff&color=2563eb&margin=2`;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-      {/* منطقة الالتقاط المخفية */}
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
       <div className="fixed top-0 left-0 -translate-x-[2000px] pointer-events-none" style={{ width: '400px' }}>
           <div id="share-card-capture-area" className="bg-white dark:bg-black overflow-hidden" style={{ width: '400px', minHeight: '700px' }}>
              <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} />
           </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden relative">
+      <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden relative animate-zoom-in">
         <div className="p-8">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-start mb-6">
              <div className="flex flex-col">
-                <h3 className="text-xl font-black dark:text-white">
-                  {lang === 'ar' ? 'مشاركة البطاقة' : 'Share Card'}
+                {isNewSave && (
+                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest mb-2 w-fit">
+                      <Check size={10} />
+                      {isRtl ? 'تم الحفظ بنجاح' : 'Saved Successfully'}
+                   </div>
+                )}
+                <h3 className="text-2xl font-black dark:text-white">
+                  {isRtl ? 'مشاركة هويتك' : 'Share Identity'}
                 </h3>
-                <div className="flex items-center gap-1.5 mt-1">
-                   <Hash size={12} className="text-blue-600" />
-                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: {data.id}</span>
-                </div>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">ID: {data.id}</span>
              </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-              <X size={24} />
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm">
+              <X size={20} />
             </button>
           </div>
 
           <div className="flex flex-col items-center gap-6 mb-8">
             <div className="relative group">
-              <div className="absolute -inset-4 bg-blue-500/10 rounded-[3rem] blur-xl"></div>
-              <div className="relative p-6 bg-white rounded-[2.5rem] shadow-inner border border-gray-50">
-                <img src={qrApiUrl} alt="QR Code" className="w-36 h-36" crossOrigin="anonymous" />
+              <div className="absolute -inset-4 bg-blue-500/10 rounded-[3rem] blur-xl group-hover:bg-blue-500/20 transition-all"></div>
+              <div className="relative p-5 bg-white rounded-[2.5rem] shadow-inner border border-gray-50">
+                <img src={qrApiUrl} alt="QR Code" className="w-32 h-32" crossOrigin="anonymous" />
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
             <button 
-              onClick={handleImageShare}
-              disabled={isCapturing}
-              className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-70"
+              onClick={() => downloadVCard(data)}
+              className="w-full py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-xs uppercase flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
-              {isCapturing ? <Loader2 size={18} className="animate-spin" /> : <ImageIcon size={18} />}
-              {lang === 'ar' ? (isCapturing ? 'جاري التحويل...' : 'مشاركة كصورة (واتساب)') : (isCapturing ? 'Converting...' : 'Share as Image')}
+              <UserPlus size={18} />
+              {t('saveContact')}
             </button>
 
             <button 
-              onClick={handleNativeShare}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-3 shadow-lg shadow-blue-600/10 hover:scale-[1.01] transition-all"
+              onClick={handleImageShare}
+              disabled={isCapturing}
+              className="w-full py-4 bg-emerald-600 text-white rounded-[1.5rem] font-black text-[11px] uppercase flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/10 hover:brightness-110 active:scale-95 transition-all disabled:opacity-70"
             >
-              <Send size={16} />
-              {lang === 'ar' ? 'مشاركة رابط البطاقة' : 'Share Link'}
+              {isCapturing ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+              {isRtl ? 'مشاركة كصورة (واتساب)' : 'Share as Image'}
             </button>
 
             <div className="flex gap-2">
               <button 
-                onClick={copyToClipboard}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-xs transition-all border ${copied ? 'bg-emerald-50 border-emerald-500 text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-100 dark:border-gray-700 hover:bg-gray-100'}`}
+                onClick={handleNativeShare}
+                className="flex-[1.5] py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-[1.5rem] font-black text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
               >
-                {copied ? <Check size={16} /> : <Copy size={16} />}
-                {copied ? (lang === 'ar' ? 'تم النسخ' : 'Copied') : (lang === 'ar' ? 'نسخ الرابط' : 'Copy Link')}
+                <Send size={14} />
+                {isRtl ? 'رابط مباشر' : 'Direct Link'}
               </button>
-              
               <button 
-                onClick={() => {
-                   const link = document.createElement('a');
-                   link.href = qrApiUrl;
-                   link.download = `qr-${data.id}.png`;
-                   link.click();
-                }}
-                className="px-6 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl border border-gray-100 dark:border-gray-700 hover:bg-gray-100"
-                title={lang === 'ar' ? 'تحميل QR' : 'Download QR'}
+                onClick={copyToClipboard}
+                className={`flex-1 py-4 rounded-[1.5rem] font-black text-[10px] uppercase flex items-center justify-center gap-2 transition-all border ${copied ? 'bg-emerald-50 border-emerald-500 text-emerald-600' : 'bg-white dark:bg-gray-900 text-gray-500 border-gray-100 dark:border-gray-700'}`}
               >
-                <Download size={20} />
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? (isRtl ? 'تم' : 'Done') : (isRtl ? 'نسخ' : 'Copy')}
               </button>
             </div>
           </div>
+          
+          <p className="text-[9px] font-bold text-gray-400 text-center mt-6 uppercase tracking-[0.2em] opacity-60">
+             {isRtl ? 'هويتك الرقمية جاهزة للمشاركة' : 'Your identity is ready to share'}
+          </p>
         </div>
       </div>
     </div>

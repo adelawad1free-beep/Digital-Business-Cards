@@ -47,7 +47,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     root.style.setProperty('--brand-primary', primary);
     root.style.setProperty('--brand-secondary', secondary);
     
-    const bgStrategy = data.pageBgStrategy || customConfig?.pageBgStrategy || 'solid';
     const customPageBg = data.pageBgColor || customConfig?.pageBgColor;
     const baseBg = customPageBg || (data.isDark ? '#050507' : '#f8fafc');
     
@@ -59,53 +58,57 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       document.head.appendChild(styleEl);
     }
     
-    let backgroundCss = `background-color: ${baseBg} !important;`;
-    let circleOpacity = 0; 
-    
-    if (bgStrategy === 'mirror-header') {
-      circleOpacity = data.isDark ? 0.15 : 0.25;
-      if (data.themeType === 'image' && data.backgroundImage) {
-        backgroundCss = `
-          background-color: ${baseBg} !important;
-          background-image: url("${data.backgroundImage}") !important;
-          background-size: cover !important;
-          background-position: center bottom !important;
-          background-attachment: fixed !important;
-        `;
-      } else if (data.themeType === 'gradient' && data.themeGradient) {
-        backgroundCss = `
-          background-color: ${baseBg} !important;
-          background-image: ${data.themeGradient} !important;
-          background-attachment: fixed !important;
-        `;
-      } else {
-        backgroundCss = `background-color: ${data.themeColor} !important;`;
-      }
-      backgroundCss += `position: relative;`;
-    } else {
-      backgroundCss += `background-image: none !important;`;
-      circleOpacity = 0; 
-    }
-    
     styleEl.innerHTML = `
-      .mesh-bg { ${backgroundCss} }
-      ${bgStrategy === 'mirror-header' ? `.mesh-bg::after { content: ''; position: absolute; inset: 0; backdrop-filter: blur(80px) saturate(150%); -webkit-backdrop-filter: blur(80px) saturate(150%); background: ${data.isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'}; z-index: -1; }` : ''}
-      .mesh-circle { opacity: ${circleOpacity} !important; left: 50% !important; right: auto !important; margin-left: -400px !important; }
-      .mesh-1 { top: -10% !important; }
-      .mesh-2 { bottom: -10% !important; }
+      .mesh-bg { 
+        background-color: ${baseBg} !important;
+        background-image: none !important;
+      }
+      .mesh-bg::after { display: none !important; }
     `;
 
+    // --- Dynamic SEO Meta Update ---
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) metaTheme.setAttribute('content', primary);
 
     const clientName = data.name || (isRtl ? 'مستخدم هويتي' : 'NextID User');
-    document.title = data.title ? `${clientName} | ${data.title}` : clientName;
+    const clientTitle = data.title || (isRtl ? 'بطاقة شخصية ذكية' : 'Digital Business Card');
+    const fullTitle = `${clientName} | ${clientTitle} | NextID`;
+    document.title = fullTitle;
 
+    // Update Meta Description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    const descText = isRtl 
+      ? `تواصل مع ${clientName} (${clientTitle}) عبر بطاقته الرقمية الذكية على منصة هويتي. شارك جهات الاتصال بلمسة واحدة.`
+      : `Connect with ${clientName} (${clientTitle}) via their professional digital card on NextID. Smart contact sharing in one tap.`;
+    if (metaDesc) metaDesc.setAttribute('content', descText);
+
+    // Update OG Tags for better social preview
+    const updateMeta = (selector: string, attr: string, value: string) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute(attr, value);
+    };
+
+    updateMeta('meta[property="og:title"]', 'content', fullTitle);
+    updateMeta('meta[property="og:description"]', 'content', descText);
+    updateMeta('meta[name="twitter:title"]', 'content', fullTitle);
+    updateMeta('meta[name="twitter:description"]', 'content', descText);
+    
+    // حفظ الأيقونة الأصلية لاستعادتها لاحقاً
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    if (favicon && data.profileImage) favicon.href = data.profileImage;
+    const originalFavicon = favicon?.href;
 
-    return () => { if (styleEl) styleEl.innerHTML = ''; };
-  }, [data, lang, isRtl, customConfig]);
+    if (data.profileImage) {
+      updateMeta('meta[property="og:image"]', 'content', data.profileImage);
+      updateMeta('meta[name="twitter:image"]', 'content', data.profileImage);
+      if (favicon) favicon.href = data.profileImage;
+    }
+
+    return () => { 
+      if (styleEl) styleEl.innerHTML = ''; 
+      // استعادة أيقونة الموقع الأصلية عند مغادرة الصفحة
+      if (favicon && siteIcon) favicon.href = siteIcon;
+    };
+  }, [data, lang, isRtl, customConfig, siteIcon]);
 
   const handleShare = async () => {
     if (isCapturing) return;
@@ -117,7 +120,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       : `*${data.name}*\nConnect with me via my digital card:\n${url}`;
 
     try {
-      // الانتظار للتأكد من جاهزية العنصر المخفي
       await new Promise(resolve => setTimeout(resolve, 500));
       const target = document.getElementById('public-capture-area');
       if (!target) throw new Error("Target not found");
@@ -141,7 +143,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
           text: professionalText
         });
       } else {
-        // Fallback للمشاركة العادية بالنص إذا فشلت الصورة أو لم يدعمها المتصفح
         if (navigator.share) {
           await navigator.share({
             title: data.name,
@@ -178,14 +179,13 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
   return (
     <article className={`min-h-screen flex flex-col items-center p-4 relative transition-colors duration-1000 ${data.isDark ? 'dark' : ''}`}>
       
-      {/* منطقة الالتقاط المخفية لضمان صورة نظيفة واحترافية */}
       <div className="fixed top-0 left-0 -translate-x-[3000px] pointer-events-none" style={{ width: '400px' }}>
           <div id="public-capture-area" className="bg-white dark:bg-black overflow-hidden" style={{ width: '400px', minHeight: '700px' }}>
              <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} isFullFrame={true} />
           </div>
       </div>
 
-      <main className="w-full max-w-sm z-10 animate-fade-in-up pt-10 pb-32">
+      <main className="w-full max-sm z-10 animate-fade-in-up pt-10 pb-32">
         <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} />
         
         <div className="mt-12 text-center flex flex-col items-center gap-8">
@@ -215,7 +215,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
             <button 
               onClick={() => downloadVCard(data)}
               className="flex-1 flex items-center justify-center gap-3 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-lg transition-all active:scale-95"
-              style={{ backgroundColor: primary, boxShadow: `0 10px 25px -5px rgba(${rgb.string}, 0.4)` }}
+              style={{ backgroundColor: primary, boxShadow: `0 10px 25px -5px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)` }}
             >
                <UserPlus size={18} />
                <span>{t('saveContact')}</span>

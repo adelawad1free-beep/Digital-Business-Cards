@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy } from '../types';
-import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
+import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, AVATAR_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
-import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth } from '../services/firebase';
+import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth, getSiteSettings } from '../services/firebase';
 import CardPreview from './CardPreview';
 import AuthModal from './AuthModal';
 import { 
@@ -18,14 +18,14 @@ import {
   CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn
 } from 'lucide-react';
 
+type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'elements' | 'visuals' | 'occasion' | 'qrcode';
+
 interface TemplateBuilderProps {
   lang: Language;
   onSave: (template: CustomTemplate) => void;
   onCancel?: () => void;
   initialTemplate?: CustomTemplate;
 }
-
-type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'elements' | 'visuals' | 'occasion' | 'qrcode';
 
 const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCancel, initialTemplate }) => {
   const isRtl = lang === 'ar';
@@ -43,7 +43,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [activeTab, setActiveTab] = useState<BuilderTab>('header');
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
   const [loading, setLoading] = useState(false);
-  const [uploadingAsset, setUploadingAsset] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
@@ -52,10 +51,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // حالات التحذير
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const [showDirectAuth, setShowDirectAuth] = useState(false);
   
+  // إضافة إعدادات الرفع
+  const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
+
   const [template, setTemplate] = useState<CustomTemplate>(initialTemplate || {
     id: `tmpl_${Date.now()}`,
     categoryId: '',
@@ -174,6 +175,15 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   useEffect(() => {
     getAllCategories().then(setCategories);
     getAllVisualStyles().then(setVisualStyles);
+    // جلب إعدادات الموقع
+    getSiteSettings().then(settings => {
+      if (settings) {
+        setUploadConfig({
+          storageType: settings.imageStorageType || 'database',
+          uploadUrl: settings.serverUploadUrl || ''
+        });
+      }
+    });
   }, []);
 
   const updateTemplate = (key: keyof CustomTemplate, value: any) => {
@@ -244,7 +254,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     if (!file) return;
     setUploadingBg(true);
     try {
-      const b = await uploadImageToCloud(file, 'background');
+      const b = await uploadImageToCloud(file, 'background', uploadConfig as any);
       if (b) {
         updateConfig('defaultBackgroundImage', b);
         updateConfig('defaultThemeType', 'image');
@@ -259,7 +269,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     if (!file) return;
     setUploadingAvatar(true);
     try {
-      const b = await uploadImageToCloud(file, 'avatar');
+      const b = await uploadImageToCloud(file, 'avatar', uploadConfig as any);
       if (b) {
         updateConfig('defaultProfileImage', b);
       }
@@ -321,7 +331,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   return (
     <div className="bg-white dark:bg-[#0a0a0c] rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col h-[calc(100vh-100px)] min-h-[850px] relative">
       
-      {/* نافذة التنبيه بهوية الموقع */}
       {showAuthWarning && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
            <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
@@ -475,18 +484,37 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                              <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
                              <button type="button" onClick={() => checkAuthAndClick(avatarInputRef)} className="w-full py-4 bg-white dark:bg-gray-900 border rounded-2xl font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-sm transition-all hover:border-blue-500">
                                 <UploadCloud size={16} className="text-blue-500" />
-                                {t('رفع صورة افتراضية', 'Upload Default Avatar')}
+                                {t('رفع صورة من جهازك', 'Upload Custom Avatar')}
                              </button>
                              {template.config.defaultProfileImage && (
                                 <button type="button" onClick={() => updateConfig('defaultProfileImage', '')} className="w-full py-2 text-red-500 font-black text-[9px] uppercase hover:underline">
                                    {t('إزالة الصورة', 'Remove Photo')}
                                 </button>
                              )}
-                             <p className="text-[9px] text-gray-400 font-bold leading-tight px-1">
-                                {t('* ملاحظة: ستظهر هذه الصورة كمعاينة للقالب، وسيكون للعميل لاحقاً إمكانية تغييرها بصورته الخاصة.', '* Note: This photo will appear as a preview. Customers can later change it to their own photo.')}
-                             </p>
                           </div>
                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t dark:border-gray-800">
+                       <div className="flex items-center gap-3 mb-4">
+                          <Shapes className="text-blue-600" size={18} />
+                          <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{isRtl ? 'مكتبة الكركترات والايموجي' : 'Emoji & Character Library'}</h4>
+                       </div>
+                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
+                          {AVATAR_PRESETS.map((url, i) => (
+                             <button 
+                               key={i} 
+                               type="button" 
+                               onClick={() => updateConfig('defaultProfileImage', url)} 
+                               className={`aspect-square rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-900 border-2 ${template.config.defaultProfileImage === url ? 'border-blue-600 scale-105 shadow-md' : 'border-transparent hover:border-blue-100'}`}
+                             >
+                                <img src={url} className="w-full h-full object-contain p-1" alt={`Preset ${i}`} />
+                             </button>
+                          ))}
+                       </div>
+                       <p className="text-[9px] font-bold text-gray-400 mt-2 px-2 uppercase tracking-tight opacity-60">
+                          {isRtl ? '* اختر كركتر مميز ليكون صورة المعاينة للقالب.' : '* Pick a unique character to be the template preview photo.'}
+                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -512,10 +540,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           </div>
                        )}
                     </div>
-                  </div>
+                 </div>
               </div>
             )}
-
+            
             {activeTab === 'design-system' && (
                <div className="space-y-8 animate-fade-in">
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
@@ -641,7 +669,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
-                        <div className="flex items-center gap-3"><AlignJustify className="text-indigo-600" size={20} /><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('محاذاة المحتوى ونمط التباعد', 'Alignment & Spacing DNA')}</label></div>
+                        <div className="flex items-center gap-3"><AlignJustify className="text-indigo-600" size={20} /><label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('محاذات المحتوى ونمط التباعد', 'Alignment & Spacing DNA')}</label></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="grid grid-cols-3 gap-2">
                              {['start', 'center', 'end'].map(align => (
@@ -758,6 +786,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        </label>
                        <div className="grid grid-cols-2 gap-3">
                           <button 
+                             type="button"
                              onClick={() => updateConfig('pageBgStrategy', 'solid')}
                              className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.pageBgStrategy !== 'mirror-header' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
                           >
@@ -765,6 +794,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                              <span className="text-[9px] font-black uppercase">{t('لون ثابت', 'Solid Color')}</span>
                           </button>
                           <button 
+                             type="button"
                              onClick={() => updateConfig('pageBgStrategy', 'mirror-header')}
                              className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.pageBgStrategy === 'mirror-header' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
                           >
@@ -843,14 +873,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className="space-y-2">
-                              <label className={t('تاريخ ووقت المناسبة', 'Event Date & Time')}>{t('تاريخ ووقت المناسبة', 'Event Date & Time')}</label>
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('تاريخ ووقت المناسبة', 'Event Date & Time')}</label>
                               <div className="relative">
                                  <Calendar className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-blue-500`} size={16} />
                                  <input type="datetime-local" value={template.config.occasionDate || ''} onChange={e => updateConfig('occasionDate', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all [direction:ltr]`} />
                               </div>
                            </div>
                            <div className="space-y-2">
-                              <label className={t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}>{t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}</label>
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">{t('موقع المناسبة (خرائط قوقل)', 'Google Maps Location')}</label>
                               <div className="relative">
                                  <MapPin className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-red-500`} size={16} />
                                  <input type="url" value={template.config.occasionMapUrl || ''} onChange={e => updateConfig('occasionMapUrl', e.target.value)} className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none focus:ring-2 focus:ring-blue-100 transition-all`} placeholder="https://maps.google.com/..." />
@@ -968,7 +998,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <Star className={template.isFeatured ? "text-amber-500" : "text-gray-300"} size={20} fill={template.isFeatured ? "currentColor" : "none"} />
                        <span className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
                     </div>
-                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-12 h-6 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-12 h-6 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-50 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-7' : 'right-1') : (template.isFeatured ? 'left-7' : 'left-1')}`} />
                     </button>
                  </div>
@@ -980,7 +1010,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showResetConfirm && (
         <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl border border-orange-100 dark:border-orange-900/20 animate-zoom-in">
+          <div className="bg-white dark:bg-gray-900 w-full max-sm rounded-[3rem] p-10 text-center shadow-2xl border border-orange-100 dark:border-orange-900/20 animate-zoom-in">
              <div className="w-20 h-20 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle size={40} />
              </div>
