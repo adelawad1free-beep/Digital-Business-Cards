@@ -18,7 +18,7 @@ import {
   CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn
 } from 'lucide-react';
 
-type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'elements' | 'visuals' | 'occasion' | 'qrcode';
+type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'social-lab' | 'elements' | 'visuals' | 'occasion' | 'qrcode';
 
 interface TemplateBuilderProps {
   lang: Language;
@@ -167,7 +167,18 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       bodyFeaturePaddingX: 0,
       bodyFeatureOffsetY: 0,
       bodyFeatureBorderRadius: 16,
-      bodyFeatureGlassy: false
+      bodyFeatureGlassy: false,
+      socialIconStyle: 'rounded',
+      socialIconSize: 22,
+      socialIconVariant: 'filled',
+      socialIconBgColor: '',
+      socialIconColor: '',
+      socialIconBorderWidth: 1,
+      socialIconBorderColor: '',
+      socialIconGap: 12,
+      socialIconColumns: 0,
+      socialIconPadding: 14,
+      useSocialBrandColors: false
     }
   });
 
@@ -390,6 +401,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="avatar" label={t('الصورة الشخصية', 'Avatar Style')} icon={Circle} />
           <NavItem id="design-system" label={t('هيكلة النصوص والتصميم', 'Structure & Typography')} icon={Settings2} />
           <NavItem id="body-style" label={t('جسم البطاقة', 'Card Body Style')} icon={Box} />
+          <NavItem id="social-lab" label={t('أيقونات التواصل', 'Social Icons Lab')} icon={Share2} />
           <NavItem id="elements" label={t('ألوان العناصر', 'Element Colors')} icon={Palette} />
           <NavItem id="visuals" label={t('الألوان والسمة', 'Colors & Theme')} icon={Palette} />
           <NavItem id="occasion" label={t('المناسبة الخاصة', 'Special Occasion')} icon={PartyPopper} />
@@ -462,6 +474,29 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <ToggleSwitch label={t('تفعيل ظهور الصورة', 'Show Avatar')} value={template.config.avatarStyle !== 'none'} onChange={(v: boolean) => updateConfig('avatarStyle', v ? 'circle' : 'none')} icon={Camera} />
                     
+                    {/* خيار شكل الصورة الجديد */}
+                    {template.config.avatarStyle !== 'none' && (
+                      <div className="pt-4 border-t dark:border-gray-800 space-y-4">
+                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest dark:text-white px-1">{t('شكل الصورة الشخصية', 'Avatar Shape')}</h4>
+                         <div className="grid grid-cols-3 gap-3">
+                            {[
+                               { id: 'circle', label: 'دائري', icon: Circle },
+                               { id: 'squircle', label: 'منحني', icon: Shapes },
+                               { id: 'square', label: 'مربع', icon: Square }
+                            ].map(shape => (
+                               <button 
+                                 key={shape.id} 
+                                 onClick={() => updateConfig('avatarStyle', shape.id)}
+                                 className={`py-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-1.5 ${template.config.avatarStyle === shape.id ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}
+                               >
+                                  <shape.icon size={18} />
+                                  <span className="text-[8px] font-black uppercase">{t(shape.label, shape.id.toUpperCase())}</span>
+                               </button>
+                            ))}
+                         </div>
+                      </div>
+                    )}
+
                     <div className="pt-4 border-t dark:border-gray-800 space-y-6">
                        <div className="flex items-center gap-3">
                           <ImageIcon className="text-blue-600" size={20} />
@@ -658,7 +693,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                 <ColorPicker label={t('لون الخلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
+                                 <ColorPicker label={t('لون خلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
                                  <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
                                  <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={template.config.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
                               </div>
@@ -687,6 +722,62 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      </div>
                   </div>
                </div>
+            )}
+
+            {activeTab === 'social-lab' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
+                    <div className="flex items-center gap-4"><div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl"><Share2 size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('مختبر أيقونات التواصل', 'Social Icons Lab')}</h2></div>
+                    
+                    <div className="space-y-6">
+                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('شكل وحجم الأيقونة', 'Shape & Size DNA')}</h4>
+                       
+                       <ToggleSwitch 
+                        label={t('استخدام ألوان المنصات الأصلية', 'Use Brand Colors')} 
+                        value={template.config.useSocialBrandColors} 
+                        onChange={(v: boolean) => updateConfig('useSocialBrandColors', v)} 
+                        icon={Zap} 
+                        color="bg-emerald-600" 
+                       />
+
+                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {['circle', 'squircle', 'rounded', 'square', 'none'].map(style => (
+                             <button key={style} onClick={() => updateConfig('socialIconStyle', style)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.socialIconStyle === style ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-transparent'}`}>
+                                {style === 'circle' ? <Circle size={20}/> : style === 'squircle' ? <Shapes size={20}/> : style === 'rounded' ? <Box size={20}/> : style === 'square' ? <Square size={20}/> : <Minus size={20}/>}
+                                <span className="text-[8px] font-black uppercase">{t(style, style.toUpperCase())}</span>
+                             </button>
+                          ))}
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <RangeControl label={t('حجم الأيقونة', 'Icon Size')} min={14} max={40} value={template.config.socialIconSize || 22} onChange={(v: number) => updateConfig('socialIconSize', v)} icon={Maximize2} />
+                          <RangeControl label={t('المساحة الداخلية', 'Padding')} min={4} max={30} value={template.config.socialIconPadding || 14} onChange={(v: number) => updateConfig('socialIconPadding', v)} icon={Ruler} />
+                          <RangeControl label={t('المسافة بين الأيقونات', 'Gap')} min={4} max={40} value={template.config.socialIconGap || 12} onChange={(v: number) => updateConfig('socialIconGap', v)} icon={SlidersHorizontal} />
+                          <RangeControl label={t('عدد الأعمدة', 'Columns')} min={0} max={6} value={template.config.socialIconColumns || 0} onChange={(v: number) => updateConfig('socialIconColumns', v)} icon={Grid} hint={t('0 للتوزيع المرن', '0 for Flex Wrap')} />
+                       </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
+                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('نمط العرض والألوان', 'Visual Style & Colors')}</h4>
+                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {['filled', 'outline', 'glass', 'ghost'].map(v => (
+                             <button key={v} onClick={() => updateConfig('socialIconVariant', v)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.socialIconVariant === v ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-transparent'}`}>
+                                <span className="text-[8px] font-black uppercase">{t(v, v.toUpperCase())}</span>
+                             </button>
+                          ))}
+                       </div>
+
+                       {!template.config.useSocialBrandColors && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                            <ColorPicker label={t('لون خلفية الأيقونة', 'Icon Background')} value={template.config.socialIconBgColor} onChange={(v: string) => updateConfig('socialIconBgColor', v)} />
+                            <ColorPicker label={t('لون رمز التواصل', 'Icon Color')} value={template.config.socialIconColor} onChange={(v: string) => updateConfig('socialIconColor', v)} />
+                            <ColorPicker label={t('لون حدود الأيقونة', 'Icon Border')} value={template.config.socialIconBorderColor} onChange={(v: string) => updateConfig('socialIconBorderColor', v)} />
+                            <RangeControl label={t('سمك الحدود', 'Border Width')} min={0} max={5} value={template.config.socialIconBorderWidth || 1} onChange={(v: number) => updateConfig('socialIconBorderWidth', v)} icon={Ruler} />
+                        </div>
+                       )}
+                    </div>
+                 </div>
+              </div>
             )}
 
             {activeTab === 'elements' && (
@@ -961,7 +1052,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showSaveModal && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
+           <div className="bg-white dark:bg-gray-900 w-full max-w-xl rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
               <div className="flex justify-between items-center">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
                  <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>

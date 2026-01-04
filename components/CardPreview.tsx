@@ -5,7 +5,7 @@ import { CardData, Language, TemplateConfig } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
 import { generateShareUrl } from '../utils/share';
-import SocialIcon from './SocialIcon';
+import SocialIcon, { BRAND_COLORS } from './SocialIcon';
 
 interface CardPreviewProps {
   data: CardData;
@@ -231,7 +231,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const borderClr2 = config.avatarAnimatedBorderColor2 || '#ffffff';
   const borderSpeed = config.avatarAnimatedBorderSpeed || 3;
 
-  // Special Body Feature Logic - Ensuring strict adherence to config if data is missing
   const showBodyFeature = isVisible(data.showBodyFeature, config.showBodyFeatureByDefault);
   const featureContent = data.bodyFeatureText || (isRtl ? config.bodyFeatureTextAr : config.bodyFeatureTextEn) || '';
   const featurePaddingX = config.bodyFeaturePaddingX ?? 0;
@@ -241,6 +240,60 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const featureHeight = config.bodyFeatureHeight || 45;
   const featureRadius = config.bodyFeatureBorderRadius ?? 16;
   const featureOffsetY = config.bodyFeatureOffsetY || 0;
+
+  // Social Icon Customization Logic
+  const sStyle = config.socialIconStyle || 'rounded';
+  const sSize = config.socialIconSize || 22;
+  const sPadding = config.socialIconPadding || 14;
+  const sGap = config.socialIconGap || 12;
+  const sCols = config.socialIconColumns || 0;
+  const sVariant = config.socialIconVariant || 'filled';
+  const sBg = config.socialIconBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)');
+  const sColor = config.socialIconColor || socialIconsColor;
+  const sBorderWidth = config.socialIconBorderWidth || 1;
+  const sBorderColor = config.socialIconBorderColor || (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)');
+  
+  // نعطي الأولوية لاختيار المستخدم إذا كان محدداً، وإلا نعتمد إعدادات القالب
+  const useBrandColors = data.useSocialBrandColors !== undefined ? data.useSocialBrandColors : config.useSocialBrandColors;
+
+  const getSocialBtnStyles = (platformId: string): React.CSSProperties => {
+    const brandColor = BRAND_COLORS[platformId];
+    let style: React.CSSProperties = {
+      padding: `${sPadding}px`,
+      color: (useBrandColors && brandColor) ? (sVariant === 'filled' ? '#ffffff' : brandColor) : sColor,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    };
+
+    if (sStyle === 'circle') style.borderRadius = '9999px';
+    else if (sStyle === 'squircle') style.borderRadius = '28%';
+    else if (sStyle === 'rounded') style.borderRadius = '16px';
+    else if (sStyle === 'square') style.borderRadius = '0px';
+
+    if (sVariant === 'filled') {
+      style.backgroundColor = (useBrandColors && brandColor) ? brandColor : sBg;
+      style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)';
+    } else if (sVariant === 'outline') {
+      style.border = `${sBorderWidth}px solid ${(useBrandColors && brandColor) ? brandColor : sBorderColor}`;
+    } else if (sVariant === 'glass') {
+      style.backgroundColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)';
+      style.backdropFilter = 'blur(10px)';
+      style.WebkitBackdropFilter = 'blur(10px)';
+      style.border = `1px solid ${(useBrandColors && brandColor) ? brandColor + '44' : 'rgba(255,255,255,0.1)'}`;
+    }
+
+    return style;
+  };
+
+  // وظيفة مساعدة لتحديد انحناء حواف الصورة
+  const getAvatarRadiusClasses = (inner: boolean = false) => {
+    if (config.avatarStyle === 'circle') return 'rounded-full';
+    if (config.avatarStyle === 'square') return 'rounded-none';
+    // squircle default
+    return inner ? 'rounded-[22%]' : 'rounded-[28%]';
+  };
 
   return (
     <div 
@@ -269,7 +322,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
       <div className="flex flex-col flex-1 px-4 sm:px-6" style={bodyStyles}>
         {config.avatarStyle !== 'none' && (
-          <div className={`relative ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[28%]'} z-30 shrink-0 mx-auto transition-all`} 
+          <div className={`relative ${getAvatarRadiusClasses()} z-30 shrink-0 mx-auto transition-all`} 
                style={{ 
                  width: `${config.avatarSize}px`, height: `${config.avatarSize}px`, 
                  transform: `translate(${config.avatarOffsetX || 0}px, ${config.avatarOffsetY || 0}px)`,
@@ -279,7 +332,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                }}>
             
             {showAnimatedBorder && (
-              <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden" style={{ borderRadius: config.avatarStyle === 'circle' ? '50%' : '28%' }}>
+              <div className="absolute inset-0 z-[-1] pointer-events-none overflow-hidden" style={{ borderRadius: config.avatarStyle === 'circle' ? '50%' : (config.avatarStyle === 'square' ? '0' : '28%') }}>
                 <div 
                   className="absolute inset-[-100%] animate-spin-slow"
                   style={{ 
@@ -290,7 +343,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               </div>
             )}
 
-            <div className={`w-full h-full ${config.avatarStyle === 'circle' ? 'rounded-full' : 'rounded-[22%]'} overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center`}>
+            <div className={`w-full h-full ${getAvatarRadiusClasses(true)} overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center`}>
               {data.profileImage ? <img src={data.profileImage} className="w-full h-full object-cover" /> : <Camera size={40} className="text-gray-200" />}
             </div>
           </div>
@@ -431,10 +484,27 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
            )}
 
            {showSocialLinks && data.socialLinks?.length > 0 && (
-             <div className="flex flex-wrap justify-center gap-3 py-6" style={{ transform: `translateY(${config.socialLinksOffsetY || 0}px)` }}>
+             <div 
+               className={`grid justify-center py-6 mx-auto ${sCols > 0 ? `grid-cols-${sCols}` : 'flex flex-wrap'}`} 
+               style={{ 
+                 transform: `translateY(${config.socialLinksOffsetY || 0}px)`,
+                 gap: `${sGap}px`,
+                 maxWidth: '100%'
+               }}
+             >
                {data.socialLinks.map((link, idx) => (
-                 <a key={idx} href={link.url} target="_blank" className="p-3.5 bg-gray-50 dark:bg-gray-800/80 rounded-2xl hover:scale-110 transition-all shadow-sm border dark:border-gray-700">
-                   <SocialIcon platformId={link.platformId} size={22} color={socialIconsColor} />
+                 <a 
+                   key={idx} 
+                   href={link.url} 
+                   target="_blank" 
+                   className="hover:scale-110 active:scale-95"
+                   style={getSocialBtnStyles(link.platformId)}
+                 >
+                   <SocialIcon 
+                    platformId={link.platformId} 
+                    size={sSize} 
+                    color={(useBrandColors && sVariant === 'filled') ? '#ffffff' : (BRAND_COLORS[link.platformId] && useBrandColors ? BRAND_COLORS[link.platformId] : sColor)} 
+                   />
                  </a>
                ))}
              </div>

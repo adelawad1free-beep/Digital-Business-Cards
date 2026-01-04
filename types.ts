@@ -22,7 +22,7 @@ export interface TemplateConfig {
   headerPatternId?: string; 
   headerPatternOpacity?: number; 
   headerPatternScale?: number; 
-  avatarStyle: 'circle' | 'squircle' | 'none';
+  avatarStyle: 'circle' | 'squircle' | 'square' | 'none'; // تم إضافة square
   avatarStyle_v2?: string;
   avatarSize: number;
   avatarOffsetY: number;
@@ -56,6 +56,19 @@ export interface TemplateConfig {
   bodyOpacity?: number;
   bodyOffsetY?: number;
   bodyBorderRadius?: number;
+
+  // Social Icons Lab
+  socialIconStyle?: 'circle' | 'squircle' | 'rounded' | 'square' | 'none';
+  socialIconSize?: number;
+  socialIconVariant?: 'filled' | 'outline' | 'glass' | 'ghost';
+  socialIconBgColor?: string;
+  socialIconColor?: string;
+  socialIconBorderWidth?: number;
+  socialIconBorderColor?: string;
+  socialIconGap?: number;
+  socialIconColumns?: number;
+  socialIconPadding?: number;
+  useSocialBrandColors?: boolean;
 
   qrSize?: number;
   qrColor?: string; 
@@ -134,7 +147,7 @@ export interface TemplateConfig {
   defaultIsDark?: boolean;
   cardBgColor?: string; 
   pageBgColor?: string; 
-  pageBgStrategy?: PageBgStrategy; // New: determines if bg is solid or mirrored from header
+  pageBgStrategy?: PageBgStrategy; 
   
   customCss?: string;
 }
@@ -161,6 +174,7 @@ export interface CardData {
   isActive?: boolean;
   viewCount?: number;
   socialLinks: SocialLink[];
+  useSocialBrandColors?: boolean; // خيار المستخدم لألوان السوشيال
   ownerId?: string;
   updatedAt?: string;
   showName?: boolean;
@@ -189,7 +203,6 @@ export interface CardData {
   occasionGlassy?: boolean;
   occasionOpacity?: number;
 
-  // New Invitation Specific
   invitationPrefix?: string;
   invitationWelcome?: string;
   invitationYOffset?: number;
@@ -197,11 +210,9 @@ export interface CardData {
   occasionNameColor?: string;
   occasionWelcomeColor?: string;
 
-  // Special Feature overrides
   showBodyFeature?: boolean;
   bodyFeatureText?: string;
 
-  // Glassmorphism Overrides
   bodyGlassy?: boolean;
   bodyOpacity?: number;
 

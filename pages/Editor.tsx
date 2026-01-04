@@ -113,7 +113,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          showWhatsapp: selectedTmpl.config.showWhatsappByDefault ?? true,
          showSocialLinks: selectedTmpl.config.showSocialLinksByDefault ?? true,
          showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
-         showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true
+         showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true,
+         useSocialBrandColors: selectedTmpl.config.useSocialBrandColors ?? false
        } as CardData;
     }
     return baseData;
@@ -552,10 +553,36 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3"><Share2 className="text-emerald-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('روابط التواصل الاجتماعي', 'Social Links')}</h4></div>
-                           <VisibilityToggle field="showSocialLinks" label="Socials" />
+                        <div className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3"><Share2 className="text-emerald-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('روابط التواصل الاجتماعي', 'Social Links')}</h4></div>
+                              <VisibilityToggle field="showSocialLinks" label="Socials" />
+                           </div>
+
+                           {/* خيار نمط الألوان المضاف للمستخدم */}
+                           <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
+                              <label className={labelClasses}>{t('socialIconColorType')}</label>
+                              <div className="flex gap-2 p-1 bg-white dark:bg-gray-900 rounded-xl border dark:border-gray-700">
+                                 <button 
+                                    type="button"
+                                    onClick={() => handleChange('useSocialBrandColors', true)}
+                                    className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${formData.useSocialBrandColors ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                 >
+                                    <Sparkle size={14} />
+                                    {t('brandColors')}
+                                 </button>
+                                 <button 
+                                    type="button"
+                                    onClick={() => handleChange('useSocialBrandColors', false)}
+                                    className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${!formData.useSocialBrandColors ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                 >
+                                    <Palette size={14} />
+                                    {t('designColors')}
+                                 </button>
+                              </div>
+                           </div>
                         </div>
+
                         <div className="bg-emerald-50/30 dark:bg-emerald-900/5 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/20 space-y-4">
                            <div className="flex flex-col sm:flex-row gap-3">
                               <select value={socialInput.platformId} onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} className="flex-1 bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20">
@@ -669,7 +696,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
               className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
             >
               { (isUploading || isUploadingBg) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
-              {t('حفظ التعديلات', 'Save Changes')}
+              {t('saveChanges')}
             </button>
             <button 
               onClick={() => setShowMobilePreview(true)}
