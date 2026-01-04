@@ -4,7 +4,7 @@ import { CardData, Language, TemplateConfig } from '../types';
 import CardPreview from '../components/CardPreview';
 import { TRANSLATIONS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
-import { Plus, UserPlus, Share2, AlertCircle, Coffee, Loader2 } from 'lucide-react';
+import { Plus, UserPlus, Share2, AlertCircle, Coffee, Loader2, PowerOff } from 'lucide-react';
 import { generateShareUrl } from '../utils/share';
 
 interface PublicProfileProps {
@@ -75,14 +75,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     const fullTitle = `${clientName} | ${clientTitle} | NextID`;
     document.title = fullTitle;
 
-    // Update Meta Description
     const metaDesc = document.querySelector('meta[name="description"]');
     const descText = isRtl 
       ? `تواصل مع ${clientName} (${clientTitle}) عبر بطاقته الرقمية الذكية على منصة هويتي. شارك جهات الاتصال بلمسة واحدة.`
       : `Connect with ${clientName} (${clientTitle}) via their professional digital card on NextID. Smart contact sharing in one tap.`;
     if (metaDesc) metaDesc.setAttribute('content', descText);
 
-    // Update OG Tags for better social preview
     const updateMeta = (selector: string, attr: string, value: string) => {
       const el = document.querySelector(selector);
       if (el) el.setAttribute(attr, value);
@@ -93,7 +91,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     updateMeta('meta[name="twitter:title"]', 'content', fullTitle);
     updateMeta('meta[name="twitter:description"]', 'content', descText);
     
-    // حفظ الأيقونة الأصلية لاستعادتها لاحقاً
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
 
     if (data.profileImage) {
@@ -104,7 +101,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
 
     return () => { 
       if (styleEl) styleEl.innerHTML = ''; 
-      // استعادة أيقونة الموقع الأصلية عند مغادرة الصفحة
       if (favicon && siteIcon) favicon.href = siteIcon;
     };
   }, [data, lang, isRtl, customConfig, siteIcon]);
@@ -160,14 +156,24 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     }
   };
 
+  // شاشة البطاقة المعطلة (isActive: false)
   if (data.isActive === false) {
     return (
       <div className={`min-h-screen flex flex-col items-center justify-center p-6 text-center ${data.isDark ? 'bg-[#050507] text-white' : 'bg-slate-50 text-gray-900'}`}>
-         <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-xl">
-            <AlertCircle size={48} />
+         <div className="w-24 h-24 bg-orange-50 dark:bg-orange-900/20 text-orange-500 rounded-[2rem] flex items-center justify-center mb-8 shadow-xl">
+            <PowerOff size={48} />
          </div>
-         <h1 className="text-3xl font-black mb-4">{isRtl ? 'البطاقة غير متاحة' : 'Unavailable'}</h1>
-         <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">{isRtl ? 'العودة للرئيسية' : 'Back Home'}</a>
+         <h1 className="text-3xl font-black mb-4 uppercase tracking-tighter">
+            {isRtl ? 'البطاقة معطلة حالياً' : 'Card Disabled'}
+         </h1>
+         <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-8 font-bold leading-relaxed">
+            {isRtl 
+              ? 'قام صاحب هذه البطاقة بإيقاف تفعيلها مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل معه عبر وسيلة أخرى.' 
+              : 'The owner of this card has temporarily disabled it. Please try again later or contact them via other means.'}
+         </p>
+         <a href="/" className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">
+            {isRtl ? 'العودة للرئيسية' : 'Back Home'}
+         </a>
       </div>
     );
   }
@@ -210,7 +216,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
       </main>
 
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] animate-bounce-in">
-         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center gap-3">
+         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50_px_-12px_rgba(0,0,0,0.5)] flex items-center gap-3">
             <button 
               onClick={() => downloadVCard(data)}
               className="flex-1 flex items-center justify-center gap-3 py-4 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase shadow-lg transition-all active:scale-95"
