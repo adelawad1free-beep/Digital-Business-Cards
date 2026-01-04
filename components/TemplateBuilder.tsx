@@ -54,7 +54,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const [showDirectAuth, setShowDirectAuth] = useState(false);
   
-  // إضافة إعدادات الرفع
   const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
 
   const [template, setTemplate] = useState<CustomTemplate>(initialTemplate || {
@@ -175,7 +174,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   useEffect(() => {
     getAllCategories().then(setCategories);
     getAllVisualStyles().then(setVisualStyles);
-    // جلب إعدادات الموقع
     getSiteSettings().then(settings => {
       if (settings) {
         setUploadConfig({
@@ -913,6 +911,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      <div className="flex items-center gap-3"><QrCode className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('تخصيص الباركود', 'QR Code Customization')}</h4></div>
                      <ToggleSwitch label={t('إظهار الباركود افتراضياً', 'Show QR by Default')} value={template.config.showQrCodeByDefault} onChange={(v: boolean) => updateConfig('showQrCodeByDefault', v)} icon={QrCode} />
                      <RangeControl label={t('حجم الباركود', 'QR Size')} min={40} max={200} value={template.config.qrSize || 90} onChange={(v: number) => updateConfig('qrSize', v)} icon={Maximize2} />
+                     <RangeControl label={t('إزاحة الباركود رأسياً', 'QR Vertical Offset')} min={-200} max={300} value={template.config.qrOffsetY || 0} onChange={(v: number) => updateConfig('qrOffsetY', v)} icon={Move} />
                      <ColorPicker label={t('لون الباركود', 'QR Foreground')} value={template.config.qrColor || '#2563eb'} onChange={(v: string) => updateConfig('qrColor', v)} />
                   </div>
                </div>

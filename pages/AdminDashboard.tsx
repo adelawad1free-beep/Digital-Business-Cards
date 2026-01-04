@@ -26,7 +26,7 @@ import {
 interface AdminDashboardProps {
   lang: Language;
   onEditCard: (card: CardData) => void;
-  onDeleteRequest: (cardId: string, ownerId: string) => void;
+  onDeleteRequest: (cardId: string, ownerId: string) => void; // سنستخدمها الآن
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDeleteRequest }) => {
@@ -39,8 +39,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [visualStyles, setVisualStyles] = useState<VisualStyle[]>([]);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | undefined>(undefined);
+  
+  // حالات الحذف
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<{id: string, ownerId: string} | null>(null);
   
   const [categoryData, setCategoryData] = useState({ id: '', nameAr: '', nameEn: '', order: 0, isActive: true });
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -64,46 +67,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const phpSampleCode = `<?php
 /**
  * NEXTID - Optimized PHP Upload Handler
- * يسمح برفع الصور من الموقع إلى سيرفرك الخاص
  */
-
-// السماح بالطلبات من أي مصدر (CORS)
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// التعامل مع طلبات Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
-    $uploadDir = 'upload/'; // اسم المجلد كما هو في سيرفرك
-    
+    $uploadDir = 'upload/';
     if (!is_dir($uploadDir)) { mkdir($uploadDir, 0777, true); }
-    if (!is_writable($uploadDir)) {
-        http_response_code(500);
-        echo json_encode(["error" => "Directory is not writable. Set CHMOD 777."]);
-        exit;
-    }
-    
     $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
-        http_response_code(400); echo json_encode(["error" => "Invalid file type"]); exit;
-    }
-
     $fileName = time() . '_' . uniqid() . '.' . $ext;
     $targetPath = $uploadDir . $fileName;
-
     if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
         $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://";
-        $actualPath = $protocol . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/' . $targetPath;
-        echo json_encode(["url" => $actualPath]);
-    } else {
-        http_response_code(500); echo json_encode(["error" => "Upload failed"]);
-    }
-} else {
-    http_response_code(400); echo json_encode(["error" => "Invalid request"]);
-}
+        echo json_encode(["url" => $protocol . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . '/' . $targetPath]);
+    } else { http_response_code(500); echo json_encode(["error" => "Upload failed"]); }
+} else { http_response_code(400); echo json_encode(["error" => "Invalid request"]); }
 ?>`;
 
   const fontOptions = [
@@ -157,30 +139,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     if (!categoryData.nameAr || !categoryData.nameEn) return;
     setIsCategorySubmitting(true);
     try {
-      await saveTemplateCategory({
-        ...categoryData,
-        id: editingCategoryId || undefined
-      });
+      await saveTemplateCategory({ ...categoryData, id: editingCategoryId || undefined });
       setCategoryData({ id: '', nameAr: '', nameEn: '', order: categories.length + 1, isActive: true });
       setEditingCategoryId(null);
       await fetchData();
-    } catch (e) {
-      alert("Error saving category");
-    } finally {
-      setIsCategorySubmitting(false);
-    }
+    } catch (e) { alert("Error saving category"); } finally { setIsCategorySubmitting(false); }
   };
 
   const handleToggleCategoryActive = async (cat: TemplateCategory) => {
-    try {
-      await saveTemplateCategory({
-        ...cat,
-        isActive: !cat.isActive
-      });
-      fetchData();
-    } catch (e) {
-      alert("Failed to toggle status");
-    }
+    try { await saveTemplateCategory({ ...cat, isActive: !cat.isActive }); fetchData(); } catch (e) { alert("Failed to toggle status"); }
   };
 
   const confirmDeleteCategory = async () => {
@@ -188,26 +155,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     setLoading(true);
     try {
       await deleteTemplateCategory(categoryToDelete);
-      setCategories(prev => prev.filter(c => c.id !== categoryToDelete));
       setCategoryToDelete(null);
       await fetchData();
-    } catch (e) {
-      console.error("Delete category error:", e);
-      alert(isRtl ? "حدث خطأ أثناء الحذف" : "Error during deletion");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { alert(isRtl ? "حدث خطأ أثناء الحذف" : "Error during deletion"); } finally { setLoading(false); }
   };
 
   const confirmDeleteTemplate = async () => {
     if (!templateToDelete) return;
+    try { await deleteTemplate(templateToDelete); setTemplateToDelete(null); fetchData(); } catch (e) { alert(isRtl ? "فشل حذف القالب" : "Error deleting template"); }
+  };
+
+  const confirmDeleteCard = async () => {
+    if (!cardToDelete) return;
+    setLoading(true);
     try {
-      await deleteTemplate(templateToDelete);
-      setTemplateToDelete(null);
-      fetchData();
+      await deleteUserCard(cardToDelete.ownerId, cardToDelete.id);
+      setCardToDelete(null);
+      await fetchData();
     } catch (e) {
-      console.error("Delete template error:", e);
-      alert(isRtl ? "فشل حذف القالب" : "Error deleting template");
+      alert(isRtl ? "فشل حذف البطاقة" : "Error deleting card");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -216,17 +184,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     try {
       await updateSiteSettings(settings);
       alert(isRtl ? "تم حفظ كافة الإعدادات بنجاح" : "All settings saved successfully");
-    } catch (e) {
-      console.error("Save settings error:", e);
-      alert(isRtl ? "فشل حفظ الإعدادات" : "Error saving settings");
-    } finally {
-      setSavingSettings(false);
-    }
+    } catch (e) { alert(isRtl ? "فشل حفظ الإعدادات" : "Error saving settings"); } finally { setSavingSettings(false); }
   };
 
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [securityStatus, setSecurityStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -237,10 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
   const t = (ar: string, en: string) => isRtl ? ar : en;
 
   const TabButton = ({ id, label, icon: Icon }: any) => (
-    <button 
-      onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase transition-all whitespace-nowrap ${activeTab === id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-    >
+    <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase transition-all whitespace-nowrap ${activeTab === id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
       <Icon size={16} /> <span className="hidden sm:inline">{label}</span>
     </button>
   );
@@ -248,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
   const labelTextClasses = "text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1 block mb-1.5";
   const inputClasses = "w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-sm font-bold dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all shadow-inner";
 
-  if (loading && !templateToDelete && !categoryToDelete) return (
+  if (loading && !templateToDelete && !categoryToDelete && !cardToDelete) return (
     <div className="flex flex-col items-center justify-center py-20">
       <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
       <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">{t('جاري التحميل...', 'Loading...')}</p>
@@ -355,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                                    </div>
                                 </td>
                                 <td className="px-8 py-6 text-[11px] font-black text-gray-400 uppercase tracking-widest">{card.updatedAt ? new Date(card.updatedAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : '---'}</td>
-                                <td className="px-8 py-6 text-center"><div className="flex justify-center gap-2"><a href={generateShareUrl(card as CardData)} target="_blank" className="p-3 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Eye size={18} /></a><button onClick={() => onEditCard(card as CardData)} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={18} /></button><button onClick={() => onDeleteRequest(card.id, card.ownerId)} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} /></button></div></td>
+                                <td className="px-8 py-6 text-center"><div className="flex justify-center gap-2"><a href={generateShareUrl(card as CardData)} target="_blank" className="p-3 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Eye size={18} /></a><button onClick={() => onEditCard(card as CardData)} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={18} /></button><button onClick={() => setCardToDelete({id: card.id, ownerId: card.ownerId})} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} /></button></div></td>
                              </tr>
                           ))}
                        </tbody>
@@ -580,7 +539,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                            </div>
                            <p className="text-[8px] text-gray-400 font-bold uppercase">{t('معاينة الهيدر', 'Header Preview')}</p>
                         </div>
-                        <p className="text-[10px] text-gray-500 font-bold text-center leading-relaxed italic">{t('* الشعار في الهيدر يظهر دائماً كـ ID بجانب اسم الموقع.', '* Header logo is fixed as ID text next to site name.')}</p>
                       </div>
                       
                       <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-3xl border border-dashed border-gray-200 flex flex-col items-center gap-4">
@@ -591,7 +549,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                         </div>
                         <input type="file" ref={iconInputRef} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setUploadingIcon(true); const b = await uploadImageToCloud(f, 'logo', { storageType: settings.imageStorageType as any, uploadUrl: settings.serverUploadUrl }); if (b) setSettings({...settings, siteIcon: b}); setUploadingIcon(false); }} accept="image/*" className="hidden" />
                         <button onClick={() => iconInputRef.current?.click()} className="w-full py-2.5 bg-white dark:bg-gray-800 border rounded-xl font-bold text-[10px] uppercase flex items-center justify-center gap-2 transition-all active:scale-95"><UploadCloud size={14} className="text-blue-500" /> {t('تغيير أيقونة التبويب', 'Change Tab Icon')}</button>
-                        <p className="text-[9px] text-gray-400 font-bold">{t('تظهر في شريط عنوان المتصفح فقط', 'Visible in browser address bar only')}</p>
                       </div>
                    </div>
                 </div>
@@ -603,24 +560,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                       <div className="space-y-4">
                          <label className={labelTextClasses}>{t('مكان تخزين الملفات', 'Files Destination')}</label>
                          <div className="flex bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
-                            <button 
-                              onClick={() => setSettings({...settings, imageStorageType: 'database'})}
-                              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'database' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                               <Database size={14} /> {t('قاعدة البيانات', 'Database')}
-                            </button>
-                            <button 
-                              onClick={() => setSettings({...settings, imageStorageType: 'server'})}
-                              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'server' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                               <HardDrive size={14} /> {t('سيرفر خاص', 'Private Server')}
-                            </button>
+                            <button onClick={() => setSettings({...settings, imageStorageType: 'database'})} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'database' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}><Database size={14} /> {t('قاعدة البيانات', 'Database')}</button>
+                            <button onClick={() => setSettings({...settings, imageStorageType: 'server'})} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${settings.imageStorageType === 'server' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400'}`}><HardDrive size={14} /> {t('سيرفر خاص', 'Private Server')}</button>
                          </div>
-                         <p className="text-[10px] text-gray-400 px-2 leading-relaxed">
-                            {settings.imageStorageType === 'database' 
-                              ? t('* يتم تخزين الصور مباشرة في Firestore كنصوص. (سهل، مجاني، ولكنه محدود الحجم)', '* Stored in Firestore. (Easiest, free, size-limited).')
-                              : t('* يتم رفع الصور إلى مجلد خارجي على سيرفرك الخاص لتوفير مساحة قاعدة البيانات.', '* Uploads to a folder on your server via a script URL.')}
-                         </p>
                       </div>
 
                       {settings.imageStorageType === 'server' && (
@@ -628,122 +570,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                            <label className={labelTextClasses}>{t('رابط معالج الرفع (API/URL)', 'Server Upload Handler URL')}</label>
                            <div className="relative">
                               <LinkIcon className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={16} />
-                              <input 
-                                type="url" 
-                                value={settings.serverUploadUrl} 
-                                onChange={(e) => setSettings({...settings, serverUploadUrl: e.target.value})} 
-                                className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} !py-3.5 font-mono text-[11px]`} 
-                                placeholder="https://nextid.my/upload.php"
-                              />
+                              <input type="url" value={settings.serverUploadUrl} onChange={(e) => setSettings({...settings, serverUploadUrl: e.target.value})} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} !py-3.5 font-mono text-[11px]`} placeholder="https://nextid.my/upload.php" />
                            </div>
-                           <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/20 space-y-4">
-                              <div className="flex gap-3">
-                                 <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase">{t('تنبيه هام للربط', 'Critical Configuration')}</p>
-                                    <p className="text-[9px] font-bold text-amber-700 dark:text-amber-400 leading-relaxed">
-                                       {isRtl 
-                                        ? "الرابط يجب أن يشير لملف برمجي يستلم الصور (مثل upload.php) وليس لمجلد فقط. هذا الملف يجب أن يعيد رابط الصورة بصيغة JSON." 
-                                        : "URL must point to a script (e.g., upload.php) that processes POST requests and returns image link in JSON."}
-                                    </p>
-                                 </div>
-                              </div>
-                              <button 
-                                onClick={() => setShowPhpCode(!showPhpCode)}
-                                className="w-full py-2 bg-amber-600 text-white rounded-lg font-black text-[9px] uppercase shadow-sm flex items-center justify-center gap-2"
-                              >
-                                 <Code size={14} />
-                                 {showPhpCode ? t('إخفاء الكود', 'Hide Code') : t('عرض كود PHP الجاهز للسيرفر', 'Show Sample PHP Script')}
-                              </button>
-                           </div>
+                           <button onClick={() => setShowPhpCode(!showPhpCode)} className="w-full py-2 bg-amber-600 text-white rounded-lg font-black text-[9px] uppercase flex items-center justify-center gap-2"><Code size={14} /> {showPhpCode ? t('إخفاء الكود', 'Hide Code') : t('عرض كود PHP الجاهز للسيرفر', 'Show Sample PHP Script')}</button>
                         </div>
                       )}
                    </div>
 
                    {settings.imageStorageType === 'server' && showPhpCode && (
                      <div className="animate-fade-in-up space-y-4">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-2 text-indigo-600">
-                              <FileJson size={16} />
-                              <span className="text-[10px] font-black uppercase">{t('نموذج كود PHP (انسخه إلى سيرفرك)', 'Sample PHP Code (Copy to server)')}</span>
-                           </div>
-                           <button 
-                              onClick={() => { navigator.clipboard.writeText(phpSampleCode); alert(isRtl ? 'تم نسخ الكود' : 'Code Copied'); }}
-                              className="flex items-center gap-2 px-4 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-[9px] font-black hover:bg-gray-200 transition-colors"
-                           >
-                              <Copy size={12} /> {t('نسخ الكود', 'Copy Code')}
-                           </button>
-                        </div>
-                        <pre className="p-6 bg-gray-900 text-emerald-400 rounded-2xl text-[10px] font-mono overflow-x-auto border-2 border-indigo-500/20 shadow-xl">
-                           {phpSampleCode}
-                        </pre>
+                        <pre className="p-6 bg-gray-900 text-emerald-400 rounded-2xl text-[10px] font-mono overflow-x-auto border-2 border-indigo-500/20">{phpSampleCode}</pre>
                      </div>
                    )}
                 </div>
 
                 <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
                    <div className="flex items-center gap-4"><div className="p-3 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-2xl"><BarChart size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('إعدادات تتبع الزوار (Analytics)', 'Analytics Integration')}</h2></div>
-                   <div className="space-y-4">
-                      <label className={labelTextClasses}>{t('كود التتبع (Google Analytics / Facebook Pixel / etc.)', 'Tracking Snippet Code')}</label>
-                      <textarea 
-                        value={settings.analyticsCode} 
-                        onChange={(e) => setSettings({...settings, analyticsCode: e.target.value})} 
-                        className={`${inputClasses} font-mono text-[11px] min-h-[150px] resize-y py-4`} 
-                        placeholder="<!-- Paste your scripts here -->"
-                      />
-                      <p className="text-[10px] text-gray-400 px-2 leading-relaxed italic">
-                        {isRtl ? "* سيتم حقن هذا الكود تلقائياً في ترويسة الموقع (Head) لتتبع حركة الزوار." : "* This code will be automatically injected into the Site Head to track traffic."}
-                      </p>
-                   </div>
+                   <textarea value={settings.analyticsCode} onChange={(e) => setSettings({...settings, analyticsCode: e.target.value})} className={`${inputClasses} font-mono text-[11px] min-h-[150px] resize-y py-4`} placeholder="<!-- Paste your scripts here -->" />
                 </div>
 
                 <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
                    <div className="flex items-center gap-4"><div className="p-3 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-2xl"><Palette size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('ألوان وخطوط المنصة', 'Platform Theme')}</h2></div>
-                   
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4">
                          <label className={labelTextClasses}>{t('اللون الأساسي للموقع', 'Primary Site Color')}</label>
-                         <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
-                            <input type="color" value={settings.primaryColor} onChange={(e) => setSettings({...settings, primaryColor: e.target.value})} className="w-14 h-14 rounded-xl cursor-pointer border-none outline-none p-0 overflow-hidden" />
-                            <input type="text" value={settings.primaryColor} onChange={(e) => setSettings({...settings, primaryColor: e.target.value})} className="bg-transparent border-none outline-none font-mono text-sm uppercase flex-1 dark:text-white font-black" />
+                         <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <input type="color" value={settings.primaryColor} onChange={(e) => setSettings({...settings, primaryColor: e.target.value})} className="w-14 h-14 rounded-xl cursor-pointer" />
+                            <input type="text" value={settings.primaryColor} onChange={(e) => setSettings({...settings, primaryColor: e.target.value})} className="bg-transparent font-mono text-sm uppercase flex-1 dark:text-white font-black" />
                          </div>
                       </div>
                       <div className="space-y-4">
                          <label className={labelTextClasses}>{t('اللون الثانوي للموقع', 'Secondary Color')}</label>
-                         <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
-                            <input type="color" value={settings.secondaryColor} onChange={(e) => setSettings({...settings, secondaryColor: e.target.value})} className="w-14 h-14 rounded-xl cursor-pointer border-none outline-none p-0 overflow-hidden" />
-                            <input type="text" value={settings.secondaryColor} onChange={(e) => setSettings({...settings, secondaryColor: e.target.value})} className="bg-transparent border-none outline-none font-mono text-sm uppercase flex-1 dark:text-white font-black" />
+                         <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <input type="color" value={settings.secondaryColor} onChange={(e) => setSettings({...settings, secondaryColor: e.target.value})} className="w-14 h-14 rounded-xl cursor-pointer" />
+                            <input type="text" value={settings.secondaryColor} onChange={(e) => setSettings({...settings, secondaryColor: e.target.value})} className="bg-transparent font-mono text-sm uppercase flex-1 dark:text-white font-black" />
                          </div>
                       </div>
                    </div>
-
-                   <div className="space-y-4">
-                      <label className={labelTextClasses}>{t('خط المنصة العام', 'Platform Font Family')}</label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                         {fontOptions.map(f => (
-                           <button 
-                             key={f.value}
-                             onClick={() => setSettings({...settings, fontFamily: f.value})}
-                             className={`p-4 rounded-2xl border-2 transition-all text-sm font-black uppercase tracking-wider ${settings.fontFamily === f.value ? 'bg-blue-600 border-blue-600 text-white shadow-xl' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400 hover:border-blue-200'}`}
-                             style={{ fontFamily: f.value }}
-                           >
-                              {f.name}
-                           </button>
-                         ))}
-                      </div>
-                   </div>
                 </div>
 
-                <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
-                   <div className="space-y-2">
-                     <label className={labelTextClasses}>{t('اسم الموقع بالعربي', 'Site Name (AR)')}</label>
-                     <input type="text" value={settings.siteNameAr} onChange={(e) => setSettings({...settings, siteNameAr: e.target.value})} className={inputClasses} />
-                   </div>
-                   <div className="space-y-2">
-                     <label className={labelTextClasses}>{t('Site Name (English)', 'Site Name (EN)')}</label>
-                     <input type="text" value={settings.siteNameEn} onChange={(e) => setSettings({...settings, siteNameEn: e.target.value})} className={inputClasses} />
-                   </div>
-                </div>
                 <button onClick={handleApplyTheme} disabled={savingSettings} className="w-full py-6 bg-blue-600 text-white rounded-[2.5rem] font-black shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all text-xl uppercase tracking-widest">
                   {savingSettings ? <Loader2 className="animate-spin" /> : <Save size={24} />} 
                   {t('حفظ وتطبيق الهوية الجديدة', 'Apply Platform Theme')}
@@ -768,9 +633,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                  setSecurityData({...securityData, currentPassword: '', newPassword: '', confirmPassword: ''});
                } catch (err: any) { 
                  setSecurityStatus({ type: 'error', message: getAuthErrorMessage(err.code, isRtl ? 'ar' : 'en') });
-               } finally { 
-                 setSavingSecurity(false); 
-               } 
+               } finally { setSavingSecurity(false); } 
              }} className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
                 <div className="flex items-center gap-4"><div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-2xl"><Key size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('أمان المسؤول', 'Admin Security')}</h2></div>
                 {securityStatus && <div className={`p-4 rounded-2xl text-xs font-bold ${securityStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{securityStatus.message}</div>}
@@ -789,6 +652,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
           </div>
         )}
       </div>
+
+      {/* --- نوافذ تأكيد الحذف --- */}
+
+      {cardToDelete && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[400px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Trash2 size={40} /></div>
+            <h3 className="text-2xl font-black mb-4 dark:text-white">{t('تأكيد حذف البطاقة العامة', 'Confirm Profile Delete')}</h3>
+            <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('سيتم مسح هذه البطاقة نهائياً من قاعدة البيانات ومن حساب المستخدم. هل أنت متأكد؟', 'This will delete the card from database and user account permanently. Are you sure?')}</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmDeleteCard} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، احذف البطاقة</button>
+              <button onClick={() => setCardToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {templateToDelete && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">

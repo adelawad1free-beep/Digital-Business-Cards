@@ -107,36 +107,20 @@ const AppContent: React.FC = () => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Analytics injection effect - UPDATED TO FIX SCRIPT EXECUTION
   useEffect(() => {
     if (siteConfig.analyticsCode) {
-      // 1. تنظيف السكربتات القديمة لمنع التكرار
       const oldScripts = document.querySelectorAll('.custom-analytics-script');
       oldScripts.forEach(el => el.remove());
-
-      // 2. تحويل النص البرمجي إلى عناصر DOM
       const parser = new DOMParser();
       const doc = parser.parseFromString(`<div>${siteConfig.analyticsCode}</div>`, 'text/html');
       const scripts = doc.querySelectorAll('script');
-
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
         newScript.className = 'custom-analytics-script';
-
-        // نسخ كافة الخصائص (src, async, defer, etc.)
-        Array.from(oldScript.attributes).forEach(attr => {
-          newScript.setAttribute(attr.name, attr.value);
-        });
-
-        // نسخ المحتوى النصي (إذا كان سكربت داخلي)
-        if (oldScript.innerHTML) {
-          newScript.innerHTML = oldScript.innerHTML;
-        }
-
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+        if (oldScript.innerHTML) newScript.innerHTML = oldScript.innerHTML;
         document.head.appendChild(newScript);
       });
-      
-      console.log("Analytics scripts injected and executed.");
     }
   }, [siteConfig.analyticsCode]);
 
@@ -147,16 +131,12 @@ const AppContent: React.FC = () => {
     root.lang = lang;
     localStorage.setItem('preferred_lang', lang);
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-
     root.style.setProperty('--brand-primary', siteConfig.primaryColor);
     root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
     root.style.setProperty('--site-font', siteConfig.fontFamily);
-
     if (siteConfig.siteIcon) {
       const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-      if (favicon) {
-        favicon.href = siteConfig.siteIcon;
-      }
+      if (favicon) favicon.href = siteConfig.siteIcon;
     }
   }, [isDarkMode, lang, siteConfig]);
 
@@ -207,38 +187,23 @@ const AppContent: React.FC = () => {
         <div className="bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-around relative">
           {navItems.map((item) => {
             const isActive = location.pathname.endsWith(`/${lang}${item.path === '/' ? '' : item.path}`) || (item.path === '/' && location.pathname.endsWith(`/${lang}/`));
-            
             if (item.isAction) {
               return (
-                <button 
-                  key={item.id}
-                  onClick={() => navigateWithLang(item.path)}
-                  className="relative -top-6 w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-600/40 border-4 border-white dark:border-gray-900 active:scale-90 transition-transform"
-                >
+                <button key={item.id} onClick={() => navigateWithLang(item.path)} className="relative -top-6 w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-600/40 border-4 border-white dark:border-gray-900 active:scale-90 transition-transform">
                   <Plus size={32} strokeWidth={3} />
                 </button>
               );
             }
-
             if (item.private && !currentUser) {
                 return (
-                  <button 
-                    key={item.id}
-                    onClick={() => setShowAuthModal(true)}
-                    className="flex flex-col items-center gap-1 p-2 text-gray-400"
-                  >
+                  <button key={item.id} onClick={() => setShowAuthModal(true)} className="flex flex-col items-center gap-1 p-2 text-gray-400">
                     <item.icon size={22} />
                     <span className="text-[10px] font-black">{item.label}</span>
                   </button>
                 );
             }
-
             return (
-              <button 
-                key={item.id}
-                onClick={() => navigateWithLang(item.path)}
-                className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
-              >
+              <button key={item.id} onClick={() => navigateWithLang(item.path)} className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}>
                 <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                 <span className="text-[10px] font-black">{item.label}</span>
               </button>
@@ -255,9 +220,7 @@ const AppContent: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigateWithLang('/')}>
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs">
-                ID
-              </div>
+              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs">ID</div>
               <span className="text-lg font-black dark:text-white">{displaySiteName}</span>
             </div>
             <nav className="hidden md:flex items-center gap-2">
@@ -289,7 +252,7 @@ const AppContent: React.FC = () => {
           <Route path="/my-cards" element={currentUser ? <MyCards lang={lang} cards={userCards} onAdd={() => navigateWithLang('/templates')} onEdit={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDelete={(id, uid) => deleteUserCard(uid, id).then(() => window.location.reload())} /> : <Navigate to={`/${lang}/`} replace />} />
           <Route path="/editor" element={<Editor lang={lang} onSave={handleEditorSave} templates={customTemplates} onCancel={() => navigateWithLang('/')} forcedTemplateId={selectedTemplateId || undefined} initialData={editingCard || undefined} />} />
           <Route path="/account" element={currentUser ? <UserAccount lang={lang} /> : <Navigate to={`/${lang}/`} replace />} />
-          <Route path="/admin" element={isAdmin ? <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDeleteRequest={() => {}} /> : <Navigate to={`/${lang}/`} replace />} />
+          <Route path="/admin" element={isAdmin ? <AdminDashboard lang={lang} onEditCard={(c) => { setEditingCard(c); navigateWithLang('/editor'); }} onDeleteRequest={(id, uid) => deleteUserCard(uid, id).then(() => window.location.reload())} /> : <Navigate to={`/${lang}/`} replace />} />
           <Route path="*" element={<Navigate to={`/${lang}/`} replace />} />
         </Routes>
       </main>
@@ -303,55 +266,26 @@ const AppContent: React.FC = () => {
                 <Heart size={12} className="fill-current" />
                 {isRtl ? 'ادعم استمرار المشروع مجاناً' : 'Support our free project'}
              </div>
-             
-             <h3 className="text-xl md:text-2xl font-black dark:text-white mb-6 leading-relaxed">
-               {isRtl ? 'تبرع بكوب قهوة ليسر الموقع مجاناً للأبد' : 'Buy Me a Coffee to keep this site free forever'}
-             </h3>
-
-             <a 
-               href="https://buymeacoffee.com/guidai" 
-               target="_blank" 
-               rel="noopener noreferrer"
-               className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#FFDD00] text-black rounded-[2.5rem] font-black text-lg shadow-2xl shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all overflow-hidden"
-             >
+             <h3 className="text-xl md:text-2xl font-black dark:text-white mb-6 leading-relaxed">{isRtl ? 'تبرع بكوب قهوة ليسر الموقع مجاناً للأبد' : 'Buy Me a Coffee to keep this site free forever'}</h3>
+             <a href="https://buymeacoffee.com/guidai" target="_blank" rel="noopener noreferrer" className="group relative inline-flex items-center gap-4 px-10 py-5 bg-[#FFDD00] text-black rounded-[2.5rem] font-black text-lg shadow-2xl shadow-yellow-500/20 hover:scale-105 active:scale-95 transition-all overflow-hidden">
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                 <Coffee size={24} className="relative z-10 group-hover:animate-bounce" />
                 <span className="relative z-10">{isRtl ? 'تبرع بكوب قهوة' : 'Buy Me a Coffee'}</span>
              </a>
           </div>
-
-          <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-100 dark:via-gray-800 to-transparent mb-10"></div>
-
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-center">
-             <div className="flex items-center gap-2 text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-tight">
-                <span>{isRtl ? 'كافة الحقوق محفوظة' : 'All Rights Reserved'}</span>
-                <span className="text-blue-600">2025</span>
-             </div>
-             
+             <div className="flex items-center gap-2 text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-tight"><span>{isRtl ? 'كافة الحقوق محفوظة' : 'All Rights Reserved'}</span><span className="text-blue-600">2025</span></div>
              <div className="hidden md:block w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-             
              <a href="mailto:info@nextid.my" className="group flex items-center gap-2.5 px-5 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-full border border-gray-100 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-900 transition-all">
                 <Mail size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
                 <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-blue-600 transition-colors">info@nextid.my</span>
              </a>
           </div>
-
-          <div className="mt-8 flex items-center gap-2 opacity-20 text-[9px] font-black uppercase tracking-[0.4em] text-gray-400">
-             <span>Digital Identity Platform</span>
-          </div>
         </div>
       </footer>
 
       {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); navigateWithLang('/my-cards'); }} />}
-      
-      {showShareModal && sharingData && (
-        <ShareModal 
-          data={sharingData} 
-          lang={lang} 
-          onClose={handleCloseShare} 
-          isNewSave={true} 
-        />
-      )}
+      {showShareModal && sharingData && <ShareModal data={sharingData} lang={lang} onClose={handleCloseShare} isNewSave={true} />}
     </div>
   );
 };

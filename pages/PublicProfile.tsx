@@ -95,7 +95,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
     
     // حفظ الأيقونة الأصلية لاستعادتها لاحقاً
     const favicon = document.getElementById('site-favicon') as HTMLLinkElement;
-    const originalFavicon = favicon?.href;
 
     if (data.profileImage) {
       updateMeta('meta[property="og:image"]', 'content', data.profileImage);
@@ -185,7 +184,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
           </div>
       </div>
 
-      <main className="w-full max-sm z-10 animate-fade-in-up pt-10 pb-32">
+      <main className="w-full max-w-md mx-auto z-10 animate-fade-in-up pt-10 pb-32">
         <CardPreview data={data} lang={lang} customConfig={customConfig} hideSaveButton={true} />
         
         <div className="mt-12 text-center flex flex-col items-center gap-8">
@@ -210,7 +209,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
         </div>
       </main>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[100] animate-bounce-in">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] animate-bounce-in">
          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center gap-3">
             <button 
               onClick={() => downloadVCard(data)}
