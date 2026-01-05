@@ -47,6 +47,7 @@ const AppContent: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<CardData | null>(null);
+  /* Fix: Removed duplicate assignment and corrected state declaration for siteConfig */
   const [siteConfig, setSiteConfig] = useState({ 
     siteNameAr: 'هويتي الرقمية', 
     siteNameEn: 'My Digital Identity', 
@@ -159,7 +160,7 @@ const AppContent: React.FC = () => {
     const navItems = [
       { id: 'home', path: '/', icon: HomeIcon, label: t('home') },
       { id: 'templates', path: '/templates', icon: LayoutGrid, label: t('templates') },
-      { id: 'custom-orders', path: '/custom-orders', icon: Briefcase, label: t('customOrders') },
+      { id: 'create', path: '/templates', icon: Plus, label: t('createBtn') },
       { id: 'my-cards', path: '/my-cards', icon: CreditCard, label: t('myCards'), private: true },
       { id: 'account', path: '/account', icon: UserIcon, label: t('account'), private: true },
     ];
@@ -168,8 +169,41 @@ const AppContent: React.FC = () => {
         <div className="bg-white/90 dark:bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/20 dark:border-gray-800 rounded-[2.5rem] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-around relative">
           {navItems.map((item) => {
             const isActive = location.pathname.endsWith(`/${lang}${item.path === '/' ? '' : item.path}`) || (item.path === '/' && location.pathname.endsWith(`/${lang}/`));
-            if (item.private && !currentUser) return (<button key={item.id} onClick={() => setShowAuthModal(true)} className="flex flex-col items-center gap-1 p-2 text-gray-400"><item.icon size={22} /><span className="text-[10px] font-black">{item.label}</span></button>);
-            return (<button key={item.id} onClick={() => navigateWithLang(item.path)} className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}><item.icon size={22} strokeWidth={isActive ? 2.5 : 2} /><span className="text-[10px] font-black">{item.label}</span></button>);
+            
+            if (item.id === 'create') {
+              return (
+                <button 
+                  key={item.id} 
+                  onClick={() => navigateWithLang(item.path)} 
+                  className="flex flex-col items-center justify-center -translate-y-4"
+                >
+                  <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-[0_10px_25px_rgba(37,99,235,0.4)] flex items-center justify-center group active:scale-95 transition-all border-4 border-white dark:border-[#0a0a0c]">
+                    <Plus size={28} strokeWidth={3} />
+                  </div>
+                  {/* Removed the label text below the button as requested */}
+                </button>
+              );
+            }
+
+            if (item.private && !currentUser) {
+              return (
+                <button key={item.id} onClick={() => setShowAuthModal(true)} className="flex flex-col items-center gap-1 p-2 text-gray-400">
+                  <item.icon size={22} />
+                  <span className="text-[10px] font-black">{item.label}</span>
+                </button>
+              );
+            }
+
+            return (
+              <button 
+                key={item.id} 
+                onClick={() => navigateWithLang(item.path)} 
+                className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'}`}
+              >
+                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[10px] font-black">{item.label}</span>
+              </button>
+            );
           })}
         </div>
       </div>

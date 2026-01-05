@@ -19,6 +19,40 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
   const isRtl = lang === 'ar';
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+  // منطق الكاتب الآلي
+  const phrases = isRtl 
+    ? ["أسهل طريقة للمشاركة", "هويتك في جيبك دائماً", "تواصل ذكي بلمسة واحدة", "مستقبل بطاقات الأعمال هنا"]
+    : ["The easiest way to share", "Your ID always in your pocket", "Smart one-tap networking", "Future of business cards is here"];
+  
+  const [currentPhraseIdx, setCurrentPhraseIdx] = useState(0);
+  const [displayText, setDisplayText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [typingSpeed, setTypingSpeed] = useState(100);
+
+  useEffect(() => {
+    const handleType = () => {
+      const fullPhrase = phrases[currentPhraseIdx];
+      
+      if (!isDeleting) {
+        setDisplayText(fullPhrase.substring(0, displayText.length + 1));
+        setTypingSpeed(100);
+        if (displayText === fullPhrase) {
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        setDisplayText(fullPhrase.substring(0, displayText.length - 1));
+        setTypingSpeed(50);
+        if (displayText === '') {
+          setIsDeleting(false);
+          setCurrentPhraseIdx((prev) => (prev + 1) % phrases.length);
+        }
+      }
+    };
+
+    const timer = setTimeout(handleType, typingSpeed);
+    return () => clearTimeout(timer);
+  }, [displayText, isDeleting, currentPhraseIdx]);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({
@@ -144,7 +178,7 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+          <div className="flex flex-col items-center lg:items-start gap-5 justify-center lg:justify-start">
             <button 
               onClick={onStart}
               className="group relative px-16 py-6 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-[0_20px_40px_rgba(37,99,235,0.25)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.4)] dark:shadow-[0_20px_40px_rgba(37,99,235,0.15)] hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-4 overflow-hidden"
@@ -153,6 +187,15 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
               <span>{isRtl ? 'ابدأ الآن' : 'Start Now'}</span>
               <ArrowRight size={22} className={`transition-transform ${isRtl ? 'rotate-180 group-hover:-translate-x-2' : 'group-hover:translate-x-2'}`} />
             </button>
+
+            {/* تأثير الكاتب الآلي (Writer) */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-full border border-blue-100 dark:border-blue-800/30 animate-fade-in min-h-[36px]">
+               <Zap size={14} className="text-blue-600 animate-pulse" />
+               <p className="text-[11px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest flex items-center">
+                  {displayText}
+                  <span className="w-[2px] h-3 bg-blue-600 ml-1 animate-pulse" style={{ display: 'inline-block' }}></span>
+               </p>
+            </div>
           </div>
         </div>
       </section>
