@@ -23,14 +23,13 @@ import { Sun, Moon, Loader2, Plus, User as UserIcon, LogIn, AlertCircle, Home as
  */
 const getBrowserLanguage = (): Language => {
   const supportedLanguages = Object.keys(LANGUAGES_CONFIG);
-  const browserLang = navigator.language.split('-')[0]; // الحصول على أول جزئين مثل 'en' من 'en-US'
+  const browserLang = navigator.language.split('-')[0];
   
   if (supportedLanguages.includes(browserLang)) {
     return browserLang as Language;
   }
   
-  // الافتراضي في حال عدم المطابقة
-  return 'ar';
+  return 'ar'; // الافتراضي في حال عدم المطابقة
 };
 
 const AppContent: React.FC = () => {
@@ -51,7 +50,13 @@ const AppContent: React.FC = () => {
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [publicCard, setPublicCard] = useState<CardData | null>(null);
   const [isCardDeleted, setIsCardDeleted] = useState(false); 
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('theme') === 'dark');
+  
+  // الوضع النهاري هو الافتراضي (false) إلا إذا وجدنا تفضيل "dark" صريح ومخزن سابقاً
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark'; // إذا كان null أو light سيعود بـ false (نهاري)
+  });
+
   const [showShareModal, setShowShareModal] = useState(false);
   const [sharingData, setSharingData] = useState<CardData | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -112,6 +117,7 @@ const AppContent: React.FC = () => {
           const card = await getCardBySerial(slug);
           if (card) {
             setPublicCard(card as CardData);
+            // لبطاقة المستخدم الشخصية، نتبع الثيم الخاص ببطاقته
             setIsDarkMode(card.isDark);
           } else {
             setIsCardDeleted(true);
@@ -142,11 +148,20 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
-    isDarkMode ? root.classList.add('dark') : root.classList.remove('dark');
+    
+    // تطبيق الثيم بناءً على الحالة
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+
     root.dir = LANGUAGES_CONFIG[lang]?.dir || 'rtl';
     root.lang = lang;
+    
     localStorage.setItem('preferred_lang', lang);
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    
     root.style.setProperty('--brand-primary', siteConfig.primaryColor);
     root.style.setProperty('--brand-secondary', siteConfig.secondaryColor);
     root.style.setProperty('--site-font', siteConfig.fontFamily);
@@ -155,13 +170,6 @@ const AppContent: React.FC = () => {
       const link = document.getElementById('site-favicon') as HTMLLinkElement;
       if (link) {
         link.href = siteConfig.siteIcon;
-        link.rel = 'icon';
-      } else {
-        const newLink = document.createElement('link');
-        newLink.id = 'site-favicon';
-        newLink.rel = 'icon';
-        newLink.href = siteConfig.siteIcon;
-        document.head.appendChild(newLink);
       }
     }
   }, [isDarkMode, lang, siteConfig]);
