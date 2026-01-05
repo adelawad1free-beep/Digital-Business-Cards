@@ -1,4 +1,3 @@
-
 import { 
   Save, Plus, X, Loader2, Sparkles, Moon, Sun, 
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
@@ -29,7 +28,7 @@ interface EditorProps {
   forcedTemplateId?: string; 
 }
 
-type EditorTab = 'identity' | 'social' | 'design' | 'occasion';
+type EditorTab = 'identity' | 'social' | 'design';
 
 const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates, forcedTemplateId }) => {
   const isRtl = lang === 'ar';
@@ -44,7 +43,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const [activeTab, setActiveTab] = useState<EditorTab>('identity');
-  const [isSimpleMode, setIsSimpleMode] = useState(false); 
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -102,7 +100,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          backgroundImage: selectedTmpl.config.defaultBackgroundImage || baseData.backgroundImage,
          isDark: selectedTmpl.config.defaultIsDark ?? baseData.isDark,
          pageBgColor: selectedTmpl.config.pageBgColor || '',
-         showOccasion: selectedTmpl.config.showOccasionByDefault ?? false,
+         showOccasion: false,
          showName: selectedTmpl.config.showNameByDefault ?? true,
          showTitle: selectedTmpl.config.showTitleByDefault ?? true,
          showCompany: selectedTmpl.config.showCompanyByDefault ?? true,
@@ -151,23 +149,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     return () => clearTimeout(timer);
   }, [formData.id]);
 
-  useEffect(() => {
-    const selectedTmpl = templates.find(t => t.id === formData.templateId);
-    if (selectedTmpl?.config?.showOccasionByDefault) {
-      setIsSimpleMode(true);
-      setActiveTab('occasion');
-    } else {
-      setIsSimpleMode(false);
-      if (activeTab === 'occasion') setActiveTab('identity');
-    }
-  }, [formData.templateId]);
-
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
   const [socialInput, setSocialInput] = useState({ platformId: SOCIAL_PLATFORMS[0].id, url: '' });
 
   const currentTemplate = templates.find(t => t.id === formData.templateId);
-  const supportsOccasion = currentTemplate?.config?.showOccasionByDefault;
   
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') { 
@@ -242,7 +228,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     let activeColor = 'bg-blue-600';
     if (id === 'social') activeColor = 'bg-emerald-600';
     if (id === 'design') activeColor = 'bg-indigo-600';
-    if (id === 'occasion') activeColor = 'bg-rose-600';
 
     return (
       <button 
@@ -319,378 +304,237 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <div className="flex-1 w-full space-y-0 pb-32">
           
-          {!isSimpleMode && (
-            <div className={`w-full sticky top-[75px] z-50 transition-all duration-300 ease-in-out pt-0 pb-6 md:pb-10 ${isNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
-               <div className="flex w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-x-auto no-scrollbar shadow-sm p-1.5 gap-1.5">
-                  <TabButton id="identity" label={t('الهوية', 'Identity')} icon={UserIcon} />
-                  <TabButton id="social" label={t('التواصل', 'Contact')} icon={MessageCircle} />
-                  <TabButton id="design" label={t('التصميم', 'Design')} icon={Palette} />
-                  {supportsOccasion && <TabButton id="occasion" label={t('المناسبة', 'Event')} icon={PartyPopper} />}
-               </div>
-            </div>
-          )}
+          <div className={`w-full sticky top-[75px] z-50 transition-all duration-300 ease-in-out pt-0 pb-6 md:pb-10 ${isNavVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+             <div className="flex w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-x-auto no-scrollbar shadow-sm p-1.5 gap-1.5">
+                <TabButton id="identity" label={t('الهوية', 'Identity')} icon={UserIcon} />
+                <TabButton id="social" label={t('التواصل', 'Contact')} icon={MessageCircle} />
+                <TabButton id="design" label={t('التصميم', 'Design')} icon={Palette} />
+             </div>
+          </div>
 
           <div className="bg-white dark:bg-[#121215] p-5 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 dark:border-gray-800 animate-fade-in relative overflow-hidden">
             
-            {isSimpleMode ? (
-              <div className="space-y-8 animate-fade-in relative z-10">
-                <div className="p-5 md:p-8 bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30 dark:from-blue-900/10 dark:via-[#121215] dark:to-indigo-900/5 rounded-[2rem] md:rounded-[3rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-xl shadow-blue-500/5 space-y-6 transition-all relative overflow-hidden">
-                   <div className="flex flex-col gap-4">
-                      <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-50 dark:border-gray-700">
-                               <Link2 size={20} />
-                            </div>
-                            <h4 className="text-sm md:text-lg font-black dark:text-white uppercase tracking-tighter">{t('رابط الدعوة', 'Invitation Link')}</h4>
-                         </div>
-                         <div className="text-[10px] font-bold">
-                            <span className={`${slugStatus === 'available' ? 'text-emerald-500' : slugStatus === 'taken' ? 'text-red-500' : 'text-gray-400'}`}>
-                               {slugStatus === 'available' ? (isRtl ? '✓ متاح' : '✓ Available') : 
-                                slugStatus === 'taken' ? (isRtl ? '✗ غير متاح' : '✗ Taken') : 
-                                (isRtl ? 'تحقق من التوفر' : 'Check availability')}
-                            </span>
-                          </div>
-                      </div>
-                      <div className="relative group/input">
-                         <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 dark:text-gray-600 uppercase tracking-widest pointer-events-none`}>.nextid.my</div>
-                         <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/80 dark:bg-gray-950/50 text-xl font-black lowercase tracking-tighter outline-none transition-all ${slugStatus === 'available' ? 'border-emerald-200' : 'border-gray-100'} ${isRtl ? 'pl-24' : 'pr-24'}`} />
-                      </div>
-                   </div>
-                </div>
+            <div className="space-y-8 mt-4 animate-fade-in">
+              {activeTab === 'identity' && (
+                <div className="space-y-6 animate-fade-in relative z-10">
+                  <div className="p-5 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-4">
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3"><Link2 size={18} className="text-blue-600" /><h4 className="text-xs font-black dark:text-white uppercase tracking-tighter">{t('رابط البطاقة', 'Card Link')}</h4></div>
+                        <div className="text-[10px] font-bold"><span className={`${slugStatus === 'available' ? 'text-emerald-500' : slugStatus === 'taken' ? 'text-red-500' : 'text-gray-400'}`}>{slugStatus === 'available' ? '✓ متاح' : slugStatus === 'taken' ? '✗ مأخوذ' : ''}</span></div>
+                     </div>
+                     <div className="relative">
+                        <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest`}>.nextid.my</div>
+                        <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`w-full px-5 py-4 rounded-xl border-2 bg-white/80 dark:bg-gray-950/50 text-lg font-black outline-none ${isRtl ? 'pl-20' : 'pr-20'} ${slugStatus === 'available' ? 'border-emerald-200' : 'border-gray-100'}`} />
+                     </div>
+                  </div>
 
-                <div className="p-6 bg-blue-50/50 dark:bg-blue-900/5 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 space-y-6">
-                   <div className="flex flex-col md:flex-row gap-6 items-center">
-                      <div className="relative shrink-0">
-                         <div className={`w-24 h-24 ${formData.profileImage ? 'rounded-2xl' : 'rounded-full border-dashed border-2 border-gray-300'} overflow-hidden bg-white dark:bg-gray-800 flex items-center justify-center relative shadow-sm`}>
-                            {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <Camera size={20} className="text-gray-300" />}
-                            {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
-                         </div>
-                         <button type="button" disabled={isUploading} onClick={() => checkAuthAndClick(fileInputRef)} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all disabled:opacity-50"><Plus size={16} /></button>
-                         <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                      </div>
-                      <div className="flex-1 w-full space-y-4">
-                         <div>
-                            <label className={labelClasses}>{t('صاحب الدعوة / المنظم', 'Organizer Name')}</label>
-                            <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClasses} placeholder={t('أدخل الاسم بالكامل', 'Full Name')} />
-                         </div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                               <label className={labelClasses}>{t('البادئة (يتشرف)', 'Prefix')}</label>
-                               <input type="text" value={formData.invitationPrefix || ''} onChange={e => handleChange('invitationPrefix', e.target.value)} className={`${inputClasses} !py-3`} placeholder="يتشرف" />
-                            </div>
-                            <div>
-                               <label className={labelClasses}>{t('الترحيب (بدعوتكم)', 'Welcome')}</label>
-                               <input type="text" value={formData.invitationWelcome || ''} onChange={e => handleChange('invitationWelcome', e.target.value)} className={`${inputClasses} !py-3`} placeholder="بدعوتكم لحضور" />
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
+                  <div className="flex flex-col md:flex-row gap-6 items-center">
+                     <div className="relative shrink-0 group">
+                        <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-white dark:border-gray-800 shadow-md bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
+                          {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon size={32} className="text-gray-300" />}
+                          {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
+                        </div>
+                        <button type="button" disabled={isUploading} onClick={() => checkAuthAndClick(fileInputRef)} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg disabled:opacity-50"><Camera size={16} /></button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                     </div>
+                     <div className="flex-1 w-full space-y-4">
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('الاسم', 'Name')}</label><VisibilityToggle field="showName" label="Name" /></div>
+                           <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClasses} placeholder={t('الاسم الكامل', 'Full Name')} />
+                        </div>
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('المسمى الوظيفي', 'Job Title')}</label><VisibilityToggle field="showTitle" label="Title" /></div>
+                           <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className={inputClasses} placeholder={t('مثلاً: مهندس برمجيات', 'Ex: Software Engineer')} />
+                        </div>
+                     </div>
+                  </div>
 
-                <div className="p-6 bg-rose-50/30 dark:bg-rose-900/5 rounded-[2rem] border border-rose-100/50 dark:border-rose-900/10 space-y-6">
-                   <div className="flex items-center gap-3">
-                      <PartyPopper className="text-rose-500" size={20} />
-                      <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('تفاصيل المناسبة', 'Event Details')}</h4>
-                   </div>
-                   <div className="space-y-4">
-                      <input type="text" value={formData.occasionTitle || ''} onChange={e => handleChange('occasionTitle', e.target.value)} className={inputClasses} placeholder={t('عنوان المناسبة (مثلاً: حفل زفاف..)', 'Event Title')} />
-                      <textarea value={formData.occasionDesc || ''} onChange={e => handleChange('occasionDesc', e.target.value)} className={`${inputClasses} min-h-[100px] py-4 resize-none`} placeholder={t('وصف أو نبذة عن المناسبة...', 'Event Description')}/>
-                   </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                         <label className={labelClasses}>{t('تاريخ ووقت المناسبة', 'Event Date & Time')}</label>
-                         <div className="relative">
-                            <Calendar className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-red-500 pointer-events-none z-10`} size={18} />
-                            <input type="datetime-local" value={formData.occasionDate || ''} onChange={e => handleChange('occasionDate', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'} [direction:ltr]`} />
-                         </div>
-                      </div>
-                      <div className="space-y-2">
-                         <label className={labelClasses}>{t('موقع المناسبة (خرائط جوجل)', 'Location URL')}</label>
-                         <div className="relative">
-                            <MapPin className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-rose-500`} size={18} />
-                            <input type="url" value={formData.occasionMapUrl || ''} onChange={e => handleChange('occasionMapUrl', e.target.value)} className={`${inputClasses} ${isRtl ? 'pr-12' : 'pl-12'}`} placeholder="https://maps.google.com/..." />
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="p-6 bg-indigo-50/30 dark:bg-indigo-900/5 rounded-[2rem] border border-indigo-100/50 dark:border-indigo-900/10 space-y-8">
-                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                         <Palette className="text-indigo-500" size={20} />
-                         <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('تصميم الدعوة ومظهرها', 'Event Design')}</h4>
-                      </div>
-                      <button onClick={() => handleChange('isDark', !formData.isDark)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all shadow-sm ${formData.isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
-                         {formData.isDark ? <Moon size={14} /> : <Sun size={14} />}
-                         {formData.isDark ? t('ليلي', 'Dark') : t('نهاري', 'Light')}
-                      </button>
-                   </div>
-
-                   <div className="space-y-6">
-                      <label className={labelClasses}>{t('نوع خلفية البطاقة', 'Card Theme Style')}</label>
-                      <div className="grid grid-cols-3 gap-3">
-                         {['color', 'gradient', 'image'].map(type => (
-                           <button key={type} onClick={() => handleChange('themeType', type)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.themeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400'}`}>
-                             {type === 'color' ? <Pipette size={20}/> : type === 'gradient' ? <Sparkles size={20}/> : <ImageIcon size={20}/>}
-                             <span className="text-[10px] font-black uppercase">{t(type, type.toUpperCase())}</span>
+                  <div className="pt-6 border-t dark:border-gray-800">
+                     <div className="flex items-center gap-3 mb-4">
+                        <Shapes className="text-blue-600" size={18} />
+                        <h4 className="text-xs font-black dark:text-white uppercase tracking-widest">{isRtl ? 'مكتبة الكركترات والايموجي' : 'Emoji & Character Library'}</h4>
+                     </div>
+                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
+                        {AVATAR_PRESETS.map((url, i) => (
+                           <button 
+                             key={i} 
+                             type="button" 
+                             onClick={() => handleChange('profileImage', url)} 
+                             className={`aspect-square rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-900 border-2 ${formData.profileImage === url ? 'border-blue-600 scale-105 shadow-md' : 'border-transparent hover:border-blue-100'}`}
+                           >
+                              <img src={url} className="w-full h-full object-contain p-1" alt={`Preset ${i}`} />
                            </button>
-                         ))}
+                        ))}
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                     <div className="space-y-2">
+                        <div className="flex justify-between items-center"><label className={labelClasses}>{t('الشركة', 'Company')}</label><VisibilityToggle field="showCompany" label="Company" /></div>
+                        <input type="text" value={formData.company} onChange={e => handleChange('company', e.target.value)} className={inputClasses} placeholder={t('اسم الشركة أو جهة العمل', 'Company Name')} />
+                     </div>
+                     <div className="space-y-2">
+                        <div className="flex justify-between items-center"><label className={labelClasses}>{t('النبذة الشخصية', 'Bio')}</label><VisibilityToggle field="showBio" label="Bio" /></div>
+                        <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} className={`${inputClasses} min-h-[120px] resize-none leading-relaxed`} placeholder={t('اكتب نبذة مختصرة عنك...', 'Bio...')} />
+                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'social' && (
+                <div className="space-y-8 animate-fade-in relative z-10">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الهاتف', 'Phone')}</label><VisibilityToggle field="showPhone" label="Phone" /></div>
+                         <input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={inputClasses} />
+                      </div>
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الواتساب', 'WhatsApp')}</label><VisibilityToggle field="showWhatsapp" label="WhatsApp" /></div>
+                         <input type="text" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={inputClasses} placeholder="9665..." />
+                      </div>
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('البريد الإلكتروني', 'Email')}</label><VisibilityToggle field="showEmail" label="Email" /></div>
+                         <input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={inputClasses} />
+                      </div>
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رابط الموقع', 'Website')}</label><VisibilityToggle field="showWebsite" label="Website" /></div>
+                         <input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={inputClasses} />
+                      </div>
+                   </div>
+
+                   <div className="pt-8 border-t dark:border-gray-800 space-y-6">
+                      <div className="flex flex-col gap-4">
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3"><Share2 className="text-emerald-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('روابط التواصل الاجتماعي', 'Social Links')}</h4></div>
+                            <VisibilityToggle field="showSocialLinks" label="Socials" />
+                         </div>
+
+                         <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
+                            <label className={labelClasses}>{t('socialIconColorType')}</label>
+                            <div className="flex gap-2 p-1 bg-white dark:bg-gray-900 rounded-xl border dark:border-gray-700">
+                               <button 
+                                  type="button"
+                                  onClick={() => handleChange('useSocialBrandColors', true)}
+                                  className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${formData.useSocialBrandColors ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                               >
+                                  <Sparkle size={14} />
+                                  {t('brandColors')}
+                               </button>
+                               <button 
+                                  type="button"
+                                  onClick={() => handleChange('useSocialBrandColors', false)}
+                                  className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${!formData.useSocialBrandColors ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                               >
+                                  <Palette size={14} />
+                                  {t('designColors')}
+                               </button>
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="bg-emerald-50/30 dark:bg-emerald-900/5 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/20 space-y-4">
+                         <div className="flex flex-col sm:flex-row gap-3">
+                            <select value={socialInput.platformId} onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} className="flex-1 bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20">
+                               {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <input type="url" value={socialInput.url} onChange={e => setSocialInput({...socialInput, url: e.target.value})} placeholder="https://..." className="flex-[2] bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20" />
+                            <button type="button" onClick={addSocialLink} className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all"><Plus size={20} /></button>
+                         </div>
+                         <div className="flex flex-wrap gap-3 pt-4">
+                            {formData.socialLinks?.map((link, idx) => (
+                              <div key={idx} className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in group">
+                                 <SocialIcon platformId={link.platformId} size={18} className="text-emerald-600" />
+                                 <span className="text-[10px] font-black uppercase text-gray-500 max-w-[100px] truncate">{link.platform}</span>
+                                 <button type="button" onClick={() => removeSocialLink(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                              </div>
+                            ))}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {activeTab === 'design' && (
+                <div className="space-y-8 animate-fade-in relative z-10">
+                   <div className="bg-gray-50 dark:bg-gray-800/30 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-8">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                            <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg"><Palette size={20}/></div>
+                            <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('تخصيص المظهر والسمة', 'Visual Theme Lab')}</h4>
+                         </div>
+                         <button onClick={() => handleChange('isDark', !formData.isDark)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[9px] uppercase transition-all shadow-sm ${formData.isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
+                            {formData.isDark ? <Moon size={16} /> : <Sun size={16} />}
+                            {formData.isDark ? t('وضع ليلي', 'Dark Mode') : t('وضع نهاري', 'Light Mode')}
+                         </button>
+                      </div>
+
+                      <div className="space-y-6">
+                         <label className={labelClasses}>{t('نوع خلفية البطاقة', 'Card Theme Style')}</label>
+                         <div className="grid grid-cols-3 gap-3">
+                            {['color', 'gradient', 'image'].map(type => (
+                              <button key={type} onClick={() => handleChange('themeType', type)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.themeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400'}`}>
+                                {type === 'color' ? <Pipette size={20}/> : type === 'gradient' ? <Sparkles size={20}/> : <ImageIcon size={20}/>}
+                                <span className="text-[10px] font-black uppercase">{t(type, type.toUpperCase())}</span>
+                              </button>
+                            ))}
+                         </div>
                       </div>
 
                       {formData.themeType === 'color' && (
-                        <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 animate-fade-in pt-4">
-                           {THEME_COLORS.map(c => <button key={c} onClick={() => handleChange('themeColor', c)} className={`aspect-square rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === c ? 'border-blue-600 scale-110' : 'border-white dark:border-gray-700'}`} style={{ backgroundColor: c }} />)}
-                        </div>
+                         <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 animate-fade-in">
+                            {THEME_COLORS.map(c => <button key={c} onClick={() => handleChange('themeColor', c)} className={`aspect-square rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === c ? 'border-blue-600 scale-110' : 'border-white'}`} style={{ backgroundColor: c }} />)}
+                         </div>
                       )}
-
                       {formData.themeType === 'gradient' && (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 animate-fade-in pt-4">
-                           {THEME_GRADIENTS.map((g, i) => <button key={i} onClick={() => handleChange('themeGradient', g)} className={`h-10 rounded-xl transition-all hover:scale-105 ${formData.themeGradient === g ? 'ring-4 ring-blue-500/20 opacity-100 scale-105' : 'opacity-60'}`} style={{ background: g }} />)}
-                        </div>
+                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 animate-fade-in">
+                            {THEME_GRADIENTS.map((g, i) => <button key={i} onClick={() => handleChange('themeGradient', g)} className={`h-10 rounded-xl transition-all hover:scale-105 ${formData.themeGradient === g ? 'ring-4 ring-blue-500/20 opacity-100 scale-105' : 'opacity-60'}`} style={{ background: g }} />)}
+                         </div>
                       )}
-
                       {formData.themeType === 'image' && (
-                        <div className="space-y-4 animate-fade-in pt-4">
-                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                              {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30 scale-95' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
-                           </div>
-                           <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
-                              {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-                              {t('رفع خلفية خاصة', 'Upload Background')}
-                           </button>
-                           <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
-                        </div>
+                         <div className="space-y-4 animate-fade-in">
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
+                               {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
+                            </div>
+                            <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
+                               {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
+                               {t('رفع خلفية خاصة', 'Upload Background')}
+                            </button>
+                            <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
+                         </div>
                       )}
                    </div>
+
+                   <div className="p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3"><QrCode className="text-blue-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('رمز الاستجابة (QR)', 'QR Code')}</h4></div>
+                         <VisibilityToggle field="showQrCode" label="QR Code" />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="flex flex-col gap-2">
+                            <label className={labelClasses}>{t('لون الباركود', 'QR Color')}</label>
+                            <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                               <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
+                                  <input type="color" value={formData.qrColor || '#3b82f6'} onChange={e => handleChange('qrColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
+                                  <div className="w-full h-full" style={{ backgroundColor: formData.qrColor || '#3b82f6' }} />
+                               </div>
+                               <input type="text" value={(formData.qrColor || '#3b82f6').toUpperCase()} onChange={e => handleChange('qrColor', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-full text-blue-600 dark:text-blue-400 uppercase" />
+                            </div>
+                         </div>
+                         <div className="flex flex-col gap-2">
+                            <label className={labelClasses}>{t('لون خلفية الباركود', 'QR Background')}</label>
+                            <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                               <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
+                                  <input type="color" value={formData.qrBgColor || '#ffffff'} onChange={e => handleChange('qrBgColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
+                                  <div className="w-full h-full" style={{ backgroundColor: formData.qrBgColor || '#ffffff' }} />
+                               </div>
+                               <input type="text" value={(formData.qrBgColor || '#ffffff').toUpperCase()} onChange={e => handleChange('qrBgColor', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-full text-blue-600 dark:text-blue-400 uppercase" />
+                            </div>
+                         </div>
+                      </div>
+                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-8 mt-4 animate-fade-in">
-                {activeTab === 'identity' && (
-                  <div className="space-y-6 animate-fade-in relative z-10">
-                    <div className="p-5 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-4">
-                       <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3"><Link2 size={18} className="text-blue-600" /><h4 className="text-xs font-black dark:text-white uppercase tracking-tighter">{t('رابط البطاقة', 'Card Link')}</h4></div>
-                          <div className="text-[10px] font-bold"><span className={`${slugStatus === 'available' ? 'text-emerald-500' : slugStatus === 'taken' ? 'text-red-500' : 'text-gray-400'}`}>{slugStatus === 'available' ? '✓ متاح' : slugStatus === 'taken' ? '✗ مأخوذ' : ''}</span></div>
-                       </div>
-                       <div className="relative">
-                          <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest`}>.nextid.my</div>
-                          <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`w-full px-5 py-4 rounded-xl border-2 bg-white/80 dark:bg-gray-950/50 text-lg font-black outline-none ${isRtl ? 'pl-20' : 'pr-20'} ${slugStatus === 'available' ? 'border-emerald-200' : 'border-gray-100'}`} />
-                       </div>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-6 items-center">
-                       <div className="relative shrink-0 group">
-                          <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-white dark:border-gray-800 shadow-md bg-gray-50 dark:bg-gray-900 flex items-center justify-center relative">
-                            {formData.profileImage ? <img src={formData.profileImage} className="w-full h-full object-cover" alt="Profile" /> : <UserIcon size={32} className="text-gray-300" />}
-                            {isUploading && <div className="absolute inset-0 bg-blue-600/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={16} /></div>}
-                          </div>
-                          <button type="button" disabled={isUploading} onClick={() => checkAuthAndClick(fileInputRef)} className="absolute -bottom-1 -right-1 p-2 bg-blue-600 text-white rounded-lg shadow-lg disabled:opacity-50"><Camera size={16} /></button>
-                          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                       </div>
-                       <div className="flex-1 w-full space-y-4">
-                          <div className="space-y-2">
-                             <div className="flex justify-between items-center"><label className={labelClasses}>{t('الاسم', 'Name')}</label><VisibilityToggle field="showName" label="Name" /></div>
-                             <input type="text" value={formData.name} onChange={e => handleChange('name', e.target.value)} className={inputClasses} placeholder={t('الاسم الكامل', 'Full Name')} />
-                          </div>
-                          <div className="space-y-2">
-                             <div className="flex justify-between items-center"><label className={labelClasses}>{t('المسمى الوظيفي', 'Job Title')}</label><VisibilityToggle field="showTitle" label="Title" /></div>
-                             <input type="text" value={formData.title} onChange={e => handleChange('title', e.target.value)} className={inputClasses} placeholder={t('مثلاً: مهندس برمجيات', 'Ex: Software Engineer')} />
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="pt-6 border-t dark:border-gray-800">
-                       <div className="flex items-center gap-3 mb-4">
-                          <Shapes className="text-blue-600" size={18} />
-                          <h4 className="text-xs font-black dark:text-white uppercase tracking-widest">{isRtl ? 'مكتبة الكركترات والايموجي' : 'Emoji & Character Library'}</h4>
-                       </div>
-                       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 gap-3 max-h-[160px] overflow-y-auto no-scrollbar p-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-inner">
-                          {AVATAR_PRESETS.map((url, i) => (
-                             <button 
-                               key={i} 
-                               type="button" 
-                               onClick={() => handleChange('profileImage', url)} 
-                               className={`aspect-square rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-800 border-2 ${formData.profileImage === url ? 'border-blue-600 scale-105 shadow-md' : 'border-transparent hover:border-blue-100'}`}
-                             >
-                                <img src={url} className="w-full h-full object-contain p-1" alt={`Preset ${i}`} />
-                             </button>
-                          ))}
-                       </div>
-                       <p className="text-[9px] font-bold text-gray-400 mt-2 px-2 uppercase tracking-tight opacity-60">
-                          {isRtl ? '* اختر كركتر مميز ليكون صورتك الشخصية بضغطة واحدة.' : '* Pick a unique character to be your profile picture with one tap.'}
-                       </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-                       <div className="space-y-2">
-                          <div className="flex justify-between items-center"><label className={labelClasses}>{t('الشركة', 'Company')}</label><VisibilityToggle field="showCompany" label="Company" /></div>
-                          <input type="text" value={formData.company} onChange={e => handleChange('company', e.target.value)} className={inputClasses} placeholder={t('اسم الشركة أو جهة العمل', 'Company Name')} />
-                       </div>
-                       <div className="space-y-2">
-                          <div className="flex justify-between items-center"><label className={labelClasses}>{t('النبذة الشخصية', 'Bio')}</label><VisibilityToggle field="showBio" label="Bio" /></div>
-                          <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} className={`${inputClasses} min-h-[120px] resize-none leading-relaxed`} placeholder={t('اكتب نبذة مختصرة عنك...', 'Bio...')} />
-                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'social' && (
-                  <div className="space-y-8 animate-fade-in relative z-10">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الهاتف', 'Phone')}</label><VisibilityToggle field="showPhone" label="Phone" /></div>
-                           <input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={inputClasses} />
-                        </div>
-                        <div className="space-y-2">
-                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الواتساب', 'WhatsApp')}</label><VisibilityToggle field="showWhatsapp" label="WhatsApp" /></div>
-                           <input type="text" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={inputClasses} placeholder="9665..." />
-                        </div>
-                        <div className="space-y-2">
-                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('البريد الإلكتروني', 'Email')}</label><VisibilityToggle field="showEmail" label="Email" /></div>
-                           <input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={inputClasses} />
-                        </div>
-                        <div className="space-y-2">
-                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('رابط الموقع', 'Website')}</label><VisibilityToggle field="showWebsite" label="Website" /></div>
-                           <input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={inputClasses} />
-                        </div>
-                     </div>
-
-                     <div className="pt-8 border-t dark:border-gray-800 space-y-6">
-                        <div className="flex flex-col gap-4">
-                           <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3"><Share2 className="text-emerald-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('روابط التواصل الاجتماعي', 'Social Links')}</h4></div>
-                              <VisibilityToggle field="showSocialLinks" label="Socials" />
-                           </div>
-
-                           {/* خيار نمط الألوان المضاف للمستخدم */}
-                           <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
-                              <label className={labelClasses}>{t('socialIconColorType')}</label>
-                              <div className="flex gap-2 p-1 bg-white dark:bg-gray-900 rounded-xl border dark:border-gray-700">
-                                 <button 
-                                    type="button"
-                                    onClick={() => handleChange('useSocialBrandColors', true)}
-                                    className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${formData.useSocialBrandColors ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                                 >
-                                    <Sparkle size={14} />
-                                    {t('brandColors')}
-                                 </button>
-                                 <button 
-                                    type="button"
-                                    onClick={() => handleChange('useSocialBrandColors', false)}
-                                    className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-2 ${!formData.useSocialBrandColors ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                                 >
-                                    <Palette size={14} />
-                                    {t('designColors')}
-                                 </button>
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="bg-emerald-50/30 dark:bg-emerald-900/5 p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/20 space-y-4">
-                           <div className="flex flex-col sm:flex-row gap-3">
-                              <select value={socialInput.platformId} onChange={e => setSocialInput({...socialInput, platformId: e.target.value})} className="flex-1 bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20">
-                                 {SOCIAL_PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                              </select>
-                              <input type="url" value={socialInput.url} onChange={e => setSocialInput({...socialInput, url: e.target.value})} placeholder="https://..." className="flex-[2] bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 text-sm font-bold dark:text-white outline-none ring-1 ring-emerald-100 dark:ring-emerald-900/20" />
-                              <button type="button" onClick={addSocialLink} className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all"><Plus size={20} /></button>
-                           </div>
-                           <div className="flex flex-wrap gap-3 pt-4">
-                              {formData.socialLinks?.map((link, idx) => (
-                                <div key={idx} className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in group">
-                                   <SocialIcon platformId={link.platformId} size={18} className="text-emerald-600" />
-                                   <span className="text-[10px] font-black uppercase text-gray-500 max-w-[100px] truncate">{link.platform}</span>
-                                   <button type="button" onClick={() => removeSocialLink(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
-                                </div>
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                )}
-
-                {activeTab === 'design' && (
-                  <div className="space-y-8 animate-fade-in relative z-10">
-                     <div className="bg-gray-50 dark:bg-gray-800/30 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 space-y-8">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-4">
-                              <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg"><Palette size={20}/></div>
-                              <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('تخصيص المظهر والسمة', 'Visual Theme Lab')}</h4>
-                           </div>
-                           <button onClick={() => handleChange('isDark', !formData.isDark)} className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black text-[9px] uppercase transition-all shadow-sm ${formData.isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-600'}`}>
-                              {formData.isDark ? <Moon size={16} /> : <Sun size={16} />}
-                              {formData.isDark ? t('وضع ليلي', 'Dark Mode') : t('وضع نهاري', 'Light Mode')}
-                           </button>
-                        </div>
-
-                        <div className="space-y-6">
-                           <label className={labelClasses}>{t('نوع خلفية البطاقة', 'Card Theme Style')}</label>
-                           <div className="grid grid-cols-3 gap-3">
-                              {['color', 'gradient', 'image'].map(type => (
-                                <button key={type} onClick={() => handleChange('themeType', type)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${formData.themeType === type ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 text-gray-400'}`}>
-                                  {type === 'color' ? <Pipette size={20}/> : type === 'gradient' ? <Sparkles size={20}/> : <ImageIcon size={20}/>}
-                                  <span className="text-[10px] font-black uppercase">{t(type, type.toUpperCase())}</span>
-                                </button>
-                              ))}
-                           </div>
-                        </div>
-
-                        {formData.themeType === 'color' && (
-                           <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 animate-fade-in">
-                              {THEME_COLORS.map(c => <button key={c} onClick={() => handleChange('themeColor', c)} className={`aspect-square rounded-full border-2 transition-all hover:scale-110 ${formData.themeColor === c ? 'border-blue-600 scale-110' : 'border-white'}`} style={{ backgroundColor: c }} />)}
-                           </div>
-                        )}
-                        {formData.themeType === 'gradient' && (
-                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 animate-fade-in">
-                              {THEME_GRADIENTS.map((g, i) => <button key={i} onClick={() => handleChange('themeGradient', g)} className={`h-10 rounded-xl transition-all hover:scale-105 ${formData.themeGradient === g ? 'ring-4 ring-blue-500/20 opacity-100 scale-105' : 'opacity-60'}`} style={{ background: g }} />)}
-                           </div>
-                        )}
-                        {formData.themeType === 'image' && (
-                           <div className="space-y-4 animate-fade-in">
-                              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
-                                 {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
-                              </div>
-                              <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
-                                 {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
-                                 {t('رفع خلفية خاصة', 'Upload Background')}
-                              </button>
-                              <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
-                           </div>
-                        )}
-                     </div>
-
-                     <div className="p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3"><QrCode className="text-blue-600" size={20}/><h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('رمز الاستجابة (QR)', 'QR Code')}</h4></div>
-                           <VisibilityToggle field="showQrCode" label="QR Code" />
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           <div className="flex flex-col gap-2">
-                              <label className={labelClasses}>{t('لون الباركود', 'QR Color')}</label>
-                              <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                 <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
-                                    <input type="color" value={formData.qrColor || '#3b82f6'} onChange={e => handleChange('qrColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
-                                    <div className="w-full h-full" style={{ backgroundColor: formData.qrColor || '#3b82f6' }} />
-                                 </div>
-                                 <input type="text" value={(formData.qrColor || '#3b82f6').toUpperCase()} onChange={e => handleChange('qrColor', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-full text-blue-600 dark:text-blue-400 uppercase" />
-                              </div>
-                           </div>
-                           <div className="flex flex-col gap-2">
-                              <label className={labelClasses}>{t('لون خلفية الباركود', 'QR Background')}</label>
-                              <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                 <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
-                                    <input type="color" value={formData.qrBgColor || '#ffffff'} onChange={e => handleChange('qrBgColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer scale-150" />
-                                    <div className="w-full h-full" style={{ backgroundColor: formData.qrBgColor || '#ffffff' }} />
-                                 </div>
-                                 <input type="text" value={(formData.qrBgColor || '#ffffff').toUpperCase()} onChange={e => handleChange('qrBgColor', e.target.value)} className="bg-transparent border-none outline-none font-mono text-[10px] font-black w-full text-blue-600 dark:text-blue-400 uppercase" />
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-8 md:pt-10">

@@ -8,7 +8,8 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  User
 } from "firebase/auth";
 import { 
   getFirestore,
@@ -26,9 +27,12 @@ import {
   increment,
   updateDoc,
   getAggregateFromServer,
-  sum
+  sum,
+  serverTimestamp
 } from "firebase/firestore";
 import { CardData, TemplateCategory, VisualStyle } from "./types";
+
+export { doc, getDoc };
 
 const firebaseConfig = {
   apiKey: "AIzaSyCgsjOAeK2aGIWIFQBdOz3T0QFiefzeKnI",
@@ -60,61 +64,51 @@ const sanitizeData = (data: any) => {
   return clean;
 };
 
-// --- Visual Styles Functions (Updated to Collection for scale) ---
+// --- User Management ---
 
-export const getAllVisualStyles = async () => {
+export const syncUserProfile = async (user: User) => {
+  if (!user) return;
   try {
-    const snap = await getDocs(collection(db, "visual_styles"));
-    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as VisualStyle));
+    const userRef = doc(db, "users_registry", user.uid);
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      lastLogin: new Date().toISOString(),
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(userRef, {
+      ...userData,
+      createdAt: userData.lastLogin,
+      role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
+    }, { merge: true });
   } catch (error) {
-    console.error("Error fetching visual styles:", error);
-    return [];
+    console.warn("Registry sync failed:", error);
   }
 };
 
-export const saveVisualStyle = async (style: Partial<VisualStyle>) => {
+export const getAllUsersWithStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  const styleId = style.id || `style_${Date.now()}`;
-  const clean = sanitizeData(style);
-  await setDoc(doc(db, "visual_styles", styleId), { 
-    ...clean, 
-    id: styleId, 
-    updatedAt: new Date().toISOString(),
-    createdAt: style.createdAt || new Date().toISOString()
-  }, { merge: true });
-  return styleId;
-};
-
-export const deleteVisualStyle = async (id: string) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  await deleteDoc(doc(db, "visual_styles", id));
-};
-
-// --- Template Categories Functions ---
-
-export const getAllCategories = async () => {
   try {
-    const snap = await getDocs(collection(db, "template_categories"));
-    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as TemplateCategory)).sort((a, b) => (a.order || 0) - (b.order || 0));
+    const usersSnap = await getDocs(query(collection(db, "users_registry"), orderBy("createdAt", "desc")));
+    const users = usersSnap.docs.map(doc => doc.data());
+    const cardsSnap = await getDocs(collection(db, "public_cards"));
+    const allCards = cardsSnap.docs.map(doc => doc.data());
+
+    return users.map(user => {
+      const userCards = allCards.filter(card => card.ownerId === user.uid);
+      return {
+        ...user,
+        cardCount: userCards.length,
+        totalViews: userCards.reduce((acc, card) => acc + (card.viewCount || 0), 0),
+        lastCardUpdate: userCards.length > 0 ? userCards.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0].updatedAt : null
+      };
+    });
   } catch (error) {
-    return [];
+    throw error;
   }
 };
 
-export const saveTemplateCategory = async (category: Partial<TemplateCategory>) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  const catId = category.id || `cat_${Date.now()}`;
-  const clean = sanitizeData(category);
-  await setDoc(doc(db, "template_categories", catId), { ...clean, id: catId }, { merge: true });
-  return catId;
-};
-
-export const deleteTemplateCategory = async (id: string) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  await deleteDoc(doc(db, "template_categories", id));
-};
-
-// --- Core App Functions ---
+// --- Auth Helpers ---
 
 export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
   const isAr = lang === 'ar';
@@ -125,13 +119,13 @@ export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => 
     case 'auth/email-already-in-use':
       return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
     case 'auth/weak-password':
-      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
-    case 'auth/requires-recent-login':
-      return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
+      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً.' : 'New password is too weak.';
     default:
-      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred.';
+      return isAr ? 'حدث خطأ غير متوقع.' : 'An unexpected error occurred.';
   }
 };
+
+// --- App Core ---
 
 export const getSiteSettings = async () => {
   try {
@@ -142,16 +136,14 @@ export const getSiteSettings = async () => {
 
 export const updateSiteSettings = async (settings: any) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  const cleanSettings = sanitizeData(settings);
-  await setDoc(doc(db, "settings", "global"), { ...cleanSettings, updatedAt: new Date().toISOString() }, { merge: true });
+  await setDoc(doc(db, "settings", "global"), { ...sanitizeData(settings), updatedAt: new Date().toISOString() }, { merge: true });
 };
 
 export const saveCustomTemplate = async (template: any) => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
   const templateId = template.id || `custom_${Date.now()}`;
-  const cleanTemplate = sanitizeData(template);
   await setDoc(doc(db, "custom_templates", templateId), {
-    ...cleanTemplate,
+    ...sanitizeData(template),
     id: templateId,
     updatedAt: new Date().toISOString()
   });
@@ -160,18 +152,12 @@ export const saveCustomTemplate = async (template: any) => {
 export const getAllTemplates = async () => {
   try {
     const snap = await getDocs(collection(db, "custom_templates"));
-    const templates = snap.docs.map(doc => {
-      const data = doc.data();
-      return { ...data, id: doc.id } as any;
-    });
+    const templates = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
     return templates.sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
-      if (a.order !== b.order) return (a.order || 0) - (b.order || 0);
-      return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      return (a.order || 0) - (b.order || 0);
     });
-  } catch (error: any) {
-    return [];
-  }
+  } catch (error) { return []; }
 };
 
 export const deleteTemplate = async (id: string) => {
@@ -179,30 +165,21 @@ export const deleteTemplate = async (id: string) => {
   await deleteDoc(doc(db, "custom_templates", id));
 };
 
-export interface SaveCardParams {
-  cardData: CardData;
-  oldId?: string;
-}
-
-export async function saveCardToDB({ cardData, oldId }: SaveCardParams) {
-  const currentUid = auth.currentUser?.uid;
-  if (!currentUid) throw new Error("Auth required");
+export async function saveCardToDB({ cardData, oldId }: { cardData: CardData, oldId?: string }) {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Auth required");
   
-  const finalOwnerId = cardData.ownerId || currentUid;
-  const cleanCardData = sanitizeData(cardData);
+  const finalOwnerId = cardData.ownerId || currentUser.uid;
   const dataToSave = { 
-    ...cleanCardData, 
-    ownerId: finalOwnerId, 
+    ...sanitizeData(cardData), 
+    ownerId: finalOwnerId,
+    ownerEmail: cardData.ownerEmail || currentUser.email || '',
     updatedAt: new Date().toISOString(),
-    isActive: cardData.isActive ?? true, 
-    viewCount: cardData.viewCount || 0   
+    isActive: cardData.isActive ?? true,
+    viewCount: cardData.viewCount || 0
   };
   const newId = cardData.id.toLowerCase();
   
-  const isNewCard = !oldId;
-  const oldCardSnap = oldId ? await getDoc(doc(db, "public_cards", oldId.toLowerCase())) : null;
-  const oldTemplateId = oldCardSnap?.exists() ? oldCardSnap.data().templateId : null;
-
   if (oldId && oldId.toLowerCase() !== newId) {
     await deleteDoc(doc(db, "public_cards", oldId.toLowerCase()));
     await deleteDoc(doc(db, "users", finalOwnerId, "cards", oldId.toLowerCase()));
@@ -212,43 +189,18 @@ export async function saveCardToDB({ cardData, oldId }: SaveCardParams) {
     setDoc(doc(db, "public_cards", newId), dataToSave),
     setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
   ]);
-
-  if (cardData.templateId) {
-    try {
-      if (isNewCard) {
-        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
-      } else if (oldTemplateId && oldTemplateId !== cardData.templateId) {
-        await updateDoc(doc(db, "custom_templates", oldTemplateId), { usageCount: increment(-1) });
-        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
-      }
-    } catch (e) {}
-  }
 }
-
-export const toggleCardStatus = async (cardId: string, ownerId: string, isActive: boolean) => {
-  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  const updateData = { isActive };
-  await Promise.all([
-    updateDoc(doc(db, "public_cards", cardId.toLowerCase()), updateData),
-    updateDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()), updateData)
-  ]);
-};
 
 export const getCardBySerial = async (serialId: string) => {
   try {
     const cardRef = doc(db, "public_cards", serialId.toLowerCase());
     const snap = await getDoc(cardRef);
     if (snap.exists()) {
-      updateDoc(cardRef, { 
-        viewCount: increment(1),
-        lastViewedAt: new Date().toISOString()
-      }).catch(() => {});
+      updateDoc(cardRef, { viewCount: increment(1) }).catch(() => {});
       return snap.data();
     }
     return null;
-  } catch (error) { 
-    return null; 
-  }
+  } catch (error) { return null; }
 };
 
 export const getUserCards = async (userId: string) => {
@@ -259,17 +211,10 @@ export const getUserCards = async (userId: string) => {
 };
 
 export const deleteUserCard = async (ownerId: string, cardId: string) => {
-  const cardSnap = await getDoc(doc(db, "public_cards", cardId.toLowerCase()));
-  const templateId = cardSnap.exists() ? cardSnap.data().templateId : null;
   await Promise.all([
     deleteDoc(doc(db, "public_cards", cardId.toLowerCase())),
     deleteDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()))
   ]);
-  if (templateId) {
-    try {
-      await updateDoc(doc(db, "custom_templates", templateId), { usageCount: increment(-1) });
-    } catch (e) {}
-  }
 };
 
 export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
@@ -285,22 +230,68 @@ export const getAdminStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
   try {
     const totalSnap = await getCountFromServer(collection(db, "public_cards"));
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const activeQuery = query(collection(db, "public_cards"), where("updatedAt", ">=", thirtyDaysAgo.toISOString()));
-    const activeSnap = await getCountFromServer(activeQuery);
     const viewSumSnap = await getAggregateFromServer(collection(db, "public_cards"), { totalViews: sum('viewCount') });
-    const recentQuery = query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(100));
-    const recentDocs = await getDocs(recentQuery);
+    const recentDocs = await getDocs(query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(100)));
     return { 
       totalCards: totalSnap.data().count, 
-      activeCards: activeSnap.data().count,
+      activeCards: totalSnap.data().count, // Simplified
       totalViews: viewSumSnap.data().totalViews || 0,
       recentCards: recentDocs.docs.map(doc => doc.data()) 
     };
   } catch (error) { 
-    return { totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] }; 
+    throw error;
   }
+};
+
+export const getAllCategories = async () => {
+  try {
+    const snap = await getDocs(collection(db, "template_categories"));
+    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as TemplateCategory)).sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) { return []; }
+};
+
+export const saveTemplateCategory = async (category: Partial<TemplateCategory>) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const catId = category.id || `cat_${Date.now()}`;
+  await setDoc(doc(db, "template_categories", catId), { ...sanitizeData(category), id: catId }, { merge: true });
+  return catId;
+};
+
+export const deleteTemplateCategory = async (id: string) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  await deleteDoc(doc(db, "template_categories", id));
+};
+
+export const getAllVisualStyles = async () => {
+  try {
+    const snap = await getDocs(collection(db, "visual_styles"));
+    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as VisualStyle));
+  } catch (error) { return []; }
+};
+
+export const saveVisualStyle = async (style: Partial<VisualStyle>) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const styleId = style.id || `style_${Date.now()}`;
+  await setDoc(doc(db, "visual_styles", styleId), { 
+    ...sanitizeData(style), 
+    id: styleId, 
+    updatedAt: new Date().toISOString(),
+    createdAt: style.createdAt || new Date().toISOString()
+  }, { merge: true });
+  return styleId;
+};
+
+export const deleteVisualStyle = async (id: string) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  await deleteDoc(doc(db, "visual_styles", id));
+};
+
+export const toggleCardStatus = async (cardId: string, ownerId: string, isActive: boolean) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  await Promise.all([
+    updateDoc(doc(db, "public_cards", cardId.toLowerCase()), { isActive }),
+    updateDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()), { isActive })
+  ]);
 };
 
 export const signInWithGoogle = async () => {

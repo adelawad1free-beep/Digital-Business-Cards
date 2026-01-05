@@ -8,7 +8,8 @@ import {
   EmailAuthProvider,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  User
 } from "firebase/auth";
 import { 
   getFirestore,
@@ -26,11 +27,12 @@ import {
   increment,
   updateDoc,
   getAggregateFromServer,
-  sum
+  sum,
+  serverTimestamp
 } from "firebase/firestore";
 import { CardData, TemplateCategory, VisualStyle } from "../types";
 
-// Exporting doc and getDoc from firebase/firestore to resolve import errors in pages/AdminDashboard.tsx
+// تصدير الأدوات الأساسية لاستخدامها في المكونات
 export { doc, getDoc };
 
 const firebaseConfig = {
@@ -46,8 +48,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-// تم إيقاف استخدام Storage لتوفير التكاليف وتسهيل النقل
-// export const storage = getStorage(app); 
 export const googleProvider = new GoogleAuthProvider();
 export const ADMIN_EMAIL = "adelawad1free@gmail.com";
 
@@ -65,9 +65,60 @@ const sanitizeData = (data: any) => {
   return clean;
 };
 
-// --- Auth Helper Functions ---
+// --- وظائف إدارة المستخدمين (User Management) ---
 
-// Added getAuthErrorMessage to translate Firebase authentication codes to readable strings
+export const syncUserProfile = async (user: User) => {
+  if (!user) return;
+  try {
+    const userRef = doc(db, "users_registry", user.uid);
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      lastLogin: new Date().toISOString(),
+      updatedAt: serverTimestamp()
+    };
+
+    // استخدام setDoc مع merge لضمان عدم مسح تاريخ التسجيل الأصلي
+    await setDoc(userRef, {
+      ...userData,
+      createdAt: userData.lastLogin, // سيتم تجاهلها إذا كان الحقل موجوداً بفضل merge
+      role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
+    }, { merge: true });
+  } catch (error) {
+    console.warn("User registry sync skipped (Permission denied or network issue):", error);
+  }
+};
+
+export const getAllUsersWithStats = async () => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  
+  try {
+    // 1. جلب كافة المسجلين
+    const usersSnap = await getDocs(query(collection(db, "users_registry"), orderBy("createdAt", "desc")));
+    const users = usersSnap.docs.map(doc => doc.data());
+
+    // 2. جلب كافة البطاقات لحساب عددها لكل مستخدم
+    const cardsSnap = await getDocs(collection(db, "public_cards"));
+    const allCards = cardsSnap.docs.map(doc => doc.data());
+
+    // 3. ربط البيانات وعمل الإحصائيات
+    return users.map(user => {
+      const userCards = allCards.filter(card => card.ownerId === user.uid);
+      return {
+        ...user,
+        cardCount: userCards.length,
+        totalViews: userCards.reduce((acc, card) => acc + (card.viewCount || 0), 0),
+        lastCardUpdate: userCards.length > 0 ? userCards.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0].updatedAt : null
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching user stats:", error);
+    throw error;
+  }
+};
+
+// --- وظائف التوثيق (Auth Helpers) ---
+
 export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
   const isAr = lang === 'ar';
   switch (code) {
@@ -85,7 +136,7 @@ export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => 
   }
 };
 
-// --- Core App Functions ---
+// --- وظائف الإعدادات والأنماط ---
 
 export const getSiteSettings = async () => {
   try {
@@ -127,13 +178,16 @@ export const deleteTemplate = async (id: string) => {
 };
 
 export async function saveCardToDB({ cardData, oldId }: { cardData: CardData, oldId?: string }) {
-  const currentUid = auth.currentUser?.uid;
-  if (!currentUid) throw new Error("Auth required");
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error("Auth required");
   
-  const finalOwnerId = cardData.ownerId || currentUid;
+  const finalOwnerId = cardData.ownerId || currentUser.uid;
+  const finalOwnerEmail = cardData.ownerEmail || currentUser.email || '';
+
   const dataToSave = { 
     ...sanitizeData(cardData), 
-    ownerId: finalOwnerId, 
+    ownerId: finalOwnerId,
+    ownerEmail: finalOwnerEmail,
     updatedAt: new Date().toISOString(),
     isActive: cardData.isActive ?? true,
     viewCount: cardData.viewCount || 0
@@ -154,7 +208,6 @@ export async function saveCardToDB({ cardData, oldId }: { cardData: CardData, ol
     setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
   ]);
 
-  // Update template usage count
   if (cardData.templateId) {
     try {
       if (isNewCard) {
@@ -228,7 +281,10 @@ export const getAdminStats = async () => {
       totalViews: viewSumSnap.data().totalViews || 0,
       recentCards: recentDocs.docs.map(doc => doc.data()) 
     };
-  } catch (error) { return { totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] }; }
+  } catch (error) { 
+    console.error("Error fetching admin stats:", error);
+    throw error;
+  }
 };
 
 export const getAllCategories = async () => {

@@ -176,6 +176,7 @@ export interface CardData {
   socialLinks: SocialLink[];
   useSocialBrandColors?: boolean; 
   ownerId?: string;
+  ownerEmail?: string;
   updatedAt?: string;
   showName?: boolean;
   showTitle?: boolean;

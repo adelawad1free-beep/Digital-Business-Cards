@@ -6,7 +6,8 @@ import {
   getSiteSettings, updateSiteSettings, updateAdminSecurity,
   saveCustomTemplate, getAllTemplates, deleteTemplate,
   getAllCategories, saveTemplateCategory, deleteTemplateCategory,
-  auth, getAuthErrorMessage, toggleCardStatus, getAllVisualStyles
+  auth, getAuthErrorMessage, toggleCardStatus, getAllVisualStyles,
+  getAllUsersWithStats
 } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import { Language, CardData, CustomTemplate, TemplateCategory, VisualStyle } from '../types';
@@ -20,27 +21,27 @@ import {
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, 
   Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle, Pin, PinOff, ArrowUpAZ,
   MoreVertical, ToggleLeft, ToggleRight, MousePointer2, TrendingUp, Filter, ListFilter, Activity, Type, FolderEdit, Check, FolderOpen, Tag, PlusCircle, Zap, HardDrive, Database, Link as LinkIcon, FolderSync, Server,
-  Info, BarChart, Copy, FileJson, Code
+  Info, BarChart, Copy, FileJson, Code, Mail, UserCheck, Calendar, Contact2, CreditCard, RefreshCw, Crown
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   lang: Language;
   onEditCard: (card: CardData) => void;
-  onDeleteRequest: (cardId: string, ownerId: string) => void; // سنستخدمها الآن
+  onDeleteRequest: (cardId: string, ownerId: string) => void; 
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDeleteRequest }) => {
   const isRtl = lang === 'ar';
   const logoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'stats' | 'templates' | 'styles' | 'categories' | 'settings' | 'security' | 'builder'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'templates' | 'styles' | 'categories' | 'settings' | 'security' | 'builder'>('stats');
   const [stats, setStats] = useState<{ totalCards: number; activeCards: number; totalViews: number; recentCards: any[] } | null>(null);
+  const [usersStats, setUsersStats] = useState<any[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [visualStyles, setVisualStyles] = useState<VisualStyle[]>([]);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | undefined>(undefined);
   
-  // حالات الحذف
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [cardToDelete, setCardToDelete] = useState<{id: string, ownerId: string} | null>(null);
@@ -49,6 +50,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
   const [showPhpCode, setShowPhpCode] = useState(false);
+  const [permissionError, setPermissionError] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [settings, setSettings] = useState({ 
     siteNameAr: '', 
@@ -88,27 +91,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 } else { http_response_code(400); echo json_encode(["error" => "Invalid request"]); }
 ?>`;
 
-  const fontOptions = [
-    { name: 'Cairo', value: 'Cairo' },
-    { name: 'Tajawal', value: 'Tajawal' },
-    { name: 'Almarai', value: 'Almarai' },
-    { name: 'IBM Plex Sans Arabic', value: 'IBM Plex Sans Arabic' },
-    { name: 'Montserrat', value: 'Montserrat' },
-    { name: 'Roboto', value: 'Roboto' }
-  ];
-
-  const fetchData = async () => {
+  const fetchData = async (quiet = false) => {
     if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return;
-    setLoading(true);
+    if (!quiet) setLoading(true);
+    else setIsRefreshing(true);
+    
+    setPermissionError(false);
     try {
-      const [sData, stData, tData, cData, vsData] = await Promise.all([
-        getAdminStats().catch(() => ({ totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] })),
+      const [sData, uData, stData, tData, cData, vsData] = await Promise.all([
+        getAdminStats().catch((err) => { 
+          if (err.code === 'permission-denied') setPermissionError(true);
+          return { totalCards: 0, activeCards: 0, totalViews: 0, recentCards: [] };
+        }),
+        getAllUsersWithStats().catch((err) => {
+          if (err.code === 'permission-denied') setPermissionError(true);
+          return [];
+        }),
         getSiteSettings().catch(() => null),
         getAllTemplates().catch(() => []),
         getAllCategories().catch(() => []),
         getAllVisualStyles().catch(() => [])
       ]);
       setStats(sData as any);
+      setUsersStats(uData);
       if (stData) {
         setSettings({
           siteNameAr: stData.siteNameAr || '',
@@ -129,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
       setVisualStyles(vsData as VisualStyle[]);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -142,12 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
       await saveTemplateCategory({ ...categoryData, id: editingCategoryId || undefined });
       setCategoryData({ id: '', nameAr: '', nameEn: '', order: categories.length + 1, isActive: true });
       setEditingCategoryId(null);
-      await fetchData();
+      await fetchData(true);
     } catch (e) { alert("Error saving category"); } finally { setIsCategorySubmitting(false); }
   };
 
   const handleToggleCategoryActive = async (cat: TemplateCategory) => {
-    try { await saveTemplateCategory({ ...cat, isActive: !cat.isActive }); fetchData(); } catch (e) { alert("Failed to toggle status"); }
+    try { await saveTemplateCategory({ ...cat, isActive: !cat.isActive }); fetchData(true); } catch (e) { alert("Failed to toggle status"); }
   };
 
   const confirmDeleteCategory = async () => {
@@ -162,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
   const confirmDeleteTemplate = async () => {
     if (!templateToDelete) return;
-    try { await deleteTemplate(templateToDelete); setTemplateToDelete(null); fetchData(); } catch (e) { alert(isRtl ? "فشل حذف القالب" : "Error deleting template"); }
+    try { await deleteTemplate(templateToDelete); setTemplateToDelete(null); fetchData(true); } catch (e) { alert(isRtl ? "فشل حذف القالب" : "Error deleting template"); }
   };
 
   const confirmDeleteCard = async () => {
@@ -193,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
   const [savingSecurity, setSavingSecurity] = useState(false);
   const [securityStatus, setSecurityStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [templateSearch, setTemplateSearch] = useState('');
   const [securityData, setSecurityData] = useState({ currentPassword: '', newEmail: ADMIN_EMAIL, newPassword: '', confirmPassword: '' });
 
@@ -223,10 +230,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
               <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg"><ShieldCheck size={20} /></div>
               <span className="text-xs font-black text-blue-600 uppercase tracking-widest">{t('نظام الإدارة', 'Admin System')}</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black dark:text-white">{t('لوحة التحكم', 'Dashboard')}</h1>
+            <div className="flex items-center gap-4">
+               <h1 className="text-4xl md:text-5xl font-black dark:text-white">{t('لوحة التحكم', 'Dashboard')}</h1>
+               <button onClick={() => fetchData(true)} disabled={isRefreshing} className={`p-3 bg-white dark:bg-gray-900 border rounded-2xl text-blue-600 hover:bg-blue-50 transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}>
+                  <RefreshCw size={20} />
+               </button>
+            </div>
           </div>
           <div className="flex bg-white dark:bg-gray-900 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-x-auto no-scrollbar">
             <TabButton id="stats" label={t('البطاقات', 'Cards')} icon={BarChart3} />
+            <TabButton id="users" label={t('المسجلين', 'Users')} icon={Users} />
             <TabButton id="templates" label={t('القوالب', 'Templates')} icon={Layout} />
             <TabButton id="styles" label={t('الأنماط', 'Styles')} icon={Palette} />
             <TabButton id="categories" label={t('الأقسام', 'Categories')} icon={FolderEdit} />
@@ -236,11 +249,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
         </div>
       )}
 
+      {permissionError && (
+        <div className="p-6 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-[2rem] flex items-center gap-4 animate-shake">
+           <AlertTriangle size={32} className="text-red-500 shrink-0" />
+           <div>
+              <h3 className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-widest">{t('خطأ في الصلاحيات', 'Permission Denied')}</h3>
+              <p className="text-[11px] font-bold text-red-600/70 dark:text-red-500/70">{t('لا تملك صلاحيات كافية لجلب بعض البيانات من قاعدة البيانات. يرجى مراجعة إعدادات Firestore Security Rules.', 'Insufficient permissions to fetch some database records. Please check Firestore Security Rules.')}</p>
+           </div>
+           <button onClick={() => fetchData()} className="mr-auto ml-auto px-5 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-red-600/20 active:scale-95 transition-all">{t('تحديث', 'Retry')}</button>
+        </div>
+      )}
+
       <div className="min-h-[400px]">
         {activeTab === 'builder' && (
           <TemplateBuilder 
             lang={lang} 
-            onSave={async (tmpl) => { await saveCustomTemplate(tmpl); setActiveTab('templates'); fetchData(); }} 
+            onSave={async (tmpl) => { await saveCustomTemplate(tmpl); setActiveTab('templates'); fetchData(true); }} 
             onCancel={() => setActiveTab('templates')}
             initialTemplate={editingTemplate} 
           />
@@ -264,8 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                     <div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('إجمالي المشاهدات', 'Total Views')}</p><h4 className="text-2xl font-black dark:text-white">{stats?.totalViews || 0}</h4></div>
                  </div>
                  <div className="bg-white dark:bg-gray-900 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-600"><Globe size={24} /></div>
-                    <div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('إجمالي الزيارات', 'Traffic')}</p><h4 className="text-2xl font-black dark:text-white">{(stats?.totalCards || 0) * 12}</h4></div>
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-900/20 text-amber-600"><Users size={24} /></div>
+                    <div><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('إجمالي المسجلين', 'Registered Users')}</p><h4 className="text-2xl font-black dark:text-white">{usersStats.length}</h4></div>
                  </div>
               </div>
 
@@ -280,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                     </div>
                     <div className="relative w-full md:w-80">
                       <Search className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
-                      <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('ابحث...', 'Search...')} className={`${isRtl ? 'pr-12' : 'pl-12'} w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 font-bold text-sm outline-none focus:ring-4 focus:ring-blue-100 transition-all`} />
+                      <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('ابحث بالاسم أو البريد...', 'Search by name or email...')} className={`${isRtl ? 'pr-12' : 'pl-12'} w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 font-bold text-sm outline-none focus:ring-4 focus:ring-blue-100 transition-all`} />
                     </div>
                  </div>
                  <div className="overflow-x-auto">
@@ -288,6 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                        <thead>
                          <tr className="bg-gray-50/50 dark:bg-gray-800/20 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
                            <td className="px-8 py-4">{t('البطاقة والمالك', 'Card & Owner')}</td>
+                           <td className="px-8 py-4">{t('بريد صاحب الحساب (المسجل)', 'Account Owner Email')}</td>
                            <td className="px-8 py-4 text-center">{t('الحالة', 'Status')}</td>
                            <td className="px-8 py-4 text-center">{t('المشاهدات', 'Views')}</td>
                            <td className="px-8 py-4">{t('آخر تحديث', 'Last Update')}</td>
@@ -295,9 +320,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                          {stats?.recentCards.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.id?.toLowerCase().includes(searchTerm.toLowerCase())).map((card, idx) => (
+                          {(stats?.recentCards || []).filter(c => 
+                            (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (c.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
+                          ).map((card, idx) => (
                              <tr key={idx} className={`hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors ${card.isActive === false ? 'opacity-50' : ''}`}>
-                                <td className="px-8 py-6"><div className="flex items-center gap-4"><div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-50 dark:border-gray-700">{card.profileImage ? <img src={card.profileImage} className="w-full h-full object-cover" /> : <Users size={20} className="m-auto mt-4 text-gray-300" />}</div><div className="min-w-0"><p className="font-black text-base dark:text-white truncate leading-tight">{card.name || '---'}</p><p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">/{card.id}</p></div></div></td>
+                                <td className="px-8 py-6">
+                                   <div className="flex items-center gap-4">
+                                      <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-50 dark:border-gray-700">
+                                         {card.profileImage ? <img src={card.profileImage} className="w-full h-full object-cover" /> : <Users size={20} className="m-auto mt-4 text-gray-300" />}
+                                      </div>
+                                      <div className="min-w-0">
+                                         <p className="font-black text-base dark:text-white truncate leading-tight">{card.name || '---'}</p>
+                                         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">/{card.id}</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="px-8 py-6">
+                                   <div className="flex items-center gap-3">
+                                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">
+                                         <UserCheck size={14} />
+                                      </div>
+                                      <div className="flex flex-col">
+                                         <span className="text-[11px] font-black text-gray-900 dark:text-white truncate max-w-[220px]">{card.ownerEmail || '---'}</span>
+                                         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{t('البريد الرسمي للمنشئ', 'Registered Creator Email')}</span>
+                                      </div>
+                                   </div>
+                                </td>
                                 <td className="px-8 py-6 text-center">
                                    <button 
                                        onClick={() => toggleCardStatus(card.id, card.ownerId, card.isActive !== false)}
@@ -315,6 +365,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                                 </td>
                                 <td className="px-8 py-6 text-[11px] font-black text-gray-400 uppercase tracking-widest">{card.updatedAt ? new Date(card.updatedAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : '---'}</td>
                                 <td className="px-8 py-6 text-center"><div className="flex justify-center gap-2"><a href={generateShareUrl(card as CardData)} target="_blank" className="p-3 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Eye size={18} /></a><button onClick={() => onEditCard(card as CardData)} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={18} /></button><button onClick={() => setCardToDelete({id: card.id, ownerId: card.ownerId})} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} /></button></div></td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {activeTab === 'users' && (
+           <div className="space-y-8 animate-fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.2rem] bg-blue-600 text-white flex items-center justify-center shadow-lg"><Users size={32} /></div>
+                    <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('إجمالي المسجلين', 'Total Registered')}</p><h4 className="text-3xl font-black dark:text-white">{usersStats.length}</h4></div>
+                 </div>
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg"><CreditCard size={32} /></div>
+                    <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('متوسط البطاقات', 'Avg Cards')}</p><h4 className="text-3xl font-black dark:text-white">{(usersStats.reduce((acc, u) => acc + (u.cardCount || 0), 0) / (usersStats.length || 1)).toFixed(1)}</h4></div>
+                 </div>
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.2rem] bg-emerald-600 text-white flex items-center justify-center shadow-lg"><Activity size={32} /></div>
+                    <div><p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('مستخدمين نشطين', 'Active Creators')}</p><h4 className="text-3xl font-black dark:text-white">{usersStats.filter(u => (u.cardCount || 0) > 0).length}</h4></div>
+                 </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden">
+                 <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-indigo-600 text-white rounded-2xl"><Users size={24} /></div>
+                       <div>
+                         <h2 className="text-xl font-black dark:text-white leading-none mb-1">{t('سجل المستخدمين المسجلين', 'User Registry Statistics')}</h2>
+                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('تتبع نمو المنصة وتفاعل المستخدمين', 'Monitor platform growth and engagement')}</p>
+                       </div>
+                    </div>
+                    <div className="relative w-full md:w-80">
+                      <Search className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
+                      <input type="text" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} placeholder={t('ابحث بالبريد...', 'Search by email...')} className={`${isRtl ? 'pr-12' : 'pl-12'} w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 font-bold text-sm outline-none focus:ring-4 focus:ring-blue-100 transition-all`} />
+                    </div>
+                 </div>
+                 <div className="overflow-x-auto">
+                    <table className={`w-full text-${isRtl ? 'right' : 'left'}`}>
+                       <thead>
+                         <tr className="bg-gray-50/50 dark:bg-gray-800/20 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
+                           <td className="px-10 py-5">{t('المستخدم', 'User')}</td>
+                           <td className="px-10 py-5 text-center">{t('عدد البطاقات', 'Cards')}</td>
+                           <td className="px-10 py-5 text-center">{t('إجمالي المشاهدات', 'Total Views')}</td>
+                           <td className="px-10 py-5">{t('تاريخ التسجيل', 'Join Date')}</td>
+                           <td className="px-10 py-5">{t('آخر نشاط', 'Last Activity')}</td>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {usersStats.filter(u => (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())).map((user, idx) => (
+                             <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-10 py-6">
+                                   <div className="flex items-center gap-4">
+                                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center relative">
+                                         {user.role === 'admin' ? <Crown size={24} className="text-amber-500" /> : <Contact2 size={24} />}
+                                      </div>
+                                      <div className="min-w-0">
+                                         <div className="flex items-center gap-2">
+                                            <p className="font-black text-sm dark:text-white truncate max-w-[200px]">{user.email}</p>
+                                            {user.role === 'admin' && <span className="bg-amber-100 text-amber-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">Admin</span>}
+                                         </div>
+                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">ID: {user.uid.substring(0,8)}...</p>
+                                      </div>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-6 text-center">
+                                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black ${(user.cardCount || 0) > 0 ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'}`}>
+                                      <CreditCard size={14} />
+                                      {user.cardCount || 0}
+                                   </div>
+                                </td>
+                                <td className="px-10 py-6 text-center">
+                                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 rounded-xl text-[11px] font-black">
+                                      <Eye size={14} />
+                                      {user.totalViews || 0}
+                                   </div>
+                                </td>
+                                <td className="px-10 py-6">
+                                   <div className="flex flex-col">
+                                      <span className="text-[11px] font-black dark:text-white">{user.createdAt ? new Date(user.createdAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : '---'}</span>
+                                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1"><Calendar size={10}/> Join Date</span>
+                                   </div>
+                                </td>
+                                <td className="px-10 py-6">
+                                   <div className="flex flex-col">
+                                      <span className="text-[11px] font-black dark:text-white">{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : (user.lastCardUpdate ? new Date(user.lastCardUpdate).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US') : '---')}</span>
+                                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1"><Clock size={10}/> Last Seen</span>
+                                   </div>
+                                </td>
                              </tr>
                           ))}
                        </tbody>
@@ -372,18 +514,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                                       </span>
                                    </div>
                                 </td>
-                                <td className="px-8 py-6 text-center"><button onClick={() => saveCustomTemplate({...tmpl, isActive: !tmpl.isActive}).then(fetchData)} className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${tmpl.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{tmpl.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{tmpl.isActive ? t('نشط', 'Active') : t('معطل', 'Disabled')}</button></td>
+                                <td className="px-8 py-6 text-center"><button onClick={() => saveCustomTemplate({...tmpl, isActive: !tmpl.isActive}).then(() => fetchData(true))} className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase transition-all ${tmpl.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{tmpl.isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}{tmpl.isActive ? t('نشط', 'Active') : t('معطل', 'Disabled')}</button></td>
                                 <td className="px-8 py-6 text-center">
                                    <input 
                                      type="number" 
                                      value={tmpl.order || 0} 
-                                     onChange={(e) => saveCustomTemplate({...tmpl, order: parseInt(e.target.value) || 0}).then(fetchData)}
+                                     onChange={(e) => saveCustomTemplate({...tmpl, order: parseInt(e.target.value) || 0}).then(() => fetchData(true))}
                                      className="w-16 px-2 py-1 text-center bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 font-black text-blue-600 outline-none"
                                    />
                                 </td>
                                 <td className="px-8 py-6 text-center">
                                    <button 
-                                      onClick={() => saveCustomTemplate({...tmpl, isFeatured: !tmpl.isFeatured}).then(fetchData)}
+                                      onClick={() => saveCustomTemplate({...tmpl, isFeatured: !tmpl.isFeatured}).then(() => fetchData(true))}
                                       className={`p-3 rounded-xl transition-all ${tmpl.isFeatured ? 'bg-amber-50 text-amber-500 border border-amber-200 shadow-sm' : 'bg-gray-50 text-gray-300'}`}
                                    >
                                       <Star size={20} fill={tmpl.isFeatured ? "currentColor" : "none"} />
@@ -677,7 +819,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('هل أنت متأكد من رغبتك في حذف هذا التصميم نهائياً؟ لا يمكن التراجع عن هذا الإجراء.', 'This template will be permanently removed. This action cannot be undone.')}</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteTemplate} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، حذف القالب</button>
-              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
             </div>
           </div>
         </div>
