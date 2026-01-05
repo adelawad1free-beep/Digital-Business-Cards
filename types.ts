@@ -7,6 +7,14 @@ export interface SocialLink {
   platformId: string;
 }
 
+export interface SpecialLinkItem {
+  id: string;
+  imageUrl: string;
+  linkUrl: string;
+  titleAr?: string;
+  titleEn?: string;
+}
+
 export type ThemeType = 'color' | 'gradient' | 'image';
 export type PageBgStrategy = 'solid' | 'mirror-header';
 
@@ -23,7 +31,6 @@ export interface TemplateConfig {
   headerPatternOpacity?: number; 
   headerPatternScale?: number; 
   avatarStyle: 'circle' | 'squircle' | 'square' | 'none';
-  avatarStyle_v2?: string;
   avatarSize: number;
   avatarOffsetY: number;
   avatarOffsetX: number;
@@ -67,6 +74,23 @@ export interface TemplateConfig {
   socialIconColumns?: number;
   socialIconPadding?: number;
   useSocialBrandColors?: boolean;
+
+  // Special Links Config
+  showSpecialLinksByDefault?: boolean;
+  specialLinksCols?: number;
+  specialLinksGap?: number;
+  specialLinksRadius?: number;
+  specialLinksAspectRatio?: 'square' | 'video' | 'portrait';
+  specialLinksOffsetY?: number;
+
+  // Location Config
+  showLocationByDefault?: boolean;
+  locationOffsetY?: number;
+  locationBgColor?: string;
+  locationIconColor?: string;
+  locationTextColor?: string;
+  locationBorderRadius?: number;
+  locationGlassy?: boolean;
 
   qrSize?: number;
   qrColor?: string; 
@@ -174,6 +198,7 @@ export interface CardData {
   isActive?: boolean;
   viewCount?: number;
   socialLinks: SocialLink[];
+  specialLinks?: SpecialLinkItem[];
   useSocialBrandColors?: boolean; 
   ownerId?: string;
   ownerEmail?: string;
@@ -190,6 +215,8 @@ export interface CardData {
   showButtons?: boolean;
   showQrCode?: boolean;
   showOccasion?: boolean;
+  showSpecialLinks?: boolean;
+  showLocation?: boolean;
 
   // Premium Overrides
   showStars?: boolean;

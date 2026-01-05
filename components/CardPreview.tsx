@@ -1,7 +1,7 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { CardData, Language, TemplateConfig } from '../types';
+import { CardData, Language, TemplateConfig, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
 import { downloadVCard } from '../utils/vcard';
 import { generateShareUrl } from '../utils/share';
@@ -80,6 +80,12 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const phoneBtnColor = data.contactPhoneColor || config.contactPhoneColor || '#2563eb';
   const whatsappBtnColor = data.contactWhatsappColor || config.contactWhatsappColor || '#10b981';
 
+  // Geographical Location Colors
+  const locBg = config.locationBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.05)');
+  const locIconColor = config.locationIconColor || themeColor;
+  const locTextColor = config.locationTextColor || (isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.8)');
+  const locRadius = config.locationBorderRadius ?? 24;
+
   // Special Features Overrides/Checks
   const isVerified = data.isVerified ?? config.isVerifiedByDefault;
   const showStars = data.showStars ?? config.showStarsByDefault;
@@ -112,6 +118,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const showSocialLinks = isVisible(data.showSocialLinks, config.showSocialLinksByDefault);
   const showButtons = isVisible(data.showButtons, config.showButtonsByDefault);
   const showQrCode = isVisible(data.showQrCode, config.showQrCodeByDefault);
+  const showSpecialLinks = isVisible(data.showSpecialLinks, config.showSpecialLinksByDefault);
+  const showLocation = isVisible(data.showLocation, config.showLocationByDefault);
 
   const hasContactButtons = (showPhone && data.phone) || 
                            (showWhatsapp && data.whatsapp) || 
@@ -274,6 +282,12 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return inner ? 'rounded-[22%]' : 'rounded-[28%]';
   };
 
+  const slCols = config.specialLinksCols || 2;
+  const slGap = config.specialLinksGap || 12;
+  const slRadius = config.specialLinksRadius ?? 24;
+  const slAspect = config.specialLinksAspectRatio || 'square';
+  const slOffsetY = config.specialLinksOffsetY || 0;
+
   return (
     <div 
       className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'} ${hasGoldenFrame ? 'ring-[10px] ring-yellow-500/30 ring-inset shadow-[0_0_50px_rgba(234,179,8,0.3)]' : ''}`}
@@ -418,6 +432,69 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                   </button>
                 )}
               </div>
+           )}
+
+           {showSpecialLinks && data.specialLinks && data.specialLinks.length > 0 && (
+              <div 
+                className={`grid w-full px-2 animate-fade-in-up`}
+                style={{ 
+                  gridTemplateColumns: `repeat(${slCols}, 1fr)`,
+                  gap: `${slGap}px`,
+                  transform: `translateY(${slOffsetY}px)`
+                }}
+              >
+                {data.specialLinks.map((link) => (
+                  <a 
+                    key={link.id} 
+                    href={link.linkUrl} 
+                    target="_blank" 
+                    className="group relative overflow-hidden shadow-lg transition-all duration-500 hover:scale-[1.03] active:scale-95"
+                    style={{ 
+                      borderRadius: `${slRadius}px`,
+                      aspectRatio: slAspect === 'square' ? '1/1' : (slAspect === 'video' ? '16/9' : '3/4')
+                    }}
+                  >
+                    <img src={link.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Link Image" />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       <ExternalLink size={24} className="text-white drop-shadow-lg" />
+                    </div>
+                    {(isRtl ? link.titleAr : link.titleEn) && (
+                       <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                          <p className="text-[10px] font-black text-white text-center truncate">{isRtl ? link.titleAr : link.titleEn}</p>
+                       </div>
+                    )}
+                  </a>
+                ))}
+              </div>
+           )}
+
+           {showLocation && data.locationUrl && (
+             <div className="w-full px-2 animate-fade-in-up" style={{ transform: `translateY(${config.locationOffsetY || 0}px)` }}>
+               <a 
+                 href={data.locationUrl} 
+                 target="_blank" 
+                 className={`flex items-center gap-4 p-5 md:p-6 transition-all duration-500 hover:scale-[1.02] shadow-xl group relative overflow-hidden`}
+                 style={{ 
+                   borderRadius: `${locRadius}px`, 
+                   backgroundColor: locBg,
+                   backdropFilter: config.locationGlassy ? 'blur(10px)' : 'none',
+                   WebkitBackdropFilter: config.locationGlassy ? 'blur(10px)' : 'none',
+                   border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'
+                 }}
+               >
+                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                 <div className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl shadow-md text-blue-600 transition-transform group-hover:rotate-12" style={{ color: locIconColor }}>
+                   <MapIcon size={24} />
+                 </div>
+                 <div className="flex-1 text-start">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">{t('locationSection')}</h4>
+                   <p className="text-sm font-black dark:text-white truncate" style={{ color: locTextColor }}>{data.location || t('visitUs')}</p>
+                 </div>
+                 <div className="shrink-0 p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-600/20 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0" style={{ backgroundColor: themeColor }}>
+                   <Navigation2 size={16} />
+                 </div>
+               </a>
+             </div>
            )}
 
            {showSocialLinks && data.socialLinks?.length > 0 && (

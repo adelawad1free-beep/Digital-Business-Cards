@@ -1,3 +1,4 @@
+
 import { 
   Save, Plus, X, Loader2, Sparkles, Moon, Sun, 
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
@@ -6,7 +7,7 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn, Shapes
+  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -112,6 +113,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          showSocialLinks: selectedTmpl.config.showSocialLinksByDefault ?? true,
          showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
          showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true,
+         showLocation: selectedTmpl.config.showLocationByDefault ?? true,
          useSocialBrandColors: selectedTmpl.config.useSocialBrandColors ?? false
        } as CardData;
     }
@@ -263,7 +265,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   return (
     <div className="max-w-[1440px] mx-auto">
       {showAuthWarning && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
            <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
               <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
                  <UserIcon size={40} />
@@ -399,6 +401,26 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                       <div className="space-y-2">
                          <div className="flex justify-between items-center"><label className={labelClasses}>{t('رابط الموقع', 'Website')}</label><VisibilityToggle field="showWebsite" label="Website" /></div>
                          <input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={inputClasses} />
+                      </div>
+                   </div>
+
+                   <div className="pt-8 border-t dark:border-gray-800 space-y-6">
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl shadow-sm"><Navigation2 size={20}/></div>
+                            <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('locationSection')}</h4>
+                         </div>
+                         <VisibilityToggle field="showLocation" label="Location" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 dark:bg-gray-800/30 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm">
+                         <div className="space-y-2">
+                            <label className={labelClasses}>{t('location')}</label>
+                            <input type="text" value={formData.location} onChange={e => handleChange('location', e.target.value)} className={inputClasses} placeholder={t('العنوان (مثلاً: الرياض، حي النرجس)', 'Address (Ex: Riyadh, Olaya)')} />
+                         </div>
+                         <div className="space-y-2">
+                            <label className={labelClasses}>{t('locationUrl')}</label>
+                            <input type="url" value={formData.locationUrl} onChange={e => handleChange('locationUrl', e.target.value)} className={inputClasses} placeholder="https://maps.google.com/..." />
+                         </div>
                       </div>
                    </div>
 

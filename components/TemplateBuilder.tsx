@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy } from '../types';
+import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, AVATAR_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
 import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth, getSiteSettings } from '../services/firebase';
@@ -14,10 +15,10 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon
 } from 'lucide-react';
 
-type BuilderTab = 'header' | 'avatar' | 'body-style' | 'visuals' | 'elements' | 'design-system' | 'social-lab' | 'qrcode' | 'special-features';
+type BuilderTab = 'header' | 'avatar' | 'body-style' | 'visuals' | 'elements' | 'design-system' | 'special-links' | 'social-lab' | 'qrcode' | 'special-features' | 'location';
 
 interface TemplateBuilderProps {
   lang: Language;
@@ -28,9 +29,14 @@ interface TemplateBuilderProps {
 
 const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCancel, initialTemplate }) => {
   const isRtl = lang === 'ar';
+  // Define common tailwind classes used in form inputs and labels throughout the builder
+  const labelTextClasses = "text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1 block mb-1.5";
+  const inputClasses = "w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 text-sm font-bold dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 transition-all shadow-inner";
+
   const headerAssetInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const specialLinkInputRef = useRef<HTMLInputElement>(null);
   
   const ADMIN_PRESET_COLORS = ['#2563eb', '#1e40af', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981', '#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444', '#f43f5e', '#db2777', '#d946ef', '#a855f7', '#7c3aed', '#6366f1', '#4b5563', '#0f172a'];
 
@@ -44,6 +50,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [loading, setLoading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingSpecialImg, setUploadingSpecialImg] = useState(false);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
   const [visualStyles, setVisualStyles] = useState<VisualStyle[]>([]);
   const [selectedStyleId, setSelectedStyleId] = useState<string>(initialTemplate?.parentStyleId || '');
@@ -114,6 +121,19 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       showSocialLinksByDefault: true,
       showButtonsByDefault: true,
       showOccasionByDefault: false,
+      showSpecialLinksByDefault: true,
+      specialLinksCols: 2,
+      specialLinksGap: 12,
+      specialLinksRadius: 24,
+      specialLinksAspectRatio: 'square',
+      specialLinksOffsetY: 0,
+      showLocationByDefault: true,
+      locationOffsetY: 0,
+      locationBgColor: '',
+      locationIconColor: '',
+      locationTextColor: '',
+      locationBorderRadius: 24,
+      locationGlassy: false,
       showStarsByDefault: false,
       isVerifiedByDefault: false,
       hasGoldenFrameByDefault: false,
@@ -166,6 +186,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     }
   });
 
+  const [currentSpecialLinks, setCurrentSpecialLinks] = useState<SpecialLinkItem[]>(initialTemplate?.config.defaultThemeType ? [] : (SAMPLE_DATA[lang]?.specialLinks || []));
+
   useEffect(() => {
     getAllCategories().then(setCategories);
     getAllVisualStyles().then(setVisualStyles);
@@ -209,6 +231,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       qrOffsetY: 0,
       bodyFeatureOffsetY: 0,
       bodyFeaturePaddingX: 0,
+      specialLinksOffsetY: 0,
+      locationOffsetY: 0,
       spacing: 'normal',
       contentAlign: 'center'
     };
@@ -267,6 +291,35 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
     } finally {
       setUploadingAvatar(false);
     }
+  };
+
+  const handleSpecialLinkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSpecialImg(true);
+    try {
+      const b = await uploadImageToCloud(file, 'avatar', uploadConfig as any);
+      if (b) {
+        const newItem: SpecialLinkItem = {
+          id: Date.now().toString(),
+          imageUrl: b,
+          linkUrl: '',
+          titleAr: '',
+          titleEn: ''
+        };
+        setCurrentSpecialLinks([...currentSpecialLinks, newItem]);
+      }
+    } finally {
+      setUploadingSpecialImg(false);
+    }
+  };
+
+  const updateSpecialLink = (id: string, field: keyof SpecialLinkItem, value: string) => {
+    setCurrentSpecialLinks(currentSpecialLinks.map(l => l.id === id ? { ...l, [field]: value } : l));
+  };
+
+  const removeSpecialLink = (id: string) => {
+    setCurrentSpecialLinks(currentSpecialLinks.filter(l => l.id !== id));
   };
 
   const sampleCardData = (SAMPLE_DATA[lang] || SAMPLE_DATA['en']) as CardData;
@@ -385,6 +438,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="visuals" label={t('الألوان والسمة', 'Colors & Theme')} icon={Palette} />
           <NavItem id="elements" label={t('ألوان العناصر', 'Element Colors')} icon={Palette} />
           <NavItem id="design-system" label={t('هيكلة النصوص والتصميم', 'Structure & Typography')} icon={Settings2} />
+          <NavItem id="special-links" label={t('specialLinks')} icon={ImagePlus} />
+          <NavItem id="location" label={t('locationSection')} icon={MapIcon} />
           <NavItem id="social-lab" label={t('أيقونات التواصل', 'Social Icons Lab')} icon={Share2} />
           <NavItem id="qrcode" label={t('رمز الـ QR', 'QR Code Style')} icon={QrCode} />
           <NavItem id="special-features" label={t('specialFeatures')} icon={Trophy} />
@@ -792,6 +847,114 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                </div>
             )}
 
+            {activeTab === 'special-links' && (
+               <div className="space-y-8 animate-fade-in">
+                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><ImagePlus size={24} /></div>
+                       <h2 className="text-2xl font-black dark:text-white uppercase">{t('specialLinks')}</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                       <ToggleSwitch label={t('تفعيل عرض الروابط', 'Show Special Links')} value={template.config.showSpecialLinksByDefault} onChange={(v: boolean) => updateConfig('showSpecialLinksByDefault', v)} icon={Eye} />
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <RangeControl label={t('specialLinksCols')} min={1} max={3} value={template.config.specialLinksCols || 2} onChange={(v: number) => updateConfig('specialLinksCols', v)} icon={Grid} />
+                          <RangeControl label={t('المسافة بين الصور', 'Link Spacing')} min={0} max={40} value={template.config.specialLinksGap || 12} onChange={(v: number) => updateConfig('specialLinksGap', v)} icon={SlidersHorizontal} />
+                          <RangeControl label={t('انحناء الحواف', 'Border Radius')} min={0} max={50} value={template.config.specialLinksRadius ?? 24} onChange={(v: number) => updateConfig('specialLinksRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('إزاحة القسم رأسياً', 'Y Offset')} min={-100} max={150} value={template.config.specialLinksOffsetY || 0} onChange={(v: number) => updateConfig('specialLinksOffsetY', v)} icon={Move} />
+                       </div>
+
+                       <div className="space-y-3">
+                          <label className={labelTextClasses}>{t('نسبة العرض للارتفاع', 'Aspect Ratio')}</label>
+                          <div className="grid grid-cols-3 gap-2">
+                             {['square', 'video', 'portrait'].map(ratio => (
+                                <button key={ratio} onClick={() => updateConfig('specialLinksAspectRatio', ratio)} className={`py-3 rounded-xl border-2 transition-all font-black text-[9px] uppercase ${template.config.specialLinksAspectRatio === ratio ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                   {t(ratio === 'square' ? 'مربع' : (ratio === 'video' ? 'بانورامي' : 'طولي'), ratio.toUpperCase())}
+                                </button>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="pt-10 border-t dark:border-gray-800 space-y-6">
+                       <div className="flex items-center justify-between">
+                          <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('إدارة الصور والروابط', 'Manage Link Content')}</h4>
+                          <button 
+                            type="button" 
+                            onClick={() => specialLinkInputRef.current?.click()}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg hover:scale-105 transition-all"
+                          >
+                             <Plus size={14} />
+                             {t('إضافة صورة', 'Add Image')}
+                          </button>
+                          <input type="file" ref={specialLinkInputRef} className="hidden" onChange={handleSpecialLinkUpload} accept="image/*" />
+                       </div>
+
+                       <div className="grid grid-cols-1 gap-4">
+                          {currentSpecialLinks.map((link) => (
+                             <div key={link.id} className="flex flex-col md:flex-row gap-6 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 animate-fade-in group">
+                                <div className="w-24 h-24 shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-gray-600">
+                                   <img src={link.imageUrl} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                   <div className="space-y-1">
+                                      <label className="text-[8px] font-black text-gray-400 uppercase px-1">{t('specialLinkUrl')}</label>
+                                      <input 
+                                        type="url" 
+                                        value={link.linkUrl} 
+                                        onChange={e => updateSpecialLink(link.id, 'linkUrl', e.target.value)} 
+                                        placeholder="https://..." 
+                                        className="w-full px-5 py-3 rounded-2xl bg-gray-900 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
+                                      />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <label className="text-[8px] font-black text-gray-400 uppercase px-1">{t('العنوان (AR)', 'Title AR')}</label>
+                                      <input 
+                                        type="text" 
+                                        value={link.titleAr || ''} 
+                                        onChange={e => updateSpecialLink(link.id, 'titleAr', e.target.value)} 
+                                        className="w-full px-5 py-3 rounded-2xl bg-gray-900 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
+                                        placeholder={isRtl ? 'أدخل عنوان الرابط' : 'Link Title'}
+                                      />
+                                   </div>
+                                </div>
+                                <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-center"><Trash2 size={18} /></button>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'location' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><Navigation2 size={24} /></div>
+                       <h2 className="text-2xl font-black dark:text-white uppercase tracking-widest">{t('locationSection')}</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                       <ToggleSwitch label={t('تفعيل عرض الموقع', 'Show Location Section')} value={template.config.showLocationByDefault} onChange={(v: boolean) => updateConfig('showLocationByDefault', v)} icon={Eye} />
+                       
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <RangeControl label={t('انحناء الحواف', 'Border Radius')} min={0} max={60} value={template.config.locationBorderRadius ?? 24} onChange={(v: number) => updateConfig('locationBorderRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-100} max={150} value={template.config.locationOffsetY || 0} onChange={(v: number) => updateConfig('locationOffsetY', v)} icon={Move} />
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+                          <ColorPicker label={t('لون الخلفية', 'Background Color')} value={template.config.locationBgColor} onChange={(v: string) => updateConfig('locationBgColor', v)} />
+                          <ColorPicker label={t('لون الأيقونة', 'Icon Color')} value={template.config.locationIconColor} onChange={(v: string) => updateConfig('locationIconColor', v)} />
+                          <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.locationTextColor} onChange={(v: string) => updateConfig('locationTextColor', v)} />
+                          <ToggleSwitch label={t('نمط زجاجي', 'Glassy Style')} value={template.config.locationGlassy} onChange={(v: boolean) => updateConfig('locationGlassy', v)} icon={GlassWater} color="bg-blue-500" />
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            )}
+
             {activeTab === 'social-lab' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
@@ -801,7 +964,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('شكل وحجم الأيقونة', 'Shape & Size DNA')}</h4>
                        
                        <ToggleSwitch 
-                        label={t('استخدام ألوان المنصات الأصلية', 'Use Brand Colors')} 
+                        label={t('استخدام ألون المنصات الأصلية', 'Use Brand Colors')} 
                         value={template.config.useSocialBrandColors} 
                         onChange={(v: boolean) => updateConfig('useSocialBrandColors', v)} 
                         icon={Zap} 
@@ -925,11 +1088,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                              <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                    <div className="space-y-2">
-                                      <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
+                                      <label className={labelTextClasses}>{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
                                       <input type="text" value={template.config.bodyFeatureTextAr || ''} onChange={e => updateConfig('bodyFeatureTextAr', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
                                    </div>
                                    <div className="space-y-2">
-                                      <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
+                                      <label className={labelTextClasses}>{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
                                       <input type="text" value={template.config.bodyFeatureTextEn || ''} onChange={e => updateConfig('bodyFeatureTextEn', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
                                    </div>
                                 </div>
@@ -955,7 +1118,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                    <ColorPicker label={t('لون خلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
-                                   <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
+                                   <ColorPicker label={t('لون نص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
                                    <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={template.config.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
                                 </div>
                              </div>
@@ -1004,7 +1167,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        themeType: template.config.defaultThemeType, 
                        themeColor: template.config.defaultThemeColor, 
                        themeGradient: template.config.defaultThemeGradient,
-                       backgroundImage: template.config.defaultBackgroundImage
+                       backgroundImage: template.config.defaultBackgroundImage,
+                       specialLinks: currentSpecialLinks,
+                       showSpecialLinks: template.config.showSpecialLinksByDefault,
+                       showLocation: template.config.showLocationByDefault,
+                       location: isRtl ? 'عنوان الموقع الجغرافي الافتراضي' : 'Default Location Address',
+                       locationUrl: 'https://maps.google.com'
                      } as any} 
                      lang={lang} 
                      customConfig={template.config} 
@@ -1019,7 +1187,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showSaveModal && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-gray-900 w-full max-w-xl rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
+           <div className="bg-white dark:bg-gray-900 w-full max-xl rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
               <div className="flex justify-between items-center">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
                  <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
@@ -1027,26 +1195,26 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
               <div className="space-y-6">
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('الاسم (AR)', 'Name (AR)')}</label>
-                       <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none" />
+                       <label className={labelTextClasses}>{t('الاسم (AR)', 'Name (AR)')}</label>
+                       <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className={inputClasses} />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('الاسم (EN)', 'Name (EN)')}</label>
-                       <input type="text" value={template.nameEn} onChange={e => updateTemplate('nameEn', e.target.value)} className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none" />
+                       <label className={labelTextClasses}>{t('الاسم (EN)', 'Name (EN)')}</label>
+                       <input type="text" value={template.nameEn} onChange={e => updateTemplate('nameEn', e.target.value)} className={inputClasses} />
                     </div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('القسم (Category)', 'Section Category')}</label>
-                       <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className="w-full px-6 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none">
+                       <label className={labelTextClasses}>{t('القسم (Category)', 'Section Category')}</label>
+                       <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className={inputClasses}>
                           <option value="">{t('اختر القسم...', 'Select Category...')}</option>
                           {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
                        </select>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('ترتيب العرض', 'Display Order')}</label>
-                       <input type="number" value={template.order} onChange={e => updateTemplate('order', parseInt(e.target.value) || 0)} className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:text-white font-bold outline-none" />
+                       <label className={labelTextClasses}>{t('ترتيب العرض', 'Display Order')}</label>
+                       <input type="number" value={template.order} onChange={e => updateTemplate('order', parseInt(e.target.value) || 0)} className={inputClasses} />
                     </div>
                  </div>
 
