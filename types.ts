@@ -22,14 +22,13 @@ export interface TemplateConfig {
   headerPatternId?: string; 
   headerPatternOpacity?: number; 
   headerPatternScale?: number; 
-  avatarStyle: 'circle' | 'squircle' | 'square' | 'none'; // تم إضافة square
+  avatarStyle: 'circle' | 'squircle' | 'square' | 'none';
   avatarStyle_v2?: string;
   avatarSize: number;
   avatarOffsetY: number;
   avatarOffsetX: number;
   avatarBorderWidth?: number;
   avatarBorderColor?: string;
-  // Animated Border Settings
   avatarAnimatedBorder?: boolean;
   avatarAnimatedBorderColor1?: string;
   avatarAnimatedBorderColor2?: string;
@@ -57,7 +56,6 @@ export interface TemplateConfig {
   bodyOffsetY?: number;
   bodyBorderRadius?: number;
 
-  // Social Icons Lab
   socialIconStyle?: 'circle' | 'squircle' | 'rounded' | 'square' | 'none';
   socialIconSize?: number;
   socialIconVariant?: 'filled' | 'outline' | 'glass' | 'ghost';
@@ -106,24 +104,26 @@ export interface TemplateConfig {
   occasionOpacity?: number;
   showCountdown?: boolean;
 
-  // Special Body Feature (Admin Only Control)
   showBodyFeatureByDefault?: boolean;
   bodyFeatureTextAr?: string;
   bodyFeatureTextEn?: string;
   bodyFeatureBgColor?: string;
   bodyFeatureTextColor?: string;
   bodyFeatureHeight?: number;
-  bodyFeaturePaddingX?: number; // Width expansion
+  bodyFeaturePaddingX?: number; 
   bodyFeatureOffsetY?: number;
   bodyFeatureBorderRadius?: number;
   bodyFeatureGlassy?: boolean;
 
-  // Invitation Texts Colors
+  // Premium Features
+  showStarsByDefault?: boolean;
+  isVerifiedByDefault?: boolean;
+  hasGoldenFrameByDefault?: boolean;
+
   occasionPrefixColor?: string;
   occasionNameColor?: string;
   occasionWelcomeColor?: string;
 
-  // Invitation Texts
   invitationPrefix?: string;
   invitationWelcome?: string;
   invitationYOffset?: number;
@@ -174,7 +174,7 @@ export interface CardData {
   isActive?: boolean;
   viewCount?: number;
   socialLinks: SocialLink[];
-  useSocialBrandColors?: boolean; // خيار المستخدم لألوان السوشيال
+  useSocialBrandColors?: boolean; 
   ownerId?: string;
   updatedAt?: string;
   showName?: boolean;
@@ -189,6 +189,12 @@ export interface CardData {
   showButtons?: boolean;
   showQrCode?: boolean;
   showOccasion?: boolean;
+
+  // Premium Overrides
+  showStars?: boolean;
+  isVerified?: boolean;
+  hasGoldenFrame?: boolean;
+
   occasionTitle?: string;
   occasionDesc?: string;
   occasionTitleAr?: string; 

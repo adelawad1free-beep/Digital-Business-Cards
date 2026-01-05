@@ -15,10 +15,10 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy
 } from 'lucide-react';
 
-type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'social-lab' | 'elements' | 'visuals' | 'occasion' | 'qrcode';
+type BuilderTab = 'header' | 'avatar' | 'design-system' | 'body-style' | 'social-lab' | 'elements' | 'visuals' | 'occasion' | 'qrcode' | 'special-features';
 
 interface TemplateBuilderProps {
   lang: Language;
@@ -115,6 +115,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       showSocialLinksByDefault: true,
       showButtonsByDefault: true,
       showOccasionByDefault: false,
+      showStarsByDefault: false,
+      isVerifiedByDefault: false,
+      hasGoldenFrameByDefault: false,
       occasionTitle: 'مناسبة خاصة',
       occasionDesc: '',
       occasionDate: '2025-12-30T12:00',
@@ -342,7 +345,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       
       {showAuthWarning && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
+           <div className="bg-white dark:bg-[#121215] w-full max-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
               <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
                  <UserCircle size={40} />
               </div>
@@ -406,6 +409,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="visuals" label={t('الألوان والسمة', 'Colors & Theme')} icon={Palette} />
           <NavItem id="occasion" label={t('المناسبة الخاصة', 'Special Occasion')} icon={PartyPopper} />
           <NavItem id="qrcode" label={t('رمز الـ QR', 'QR Code Style')} icon={QrCode} />
+          <NavItem id="special-features" label={t('specialFeatures')} icon={Trophy} />
         </div>
 
         <div className="flex-1 p-8 overflow-y-auto no-scrollbar bg-gray-50/20 dark:bg-transparent">
@@ -474,7 +478,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8">
                     <ToggleSwitch label={t('تفعيل ظهور الصورة', 'Show Avatar')} value={template.config.avatarStyle !== 'none'} onChange={(v: boolean) => updateConfig('avatarStyle', v ? 'circle' : 'none')} icon={Camera} />
                     
-                    {/* خيار شكل الصورة الجديد */}
                     {template.config.avatarStyle !== 'none' && (
                       <div className="pt-4 border-t dark:border-gray-800 space-y-4">
                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest dark:text-white px-1">{t('شكل الصورة الشخصية', 'Avatar Shape')}</h4>
@@ -649,56 +652,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
                         <RangeControl label={t('إزاحة منطقة المحتوى (أعلى/أسفل)', 'Body Y Offset')} min={-1000} max={500} value={template.config.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
-                     </div>
-
-                     <div className="pt-10 border-t dark:border-gray-800 space-y-8">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-3">
-                              <Sparkle className="text-blue-600" size={22} />
-                              <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('ميزة جسم البطاقة الخاصة (إدارة فقط)', 'Special Body Feature (Admin Control)')}</h4>
-                           </div>
-                           <ToggleSwitch label={t('تفعيل الميزة', 'Enable')} value={template.config.showBodyFeatureByDefault} onChange={(v: boolean) => updateConfig('showBodyFeatureByDefault', v)} color="bg-emerald-600" />
-                        </div>
-
-                        {template.config.showBodyFeatureByDefault && (
-                           <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
-                                    <input type="text" value={template.config.bodyFeatureTextAr || ''} onChange={e => updateConfig('bodyFeatureTextAr', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
-                                 </div>
-                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
-                                    <input type="text" value={template.config.bodyFeatureTextEn || ''} onChange={e => updateConfig('bodyFeatureTextEn', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
-                                 </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                 <RangeControl 
-                                    label={t('توسعة الميزة جانبياً', 'Side Expansion')} 
-                                    min={0} max={60} 
-                                    value={template.config.bodyFeaturePaddingX ?? 0} 
-                                    onChange={(v: number) => updateConfig('bodyFeaturePaddingX', v)} 
-                                    icon={SlidersHorizontal} 
-                                 />
-                                 <RangeControl 
-                                    label={t('إزاحة الميزة رأسياً', 'Vertical Offset')} 
-                                    min={-100} max={150} 
-                                    value={template.config.bodyFeatureOffsetY ?? 0} 
-                                    onChange={(v: number) => updateConfig('bodyFeatureOffsetY', v)} 
-                                    icon={Move} 
-                                 />
-                                 <RangeControl label={t('ارتفاع القسم', 'Height')} min={30} max={120} value={template.config.bodyFeatureHeight ?? 45} onChange={(v: number) => updateConfig('bodyFeatureHeight', v)} icon={Maximize2} />
-                                 <RangeControl label={t('انحناء الحواف', 'Radius')} min={0} max={50} value={template.config.bodyFeatureBorderRadius ?? 16} onChange={(v: number) => updateConfig('bodyFeatureBorderRadius', v)} icon={Ruler} />
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                 <ColorPicker label={t('لون خلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
-                                 <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
-                                 <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={template.config.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
-                              </div>
-                           </div>
-                        )}
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -1008,6 +961,119 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                </div>
             )}
 
+            {activeTab === 'special-features' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10 p-8 rounded-[3rem] border border-indigo-100 dark:border-indigo-900/20 shadow-xl space-y-10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-10 opacity-5 rotate-12 transition-transform duration-700 pointer-events-none">
+                       <Trophy size={180} />
+                    </div>
+                    
+                    <div className="flex items-center gap-4 relative z-10">
+                       <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg"><Trophy size={24} /></div>
+                       <div>
+                          <h2 className="text-2xl font-black dark:text-white uppercase leading-none mb-1">{t('specialFeatures')}</h2>
+                          <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{t('premiumFeaturesDesc')}</p>
+                       </div>
+                    </div>
+
+                    <div className="bg-white/60 dark:bg-black/20 backdrop-blur-sm p-6 rounded-3xl border border-white dark:border-white/5 space-y-6">
+                       <div className="flex gap-4 items-start border-b dark:border-white/5 pb-6">
+                          <AlertTriangle size={24} className="text-amber-500 shrink-0" />
+                          <div className="space-y-1">
+                             <h4 className="text-xs font-black dark:text-white">{isRtl ? 'تحكم في الميزات الخاصة للبطاقة' : 'Control Card Special Features'}</h4>
+                             <p className="text-[10px] font-bold text-gray-500 leading-relaxed">
+                                {isRtl 
+                                  ? 'هذا القسم يسمح لك بتفعيل ميزات مرئية إضافية تجعل القالب فريداً واحترافياً للغاية.' 
+                                  : 'This section allows you to enable extra visual features that make the template unique and highly professional.'}
+                             </p>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 gap-4">
+                          <ToggleSwitch 
+                            label={isRtl ? 'إضافة نجوم التميز تحت الاسم' : 'Add Excellence Stars under name'} 
+                            value={template.config.showStarsByDefault} 
+                            onChange={(v: boolean) => updateConfig('showStarsByDefault', v)} 
+                            icon={Star} 
+                            color="bg-amber-500" 
+                          />
+                          <ToggleSwitch 
+                            label={isRtl ? 'وسام الحساب الموثق (Verified)' : 'Verified Account Badge'} 
+                            value={template.config.isVerifiedByDefault} 
+                            onChange={(v: boolean) => updateConfig('isVerifiedByDefault', v)} 
+                            icon={CheckCircle2} 
+                            color="bg-blue-500" 
+                          />
+                          <ToggleSwitch 
+                            label={isRtl ? 'إطار ذهبي للبطاقة كاملة' : 'Full Card Golden Frame'} 
+                            value={template.config.hasGoldenFrameByDefault} 
+                            onChange={(v: boolean) => updateConfig('hasGoldenFrameByDefault', v)} 
+                            icon={Maximize2} 
+                            color="bg-yellow-600" 
+                          />
+                       </div>
+
+                       {/* تم نقل ميزة جسم البطاقة الخاصة هنا */}
+                       <div className="pt-8 border-t dark:border-white/5 space-y-8">
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-3">
+                                <Sparkle className="text-blue-600" size={22} />
+                                <h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('ميزة جسم البطاقة الخاصة (مربع حصري)', 'Special Body Feature (Exclusive Box)')}</h4>
+                             </div>
+                             <ToggleSwitch label={t('تفعيل الميزة', 'Enable')} value={template.config.showBodyFeatureByDefault} onChange={(v: boolean) => updateConfig('showBodyFeatureByDefault', v)} color="bg-emerald-600" />
+                          </div>
+
+                          {template.config.showBodyFeatureByDefault && (
+                             <div className="grid grid-cols-1 gap-6 animate-fade-in p-6 bg-blue-50/30 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div className="space-y-2">
+                                      <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (AR)', 'Feature Text (AR)')}</label>
+                                      <input type="text" value={template.config.bodyFeatureTextAr || ''} onChange={e => updateConfig('bodyFeatureTextAr', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
+                                   </div>
+                                   <div className="space-y-2">
+                                      <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('نص الميزة (EN)', 'Feature Text (EN)')}</label>
+                                      <input type="text" value={template.config.bodyFeatureTextEn || ''} onChange={e => updateConfig('bodyFeatureTextEn', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-xs font-bold dark:text-white" />
+                                   </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                   <RangeControl 
+                                      label={t('توسعة الميزة جانبياً', 'Side Expansion')} 
+                                      min={0} max={60} 
+                                      value={template.config.bodyFeaturePaddingX ?? 0} 
+                                      onChange={(v: number) => updateConfig('bodyFeaturePaddingX', v)} 
+                                      icon={SlidersHorizontal} 
+                                   />
+                                   <RangeControl 
+                                      label={t('إزاحة الميزة رأسياً', 'Vertical Offset')} 
+                                      min={-100} max={150} 
+                                      value={template.config.bodyFeatureOffsetY ?? 0} 
+                                      onChange={(v: number) => updateConfig('bodyFeatureOffsetY', v)} 
+                                      icon={Move} 
+                                   />
+                                   <RangeControl label={t('ارتفاع القسم', 'Height')} min={30} max={120} value={template.config.bodyFeatureHeight ?? 45} onChange={(v: number) => updateConfig('bodyFeatureHeight', v)} icon={Maximize2} />
+                                   <RangeControl label={t('انحناء الحواف', 'Radius')} min={0} max={50} value={template.config.bodyFeatureBorderRadius ?? 16} onChange={(v: number) => updateConfig('bodyFeatureBorderRadius', v)} icon={Ruler} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   <ColorPicker label={t('لون خلفية', 'Background')} value={template.config.bodyFeatureBgColor} onChange={(v: string) => updateConfig('bodyFeatureBgColor', v)} />
+                                   <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.bodyFeatureTextColor} onChange={(v: string) => updateConfig('bodyFeatureTextColor', v)} />
+                                   <ToggleSwitch label={t('نمط زجاجي', 'Glassy')} value={template.config.bodyFeatureGlassy} onChange={(v: boolean) => updateConfig('bodyFeatureGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
+                                </div>
+                             </div>
+                          )}
+                       </div>
+                    </div>
+
+                    <div className="p-4 bg-indigo-600/5 dark:bg-indigo-600/20 rounded-2xl border border-indigo-600/10 text-center">
+                       <span className="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-[0.3em]">
+                          {isRtl ? 'هذه الميزات فعالة الآن في المعاينة' : 'These features are now active in preview'}
+                       </span>
+                    </div>
+                 </div>
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -1034,6 +1100,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        showOccasion: template.config.showOccasionByDefault,
                        showBodyFeature: template.config.showBodyFeatureByDefault,
                        showQrCode: template.config.showQrCodeByDefault,
+                       showStars: template.config.showStarsByDefault,
+                       isVerified: template.config.isVerifiedByDefault,
+                       hasGoldenFrame: template.config.hasGoldenFrameByDefault,
                        themeType: template.config.defaultThemeType, 
                        themeColor: template.config.defaultThemeColor, 
                        themeGradient: template.config.defaultThemeGradient,

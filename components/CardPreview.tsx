@@ -1,5 +1,5 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
@@ -79,6 +79,11 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const socialIconsColor = data.socialIconsColor || config.socialIconsColor || linksColor;
   const phoneBtnColor = data.contactPhoneColor || config.contactPhoneColor || '#2563eb';
   const whatsappBtnColor = data.contactWhatsappColor || config.contactWhatsappColor || '#10b981';
+
+  // Special Features Overrides/Checks
+  const isVerified = data.isVerified ?? config.isVerifiedByDefault;
+  const showStars = data.showStars ?? config.showStarsByDefault;
+  const hasGoldenFrame = data.hasGoldenFrame ?? config.hasGoldenFrameByDefault;
 
   const qrColorVal = (data.qrColor || config.qrColor || themeColor || '#000000').replace('#', '');
   const qrBgColor = data.qrBgColor || config.qrBgColor || (isDark ? '#111115' : '#ffffff');
@@ -193,22 +198,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
-  const displayOccasionTitle = data.occasionTitle || config.occasionTitle || '';
-  const displayOccasionDesc = data.occasionDesc || config.occasionDesc || '';
-  
-  const isOccasionActive = data.showOccasion !== false && (data.occasionTitle || config.showOccasionByDefault);
-
-  const invPrefix = data.invitationPrefix !== undefined ? data.invitationPrefix : (config.invitationPrefix || t('invitationPrefix'));
-  const invWelcome = data.invitationWelcome !== undefined ? data.invitationWelcome : (config.invitationWelcome || t('invitationWelcome'));
-  const invYOffset = data.invitationYOffset !== undefined ? data.invitationYOffset : (config.invitationYOffset || 0);
-  
-  const invPrefixColor = data.occasionPrefixColor || config.occasionPrefixColor || (isDark ? 'rgba(59, 130, 246, 0.8)' : '#2563eb');
-  const invNameColor = data.occasionNameColor || config.occasionNameColor || nameColor;
-  const invWelcomeColor = data.occasionWelcomeColor || config.occasionWelcomeColor || (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)');
-
-  const isOccasionGlassy = data.occasionGlassy ?? config.occasionGlassy;
-  const occasionOpacity = (data.occasionOpacity ?? config.occasionOpacity ?? 100) / 100;
-  
   const hexToRgb = (hex: string) => {
     hex = (hex || '#000000').replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
@@ -218,14 +207,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return `${r}, ${g}, ${b}`;
   };
 
-  const occasionBaseColor = data.occasionBgColor || config.occasionBgColor || (isDark ? '#ef4444' : '#fce7e7');
-  const occasionBg = isOccasionGlassy 
-    ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` 
-    : (occasionOpacity < 1 ? `rgba(${hexToRgb(occasionBaseColor)}, ${occasionOpacity})` : occasionBaseColor);
-
   const finalCardBgColor = data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff');
 
-  // Animated Border Logic
   const showAnimatedBorder = config.avatarAnimatedBorder;
   const borderClr1 = config.avatarAnimatedBorderColor1 || themeColor;
   const borderClr2 = config.avatarAnimatedBorderColor2 || '#ffffff';
@@ -241,7 +224,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const featureRadius = config.bodyFeatureBorderRadius ?? 16;
   const featureOffsetY = config.bodyFeatureOffsetY || 0;
 
-  // Social Icon Customization Logic
   const sStyle = config.socialIconStyle || 'rounded';
   const sSize = config.socialIconSize || 22;
   const sPadding = config.socialIconPadding || 14;
@@ -253,7 +235,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const sBorderWidth = config.socialIconBorderWidth || 1;
   const sBorderColor = config.socialIconBorderColor || (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)');
   
-  // نعطي الأولوية لاختيار المستخدم إذا كان محدداً، وإلا نعتمد إعدادات القالب
   const useBrandColors = data.useSocialBrandColors !== undefined ? data.useSocialBrandColors : config.useSocialBrandColors;
 
   const getSocialBtnStyles = (platformId: string): React.CSSProperties => {
@@ -287,17 +268,15 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return style;
   };
 
-  // وظيفة مساعدة لتحديد انحناء حواف الصورة
   const getAvatarRadiusClasses = (inner: boolean = false) => {
     if (config.avatarStyle === 'circle') return 'rounded-full';
     if (config.avatarStyle === 'square') return 'rounded-none';
-    // squircle default
     return inner ? 'rounded-[22%]' : 'rounded-[28%]';
   };
 
   return (
     <div 
-      className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'}`}
+      className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'} ${hasGoldenFrame ? 'ring-[10px] ring-yellow-500/30 ring-inset shadow-[0_0_50px_rgba(234,179,8,0.3)]' : ''}`}
       style={{ backgroundColor: finalCardBgColor }}
     >
       
@@ -351,70 +330,28 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
         <div className={`w-full ${config.spacing === 'relaxed' ? 'space-y-6' : config.spacing === 'compact' ? 'space-y-2' : 'space-y-4'} relative z-10`} style={{ marginTop: headerType === 'overlay' ? '20px' : '24px' }}>
            
-           {isOccasionActive ? (
-             <div className="transition-transform duration-300" style={{ transform: `translateY(${invYOffset}px)` }}>
-                <div className="animate-fade-in text-center space-y-1 mb-4">
-                    {invPrefix && (
-                      <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-60 mb-1" style={{ color: invPrefixColor }}>
-                        {invPrefix}
-                      </p>
-                    )}
-                    <h1 className="text-3xl font-black tracking-tight leading-none" style={{ color: invNameColor }}>
-                      {data.name || '---'}
-                    </h1>
-                    {invWelcome && (
-                      <p className="text-[10px] font-bold uppercase tracking-widest pt-1" style={{ color: invWelcomeColor }}>
-                        {invWelcome}
-                      </p>
-                    )}
+           {showName && (
+             <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="font-black leading-tight" style={{ color: nameColor, transform: `translateY(${config.nameOffsetY}px)`, fontSize: `${config.nameSize}px` }}>
+                    {data.name || '---'}
+                  </h2>
+                  {isVerified && <CheckCircle size={config.nameSize * 0.7} className="text-blue-500 animate-pulse" />}
                 </div>
-
-                <div className={`p-8 rounded-[3.5rem] shadow-2xl border relative overflow-hidden ${data.occasionFloating !== false ? 'animate-float' : ''}`}
-                    style={{ 
-                      backgroundColor: occasionBg,
-                      borderColor: (isOccasionGlassy || occasionOpacity < 1) ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
-                      backdropFilter: isOccasionGlassy ? 'blur(20px)' : 'none',
-                      WebkitBackdropFilter: isOccasionGlassy ? 'blur(20px)' : 'none',
-                    }}>
-                    <div className="absolute top-0 right-0 p-6 opacity-10"><PartyPopper size={64} className="text-pink-500" /></div>
-                    <div className="relative z-10 space-y-3">
-                        <h3 className="text-xl font-black uppercase text-center tracking-tighter" style={{ color: data.occasionTitleColor || config.occasionTitleColor || '#1f2937' }}>
-                          {displayOccasionTitle}
-                        </h3>
-                        {displayOccasionDesc && (
-                          <p className="text-[11px] font-bold text-center opacity-60 px-2 leading-relaxed" style={{ color: data.occasionTitleColor || config.occasionTitleColor || '#4b5563' }}>
-                            {displayOccasionDesc}
-                          </p>
-                        )}
-                    </div>
-                    {(config.showCountdown || data.showOccasion) && (data.occasionDate || config.occasionDate) && (
-                        <CountdownTimer targetDate={data.occasionDate || config.occasionDate || ''} isDark={isDark} primaryColor={data.occasionPrimaryColor || config.occasionPrimaryColor || '#7c3aed'} />
-                    )}
-                    {(data.occasionMapUrl || config.occasionMapUrl) && (
-                      <a href={data.occasionMapUrl || config.occasionMapUrl} target="_blank" className="flex items-center justify-center gap-3 mt-8 py-4 px-8 rounded-full text-xs font-black uppercase tracking-[0.1em] text-white shadow-xl transition-all hover:scale-105" 
-                         style={{ background: data.occasionPrimaryColor || config.occasionPrimaryColor || '#7c3aed' }}>
-                        <MapPin size={18} />
-                        {isRtl ? 'موقع المناسبة' : 'Event Location'}
-                        <Navigation2 size={14} className="opacity-60" />
-                      </a>
-                    )}
-                </div>
+                {showStars && (
+                   <div className="flex items-center gap-1 mt-1">
+                      {[1, 2, 3, 4, 5].map(i => <Star key={i} size={14} fill="#fbbf24" className="text-yellow-400" />)}
+                   </div>
+                )}
              </div>
-           ) : (
-             <>
-               {showName && (
-                 <h2 className="font-black leading-tight" style={{ color: nameColor, transform: `translateY(${config.nameOffsetY}px)`, fontSize: `${config.nameSize}px` }}>
-                   {data.name || '---'}
-                 </h2>
-               )}
-               {(showTitle || showCompany) && (
-                 <p className="font-bold opacity-80" style={{ color: titleColor, transform: `translateY(${config.titleOffsetY || 0}px)`, fontSize: '14px' }}>
-                   {showTitle && data.title}
-                   {(showTitle && showCompany) && data.company && ' • '}
-                   {showCompany && data.company}
-                 </p>
-               )}
-             </>
+           )}
+
+           {(showTitle || showCompany) && (
+             <p className="font-bold opacity-80" style={{ color: titleColor, transform: `translateY(${config.titleOffsetY || 0}px)`, fontSize: '14px' }}>
+               {showTitle && data.title}
+               {(showTitle && showCompany) && data.company && ' • '}
+               {showCompany && data.company}
+             </p>
            )}
 
            {showBodyFeature && featureContent && (
