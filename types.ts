@@ -91,6 +91,24 @@ export interface TemplateConfig {
   locationTextColor?: string;
   locationBorderRadius?: number;
   locationGlassy?: boolean;
+  locationPaddingV?: number; // التحكم في الارتفاع (المساحة الرأسية)
+  locationAddressSize?: number; // حجم خط العنوان التفصيلي
+
+  // Direct Links Section (Email & Website)
+  linksSectionVariant?: 'list' | 'grid' | 'pills';
+  linksSectionBgColor?: string;
+  linksSectionTextColor?: string;
+  linksSectionIconColor?: string;
+  linksSectionRadius?: number;
+  linksSectionGlassy?: boolean;
+  linksSectionOffsetY?: number;
+  linksSectionPadding?: number;
+  linksSectionGap?: number;
+  linksShowText?: boolean; 
+  linksShowBg?: boolean;   
+  linksWebsiteIconType?: 'globe' | 'store'; 
+  linksItemBgColor?: string; 
+  linksItemRadius?: number; 
 
   qrSize?: number;
   qrColor?: string; 
@@ -199,6 +217,8 @@ export interface CardData {
   viewCount?: number;
   socialLinks: SocialLink[];
   specialLinks?: SpecialLinkItem[];
+  emails?: string[];   
+  websites?: string[]; 
   useSocialBrandColors?: boolean; 
   ownerId?: string;
   ownerEmail?: string;
@@ -217,6 +237,10 @@ export interface CardData {
   showOccasion?: boolean;
   showSpecialLinks?: boolean;
   showLocation?: boolean;
+  linksShowText?: boolean;
+  linksShowBg?: boolean;
+  /* Fixed TS error in Editor.tsx by adding specialLinksCols to allow per-card overrides */
+  specialLinksCols?: number;
 
   // Premium Overrides
   showStars?: boolean;

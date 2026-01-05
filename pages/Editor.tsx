@@ -7,7 +7,7 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2
+  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -16,7 +16,7 @@ import AuthModal from '../components/AuthModal';
 import { BACKGROUND_PRESETS, AVATAR_PRESETS, SAMPLE_DATA, SOCIAL_PLATFORMS, THEME_COLORS, THEME_GRADIENTS, TRANSLATIONS } from '../constants';
 import { isSlugAvailable, auth, getSiteSettings } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
-import { CardData, CustomTemplate, Language } from '../types';
+import { CardData, CustomTemplate, Language, SpecialLinkItem } from '../types';
 import { generateSerialId } from '../utils/share';
 
 interface EditorProps {
@@ -29,7 +29,7 @@ interface EditorProps {
   forcedTemplateId?: string; 
 }
 
-type EditorTab = 'identity' | 'social' | 'design';
+type EditorTab = 'identity' | 'social' | 'links' | 'design';
 
 const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates, forcedTemplateId }) => {
   const isRtl = lang === 'ar';
@@ -40,6 +40,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
+  const specialLinkInputRef = useRef<HTMLInputElement>(null);
   const originalIdRef = useRef<string | null>(initialData?.id || null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +55,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
+  const [isUploadingLinkImg, setIsUploadingLinkImg] = useState(false);
   
   const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
 
@@ -86,7 +88,12 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const targetTemplateId = initialData?.templateId || forcedTemplateId || templates[0]?.id || 'classic';
     const selectedTmpl = templates.find(t => t.id === targetTemplateId);
     
-    if (initialData) return initialData;
+    if (initialData) return {
+      ...initialData,
+      emails: initialData.emails || (initialData.email ? [initialData.email] : []),
+      websites: initialData.websites || (initialData.website ? [initialData.website] : []),
+      specialLinks: initialData.specialLinks || []
+    };
 
     const baseData = { ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']), id: generateSerialId(), templateId: targetTemplateId } as CardData;
 
@@ -114,7 +121,13 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          showButtons: selectedTmpl.config.showButtonsByDefault ?? true,
          showQrCode: selectedTmpl.config.showQrCodeByDefault ?? true,
          showLocation: selectedTmpl.config.showLocationByDefault ?? true,
-         useSocialBrandColors: selectedTmpl.config.useSocialBrandColors ?? false
+         linksShowText: selectedTmpl.config.linksShowText ?? true,
+         linksShowBg: selectedTmpl.config.linksShowBg ?? true,
+         useSocialBrandColors: selectedTmpl.config.useSocialBrandColors ?? false,
+         specialLinksCols: selectedTmpl.config.specialLinksCols ?? 2,
+         emails: baseData.emails || (baseData.email ? [baseData.email] : []),
+         websites: baseData.websites || (baseData.website ? [baseData.website] : []),
+         specialLinks: baseData.specialLinks || []
        } as CardData;
     }
     return baseData;
@@ -141,7 +154,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       setIsCheckingSlug(true);
       try {
         const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
-        setSlugStatus(available ? 'available' : 'taken');
+        setSlugStatus('available');
+        if (!available) setSlugStatus('taken');
       } catch (e) {
         setSlugStatus('idle');
       } finally {
@@ -208,6 +222,39 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     } finally { setIsUploadingBg(false); }
   };
 
+  const handleSpecialLinkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    if (!auth.currentUser) { setShowAuthWarning(true); return; }
+    setIsUploadingLinkImg(true);
+    try {
+      const b = await uploadImageToCloud(file, 'avatar', uploadConfig as any);
+      if (b) {
+        const newItem: SpecialLinkItem = {
+          id: Date.now().toString(),
+          imageUrl: b,
+          linkUrl: '',
+          titleAr: '',
+          titleEn: ''
+        };
+        setFormData(prev => ({ ...prev, specialLinks: [...(prev.specialLinks || []), newItem] }));
+      }
+    } finally { setIsUploadingLinkImg(false); }
+  };
+
+  const updateSpecialLink = (id: string, field: keyof SpecialLinkItem, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      specialLinks: (prev.specialLinks || []).map(l => l.id === id ? { ...l, [field]: value } : l)
+    }));
+  };
+
+  const removeSpecialLink = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      specialLinks: (prev.specialLinks || []).filter(l => l.id !== id)
+    }));
+  };
+
   const addSocialLink = () => {
     if (!socialInput.url) return;
     const platform = SOCIAL_PLATFORMS.find(p => p.id === socialInput.platformId);
@@ -219,23 +266,43 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     setSocialInput({ ...socialInput, url: '' });
   };
 
-  const removeSocialLink = (index: number) => {
+  const removeSocialLinkUI = (index: number) => {
     const updated = [...formData.socialLinks];
     updated.splice(index, 1);
     setFormData(prev => ({ ...prev, socialLinks: updated }));
+  };
+
+  const handleAddMultiLink = (field: 'emails' | 'websites') => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...(prev[field] || []), '']
+    }));
+  };
+
+  const handleUpdateMultiLink = (field: 'emails' | 'websites', index: number, value: string) => {
+    const list = [...(formData[field] || [])];
+    list[index] = value;
+    setFormData(prev => ({ ...prev, [field]: list }));
+  };
+
+  const handleRemoveMultiLink = (field: 'emails' | 'websites', index: number) => {
+    const list = [...(formData[field] || [])];
+    list.splice(index, 1);
+    setFormData(prev => ({ ...prev, [field]: list }));
   };
 
   const TabButton = ({ id, label, icon: Icon }: { id: EditorTab, label: string, icon: any }) => {
     const isActive = activeTab === id;
     let activeColor = 'bg-blue-600';
     if (id === 'social') activeColor = 'bg-emerald-600';
+    if (id === 'links') activeColor = 'bg-purple-600';
     if (id === 'design') activeColor = 'bg-indigo-600';
 
     return (
       <button 
         type="button"
         onClick={() => setActiveTab(id)}
-        className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-3 py-4 font-black text-[10px] uppercase tracking-tighter transition-all duration-300 min-w-[80px] ${isActive ? `${activeColor} text-white shadow-lg scale-105 rounded-2xl` : 'text-gray-400 opacity-60'}`}
+        className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-3 py-4 font-black text-[10px] uppercase tracking-tighter transition-all duration-300 min-w-[70px] ${isActive ? `${activeColor} text-white shadow-lg scale-105 rounded-2xl` : 'text-gray-400 opacity-60'}`}
       >
         <Icon size={18} className="shrink-0" /> 
         <span className="truncate">{label}</span>
@@ -251,7 +318,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       setShowAuthWarning(true);
       return;
     }
-    if (isUploading || isUploadingBg) {
+    if (isUploading || isUploadingBg || isUploadingLinkImg) {
       alert(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
       return;
     }
@@ -259,14 +326,19 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
        alert(isRtl ? "يرجى اختيار رابط متاح قبل الحفظ" : "Please choose an available link before saving");
        return;
     }
-    onSave(formData, originalIdRef.current || undefined);
+    const finalData = {
+      ...formData,
+      email: formData.emails && formData.emails.length > 0 ? formData.emails[0] : formData.email,
+      website: formData.websites && formData.websites.length > 0 ? formData.websites[0] : formData.website
+    };
+    onSave(finalData, originalIdRef.current || undefined);
   };
 
   return (
     <div className="max-w-[1440px] mx-auto">
       {showAuthWarning && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-[#121215] w-full max-w-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
+           <div className="bg-white dark:bg-[#121215] w-full max-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
               <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
                  <UserIcon size={40} />
               </div>
@@ -310,6 +382,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
              <div className="flex w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-x-auto no-scrollbar shadow-sm p-1.5 gap-1.5">
                 <TabButton id="identity" label={t('الهوية', 'Identity')} icon={UserIcon} />
                 <TabButton id="social" label={t('التواصل', 'Contact')} icon={MessageCircle} />
+                <TabButton id="links" label={t('روابط الصور', 'Links')} icon={ImagePlus} />
                 <TabButton id="design" label={t('التصميم', 'Design')} icon={Palette} />
              </div>
           </div>
@@ -385,22 +458,73 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
               {activeTab === 'social' && (
                 <div className="space-y-8 animate-fade-in relative z-10">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الهاتف', 'Phone')}</label><VisibilityToggle field="showPhone" label="Phone" /></div>
-                         <input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={inputClasses} />
+                   <div className="grid grid-cols-1 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الهاتف', 'Phone')}</label><VisibilityToggle field="showPhone" label="Phone" /></div>
+                           <input type="tel" value={formData.phone} onChange={e => handleChange('phone', e.target.value)} className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                           <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الواتساب', 'WhatsApp')}</label><VisibilityToggle field="showWhatsapp" label="WhatsApp" /></div>
+                           <input type="text" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={inputClasses} placeholder="9665..." />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رقم الواتساب', 'WhatsApp')}</label><VisibilityToggle field="showWhatsapp" label="WhatsApp" /></div>
-                         <input type="text" value={formData.whatsapp} onChange={e => handleChange('whatsapp', e.target.value)} className={inputClasses} placeholder="9665..." />
-                      </div>
-                      <div className="space-y-2">
-                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('البريد الإلكتروني', 'Email')}</label><VisibilityToggle field="showEmail" label="Email" /></div>
-                         <input type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} className={inputClasses} />
-                      </div>
-                      <div className="space-y-2">
-                         <div className="flex justify-between items-center"><label className={labelClasses}>{t('رابط الموقع', 'Website')}</label><VisibilityToggle field="showWebsite" label="Website" /></div>
-                         <input type="url" value={formData.website} onChange={e => handleChange('website', e.target.value)} className={inputClasses} />
+
+                      <div className="pt-8 border-t dark:border-gray-800 space-y-8">
+                         <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl shadow-sm"><LinkIcon size={20}/></div>
+                               <h4 className="text-sm font-black dark:text-white uppercase tracking-widest">{t('directLinksSection')}</h4>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                               <VisibilityToggle field="showEmail" label={t('email')} />
+                               <VisibilityToggle field="showWebsite" label={t('website')} />
+                               <button 
+                                  onClick={() => handleChange('linksShowText', !formData.linksShowText)} 
+                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowText ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+                               >
+                                  {formData.linksShowText ? t('linksShowText') : t('linksIconsOnly')}
+                               </button>
+                               <button 
+                                  onClick={() => handleChange('linksShowBg', !formData.linksShowBg)} 
+                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowBg ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+                               >
+                                  {formData.linksShowBg ? t('linksShowBg') : t('بدون أرضية', 'No Background')}
+                               </button>
+                            </div>
+                         </div>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 dark:bg-gray-800/20 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-800">
+                            <div className="space-y-4">
+                               <div className="flex justify-between items-center px-1">
+                                  <label className={labelClasses + " !mb-0"}>{t('البريد الإلكتروني', 'Emails')}</label>
+                                  <button onClick={() => handleAddMultiLink('emails')} className="p-1.5 bg-blue-600 text-white rounded-lg hover:scale-110 transition-transform"><Plus size={14}/></button>
+                               </div>
+                               <div className="space-y-3">
+                                  {(formData.emails || []).map((em, idx) => (
+                                    <div key={idx} className="flex gap-2 animate-fade-in">
+                                       <input type="email" value={em} onChange={e => handleUpdateMultiLink('emails', idx, e.target.value)} className={inputClasses + " !py-3 !px-4"} placeholder="mail@example.com" />
+                                       <button onClick={() => handleRemoveMultiLink('emails', idx)} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                                    </div>
+                                  ))}
+                               </div>
+                            </div>
+
+                            <div className="space-y-4">
+                               <div className="flex justify-between items-center px-1">
+                                  <label className={labelClasses + " !mb-0"}>{t('رابط الموقع', 'Websites')}</label>
+                                  <button onClick={() => handleAddMultiLink('websites')} className="p-1.5 bg-emerald-600 text-white rounded-lg hover:scale-110 transition-transform"><Plus size={14}/></button>
+                               </div>
+                               <div className="space-y-3">
+                                  {(formData.websites || []).map((web, idx) => (
+                                    <div key={idx} className="flex gap-2 animate-fade-in">
+                                       <input type="url" value={web} onChange={e => handleUpdateMultiLink('websites', idx, e.target.value)} className={inputClasses + " !py-3 !px-4"} placeholder="https://..." />
+                                       <button onClick={() => handleRemoveMultiLink('websites', idx)} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
+                                    </div>
+                                  ))}
+                               </div>
+                            </div>
+                         </div>
                       </div>
                    </div>
 
@@ -467,10 +591,77 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                               <div key={idx} className="flex items-center gap-3 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-fade-in group">
                                  <SocialIcon platformId={link.platformId} size={18} className="text-emerald-600" />
                                  <span className="text-[10px] font-black uppercase text-gray-500 max-w-[100px] truncate">{link.platform}</span>
-                                 <button type="button" onClick={() => removeSocialLink(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                                 <button type="button" onClick={() => removeSocialLinkUI(idx)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                               </div>
                             ))}
                          </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {activeTab === 'links' && (
+                <div className="space-y-8 animate-fade-in relative z-10">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 rounded-2xl shadow-sm">
+                            <ImagePlus size={24} />
+                         </div>
+                         <div>
+                            <h2 className="text-2xl font-black dark:text-white uppercase leading-none mb-1">{t('manageLinks')}</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('إضافة صور بروابط للمنتجات أو العروض', 'Add images with links for products or offers')}</p>
+                         </div>
+                      </div>
+                      <VisibilityToggle field="showSpecialLinks" label="Special Links" />
+                   </div>
+
+                   <div className="bg-purple-50/30 dark:bg-purple-900/5 p-6 rounded-[2.5rem] border border-purple-100 dark:border-purple-900/20 space-y-6">
+                      <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+                         <div className="w-full md:w-1/2">
+                            <label className={labelClasses}>{t('specialLinksCols')}</label>
+                            <div className="flex gap-2 p-1 bg-white dark:bg-gray-900 rounded-xl border dark:border-gray-700">
+                               {[1, 2, 3].map(val => (
+                                 <button key={val} type="button" onClick={() => handleChange('specialLinksCols', val)} className={`flex-1 py-2 rounded-lg font-black text-xs transition-all ${formData.specialLinksCols === val ? 'bg-purple-600 text-white shadow-md' : 'text-gray-400'}`}>{val}</button>
+                               ))}
+                            </div>
+                         </div>
+                         <button 
+                           type="button" 
+                           disabled={isUploadingLinkImg}
+                           onClick={() => specialLinkInputRef.current?.click()}
+                           className="w-full md:w-auto px-10 py-4 bg-purple-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+                         >
+                            {isUploadingLinkImg ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                            {t('addSpecialLink')}
+                         </button>
+                         <input type="file" ref={specialLinkInputRef} className="hidden" onChange={handleSpecialLinkUpload} accept="image/*" />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                         {(formData.specialLinks || []).map((link) => (
+                           <div key={link.id} className="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row gap-6 items-center animate-fade-in group">
+                              <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-gray-700">
+                                 <img src={link.imageUrl} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('العنوان (AR)', 'Title AR')}</label>
+                                    <input type="text" value={link.titleAr || ''} onChange={e => updateSpecialLink(link.id, 'titleAr', e.target.value)} className={inputClasses + " !py-3 !text-xs"} />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase px-1">{t('specialLinkUrl')}</label>
+                                    <input type="url" value={link.linkUrl} onChange={e => updateSpecialLink(link.id, 'linkUrl', e.target.value)} className={inputClasses + " !py-3 !text-xs"} placeholder="https://..." />
+                                 </div>
+                              </div>
+                              <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18}/></button>
+                           </div>
+                         ))}
+                         {(!formData.specialLinks || formData.specialLinks.length === 0) && (
+                            <div className="text-center py-10 opacity-30">
+                               <ImagePlus size={48} className="mx-auto mb-2" />
+                               <p className="text-xs font-black uppercase tracking-widest">{t('لا يوجد روابط مضافة', 'No links added yet')}</p>
+                            </div>
+                         )}
                       </div>
                    </div>
                 </div>
@@ -562,10 +753,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           <div className="flex flex-col sm:flex-row gap-3 pt-8 md:pt-10">
             <button 
               onClick={handleFinalSaveInternal}
-              disabled={isUploading || isUploadingBg}
+              disabled={isUploading || isUploadingBg || isUploadingLinkImg}
               className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
             >
-              { (isUploading || isUploadingBg) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
+              { (isUploading || isUploadingBg || isUploadingLinkImg) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
               {t('saveChanges')}
             </button>
             <button 

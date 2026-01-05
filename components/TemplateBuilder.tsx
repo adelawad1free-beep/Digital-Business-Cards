@@ -15,10 +15,10 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, Type, ShoppingCart
 } from 'lucide-react';
 
-type BuilderTab = 'header' | 'avatar' | 'body-style' | 'visuals' | 'elements' | 'design-system' | 'special-links' | 'social-lab' | 'qrcode' | 'special-features' | 'location';
+type BuilderTab = 'header' | 'avatar' | 'body-style' | 'visuals' | 'elements' | 'design-system' | 'special-links' | 'social-lab' | 'qrcode' | 'special-features' | 'location' | 'direct-links';
 
 interface TemplateBuilderProps {
   lang: Language;
@@ -134,6 +134,22 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       locationTextColor: '',
       locationBorderRadius: 24,
       locationGlassy: false,
+      locationPaddingV: 20,
+      locationAddressSize: 13,
+      linksSectionVariant: 'list',
+      linksSectionBgColor: '',
+      linksSectionTextColor: '',
+      linksSectionIconColor: '',
+      linksSectionRadius: 24,
+      linksSectionGlassy: false,
+      linksSectionOffsetY: 0,
+      linksSectionPadding: 0,
+      linksSectionGap: 12,
+      linksShowText: true,
+      linksShowBg: true,
+      linksWebsiteIconType: 'globe',
+      linksItemBgColor: '',
+      linksItemRadius: 16,
       showStarsByDefault: false,
       isVerifiedByDefault: false,
       hasGoldenFrameByDefault: false,
@@ -187,6 +203,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   });
 
   const [currentSpecialLinks, setCurrentSpecialLinks] = useState<SpecialLinkItem[]>(initialTemplate?.config.defaultThemeType ? [] : (SAMPLE_DATA[lang]?.specialLinks || []));
+  const [defaultEmails, setDefaultEmails] = useState<string[]>([]);
+  const [defaultWebsites, setDefaultWebsites] = useState<string[]>([]);
 
   useEffect(() => {
     getAllCategories().then(setCategories);
@@ -233,6 +251,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       bodyFeaturePaddingX: 0,
       specialLinksOffsetY: 0,
       locationOffsetY: 0,
+      linksSectionOffsetY: 0,
       spacing: 'normal',
       contentAlign: 'center'
     };
@@ -320,6 +339,24 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
   const removeSpecialLink = (id: string) => {
     setCurrentSpecialLinks(currentSpecialLinks.filter(l => l.id !== id));
+  };
+
+  const handleAddDefaultLink = (type: 'email' | 'website') => {
+    if (type === 'email') setDefaultEmails([...defaultEmails, '']);
+    else setDefaultWebsites([...defaultWebsites, '']);
+  };
+
+  const handleUpdateDefaultLink = (type: 'email' | 'website', index: number, val: string) => {
+    if (type === 'email') {
+      const copy = [...defaultEmails]; copy[index] = val; setDefaultEmails(copy);
+    } else {
+      const copy = [...defaultWebsites]; copy[index] = val; setDefaultWebsites(copy);
+    }
+  };
+
+  const handleRemoveDefaultLink = (type: 'email' | 'website', index: number) => {
+    if (type === 'email') setDefaultEmails(defaultEmails.filter((_, i) => i !== index));
+    else setDefaultWebsites(defaultWebsites.filter((_, i) => i !== index));
   };
 
   const sampleCardData = (SAMPLE_DATA[lang] || SAMPLE_DATA['en']) as CardData;
@@ -439,6 +476,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="elements" label={t('ألوان العناصر', 'Element Colors')} icon={Palette} />
           <NavItem id="design-system" label={t('هيكلة النصوص والتصميم', 'Structure & Typography')} icon={Settings2} />
           <NavItem id="special-links" label={t('specialLinks')} icon={ImagePlus} />
+          <NavItem id="direct-links" label={t('directLinksSection')} icon={LinkIcon} />
           <NavItem id="location" label={t('locationSection')} icon={MapIcon} />
           <NavItem id="social-lab" label={t('أيقونات التواصل', 'Social Icons Lab')} icon={Share2} />
           <NavItem id="qrcode" label={t('رمز الـ QR', 'QR Code Style')} icon={QrCode} />
@@ -495,7 +533,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            {id: 'minimal', icon: Minus, label: 'بسيط'},
                            {id: 'custom-asset', icon: FileCode, label: 'ملف خاص'}
                          ].map(item => (
-                           <button type="button" key={item.id} onClick={() => updateConfig('headerType', item.id)} className={`py-4 px-1 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <button type="button" key={item.id} onClick={() => updateConfig('headerType', item.id)} className={`py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
                              <item.icon size={20} /> 
                              <span className="text-[7px] font-black uppercase text-center leading-tight">{t(item.label, item.id)}</span>
                            </button>
@@ -727,7 +765,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                              className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.pageBgStrategy !== 'mirror-header' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white dark:bg-gray-800 text-gray-400'}`}
                           >
                              <Pipette size={18} />
-                             <span className="text-[9px] font-black uppercase">{t('لون ثابت', 'Solid Color')}</span>
+                             <span className="text-[9px] font-black uppercase">{t('لون ثابت', 'Solid')}</span>
                           </button>
                           <button 
                              type="button"
@@ -748,7 +786,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         />
                         {template.config.pageBgStrategy !== 'mirror-header' && (
                           <ColorPicker 
-                            label={t('لون خلفية الصفحة', 'Page Background')} 
+                            label={t('لون خلفية الصفحة', 'Page Bg Color')} 
                             value={template.config.pageBgColor || ''} 
                             onChange={(v: string) => updateConfig('pageBgColor', v)} 
                           />
@@ -801,8 +839,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                         <ToggleSwitch label={t('المسمى الوظيفي', 'Show Title')} value={template.config.showTitleByDefault} onChange={(v: boolean) => updateConfig('showTitleByDefault', v)} icon={Briefcase} />
                         <ToggleSwitch label={t('اسم الشركة', 'Show Company')} value={template.config.showCompanyByDefault} onChange={(v: boolean) => updateConfig('showCompanyByDefault', v)} icon={Box} />
                         <ToggleSwitch label={t('النبذة التعريفية', 'Show Bio')} value={template.config.showBioByDefault} onChange={(v: boolean) => updateConfig('showBioByDefault', v)} icon={FileText} />
-                        <ToggleSwitch label={t('البريد الإلكتروني', 'Show Email')} value={template.config.showEmailByDefault} onChange={(v: boolean) => updateConfig('showEmailByDefault', v)} icon={Mail} />
-                        <ToggleSwitch label={t('الموقع الإلكتروني', 'Show Website')} value={template.config.showWebsiteByDefault} onChange={(v: boolean) => updateConfig('showWebsiteByDefault', v)} icon={Globe} />
                         <ToggleSwitch label={t('رقم الهاتف', 'Show Phone')} value={template.config.showPhoneByDefault} onChange={(v: boolean) => updateConfig('showPhoneByDefault', v)} icon={Phone} />
                         <ToggleSwitch label={t('رقم الواتساب', 'Show WhatsApp')} value={template.config.showWhatsappByDefault} onChange={(v: boolean) => updateConfig('showWhatsappByDefault', v)} icon={MessageCircle} />
                         <ToggleSwitch label={t('روابط السوشيال', 'Show Socials')} value={template.config.showSocialLinksByDefault} onChange={(v: boolean) => updateConfig('showSocialLinksByDefault', v)} icon={Share2} />
@@ -837,8 +873,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            <RangeControl label={t('إزاحة الاسم', 'Name Y')} min={-100} max={150} value={template.config.nameOffsetY} onChange={(v: number) => updateConfig('nameOffsetY', v)} icon={MousePointer2} />
                            <RangeControl label={t('إزاحة المسمى الوظيفي', 'Title Y')} min={-100} max={150} value={template.config.titleOffsetY || 0} onChange={(v: number) => updateConfig('titleOffsetY', v)} icon={MousePointer2} />
                            <RangeControl label={t('إزاحة النبذة', 'Bio Y')} min={-100} max={150} value={template.config.bioOffsetY} onChange={(v: number) => updateConfig('bioOffsetY', v)} icon={MousePointer2} />
-                           <RangeControl label={t('إزاحة البريد الإلكتروني', 'Email Y')} min={-100} max={150} value={template.config.emailOffsetY} onChange={(v: number) => updateConfig('emailOffsetY', v)} icon={Mail} />
-                           <RangeControl label={t('إزاحة الموقع الإلكتروني', 'Website Y')} min={-100} max={150} value={template.config.websiteOffsetY} onChange={(v: number) => updateConfig('websiteOffsetY', v)} icon={Globe} />
                            <RangeControl label={t('إزاحة أزرار التواصل', 'Contact Buttons Y')} min={-100} max={150} value={template.config.contactButtonsOffsetY} onChange={(v: number) => updateConfig('contactButtonsOffsetY', v)} icon={MessageCircle} />
                            <RangeControl label={t('إزاحة روابط السوشيال', 'Social Links Y')} min={-100} max={150} value={template.config.socialLinksOffsetY} onChange={(v: number) => updateConfig('socialLinksOffsetY', v)} icon={Share2} />
                         </div>
@@ -893,8 +927,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                        <div className="grid grid-cols-1 gap-4">
                           {currentSpecialLinks.map((link) => (
-                             <div key={link.id} className="flex flex-col md:flex-row gap-6 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 animate-fade-in group">
-                                <div className="w-24 h-24 shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-gray-600">
+                             <div key={link.id} className="flex flex-col md:flex-row gap-6 p-6 bg-gray-900 rounded-[2.5rem] border border-gray-600 animate-fade-in group">
+                                <div className="w-24 h-24 shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-gray-600">
                                    <img src={link.imageUrl} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -905,7 +939,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                         value={link.linkUrl} 
                                         onChange={e => updateSpecialLink(link.id, 'linkUrl', e.target.value)} 
                                         placeholder="https://..." 
-                                        className="w-full px-5 py-3 rounded-2xl bg-gray-900 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
+                                        className="w-full px-5 py-3 rounded-2xl bg-gray-800 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
                                       />
                                    </div>
                                    <div className="space-y-1">
@@ -914,18 +948,112 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                         type="text" 
                                         value={link.titleAr || ''} 
                                         onChange={e => updateSpecialLink(link.id, 'titleAr', e.target.value)} 
-                                        className="w-full px-5 py-3 rounded-2xl bg-gray-900 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
+                                        className="w-full px-5 py-3 rounded-2xl bg-gray-800 border border-gray-700 text-xs font-bold text-gray-300 placeholder:text-gray-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-center" 
                                         placeholder={isRtl ? 'أدخل عنوان الرابط' : 'Link Title'}
                                       />
                                    </div>
                                 </div>
-                                <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all self-center"><Trash2 size={18} /></button>
+                                <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all self-center"><Trash2 size={18} /></button>
                              </div>
                           ))}
                        </div>
                     </div>
                   </div>
                </div>
+            )}
+
+            {activeTab === 'direct-links' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl"><LinkIcon size={24} /></div>
+                       <h2 className="text-2xl font-black dark:text-white uppercase tracking-widest">{t('directLinksSection')}</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <ToggleSwitch label={t('إظهار البريد', 'Show Email')} value={template.config.showEmailByDefault} onChange={(v: boolean) => updateConfig('showEmailByDefault', v)} icon={Mail} />
+                          <ToggleSwitch label={t('إظهار الموقع', 'Show Website')} value={template.config.showWebsiteByDefault} onChange={(v: boolean) => updateConfig('showWebsiteByDefault', v)} icon={ShoppingCart} />
+                       </div>
+
+                       <div className="pt-6 space-y-4">
+                          <label className={labelTextClasses}>{t('أيقونة الموقع الافتراضية', 'Website Icon Type')}</label>
+                          <div className="grid grid-cols-2 gap-2">
+                             <button onClick={() => updateConfig('linksWebsiteIconType', 'globe')} className={`py-3 rounded-xl border-2 transition-all font-black text-[9px] uppercase flex items-center justify-center gap-2 ${template.config.linksWebsiteIconType !== 'store' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <Globe size={14} />
+                                {t('موقع إلكتروني', 'Website')}
+                             </button>
+                             <button onClick={() => updateConfig('linksWebsiteIconType', 'store')} className={`py-3 rounded-xl border-2 transition-all font-black text-[9px] uppercase flex items-center justify-center gap-2 ${template.config.linksWebsiteIconType === 'store' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <ShoppingCart size={14} />
+                                {t('متجر إلكتروني', 'Online Store')}
+                             </button>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t dark:border-gray-800">
+                          {/* إضافة روابط افتراضية للقالب من الإدارة */}
+                          <div className="space-y-4">
+                             <div className="flex justify-between items-center px-1">
+                                <label className={labelTextClasses + " !mb-0"}>{t('إيميلات افتراضية للقالب', 'Default Emails')}</label>
+                                <button onClick={() => handleAddDefaultLink('email')} className="p-1.5 bg-blue-600 text-white rounded-lg hover:scale-110 transition-all"><Plus size={14}/></button>
+                             </div>
+                             <div className="space-y-2">
+                                {defaultEmails.map((em, idx) => (
+                                  <div key={idx} className="flex gap-2 animate-fade-in">
+                                     <input type="email" value={em} onChange={e => handleUpdateDefaultLink('email', idx, e.target.value)} className="w-full px-4 py-2 rounded-xl bg-gray-50 border text-xs font-bold" />
+                                     <button onClick={() => handleRemoveDefaultLink('email', idx)} className="p-2 text-red-500"><X size={16}/></button>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+
+                          <div className="space-y-4">
+                             <div className="flex justify-between items-center px-1">
+                                <label className={labelTextClasses + " !mb-0"}>{t('مواقع افتراضية للقالب', 'Default Websites')}</label>
+                                <button onClick={() => handleAddDefaultLink('website')} className="p-1.5 bg-indigo-600 text-white rounded-lg hover:scale-110 transition-all"><Plus size={14}/></button>
+                             </div>
+                             <div className="space-y-2">
+                                {defaultWebsites.map((web, idx) => (
+                                  <div key={idx} className="flex gap-2 animate-fade-in">
+                                     <input type="url" value={web} onChange={e => handleUpdateDefaultLink('website', idx, e.target.value)} className="w-full px-4 py-2 rounded-xl bg-gray-50 border text-xs font-bold" />
+                                     <button onClick={() => handleRemoveDefaultLink('website', idx)} className="p-2 text-red-500"><X size={16}/></button>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t dark:border-gray-800">
+                          <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('linksSectionRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('انحناء حواف الروابط', 'Item Radius')} min={0} max={50} value={template.config.linksItemRadius ?? 16} onChange={(v: number) => updateConfig('linksItemRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-200} max={200} value={template.config.linksSectionOffsetY || 0} onChange={(v: number) => updateConfig('linksSectionOffsetY', v)} icon={Move} />
+                          <RangeControl label={t('المساحة الداخلية', 'Section Padding')} min={0} max={40} value={template.config.linksSectionPadding || 0} onChange={(v: number) => updateConfig('linksSectionPadding', v)} icon={Maximize2} />
+                          <RangeControl label={t('المسافة بين الروابط', 'Links Gap')} min={4} max={40} value={template.config.linksSectionGap || 12} onChange={(v: number) => updateConfig('linksSectionGap', v)} icon={SlidersHorizontal} />
+                       </div>
+
+                       <div className="pt-6 space-y-4">
+                          <label className={labelTextClasses}>{t('نمط العرض', 'Layout Style')}</label>
+                          <div className="grid grid-cols-3 gap-2">
+                             {['list', 'grid', 'pills'].map(v => (
+                                <button key={v} onClick={() => updateConfig('linksSectionVariant', v)} className={`py-3 rounded-xl border-2 transition-all font-black text-[9px] uppercase ${template.config.linksSectionVariant === v ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                   {t(v, v.toUpperCase())}
+                                </button>
+                             ))}
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in pt-6 border-t dark:border-gray-800">
+                          <ToggleSwitch label={t('linksShowText')} value={template.config.linksShowText} onChange={(v: boolean) => updateConfig('linksShowText', v)} icon={TypographyIcon} />
+                          <ToggleSwitch label={t('linksShowBg')} value={template.config.linksShowBg} onChange={(v: boolean) => updateConfig('linksShowBg', v)} icon={Box} />
+                          <ToggleSwitch label={t('نمط زجاجي', 'Glassy Style')} value={template.config.linksSectionGlassy} onChange={(v: boolean) => updateConfig('linksSectionGlassy', v)} icon={GlassWater} color="bg-blue-500" />
+                          <ColorPicker label={t('لون خلفية القسم', 'Section Background')} value={template.config.linksSectionBgColor} onChange={(v: string) => updateConfig('linksSectionBgColor', v)} />
+                          <ColorPicker label={t('لون أرضية الأيقونة', 'Item Background Color')} value={template.config.linksItemBgColor} onChange={(v: string) => updateConfig('linksItemBgColor', v)} />
+                          <ColorPicker label={t('لون الأيقونة', 'Icon Color')} value={template.config.linksSectionIconColor} onChange={(v: string) => updateConfig('linksSectionIconColor', v)} />
+                          <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.linksSectionTextColor} onChange={(v: string) => updateConfig('linksSectionTextColor', v)} />
+                       </div>
+                    </div>
+                 </div>
+              </div>
             )}
 
             {activeTab === 'location' && (
@@ -940,15 +1068,17 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <ToggleSwitch label={t('تفعيل عرض الموقع', 'Show Location Section')} value={template.config.showLocationByDefault} onChange={(v: boolean) => updateConfig('showLocationByDefault', v)} icon={Eye} />
                        
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <RangeControl label={t('انحناء الحواف', 'Border Radius')} min={0} max={60} value={template.config.locationBorderRadius ?? 24} onChange={(v: number) => updateConfig('locationBorderRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('انحناء حواف الصندوق', 'Border Radius')} min={0} max={60} value={template.config.locationBorderRadius ?? 24} onChange={(v: number) => updateConfig('locationBorderRadius', v)} icon={Ruler} />
                           <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-100} max={150} value={template.config.locationOffsetY || 0} onChange={(v: number) => updateConfig('locationOffsetY', v)} icon={Move} />
+                          <RangeControl label={t('تضييق الارتفاع (المساحة الداخلية)', 'Vertical Padding')} min={4} max={60} value={template.config.locationPaddingV ?? 20} onChange={(v: number) => updateConfig('locationPaddingV', v)} icon={Maximize2} />
+                          <RangeControl label={t('حجم خط العنوان التفصيلي', 'Address Font Size')} min={8} max={20} value={template.config.locationAddressSize ?? 13} onChange={(v: number) => updateConfig('locationAddressSize', v)} icon={TypographyIcon} />
                        </div>
 
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
-                          <ColorPicker label={t('لون الخلفية', 'Background Color')} value={template.config.locationBgColor} onChange={(v: string) => updateConfig('locationBgColor', v)} />
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in pt-4 border-t dark:border-gray-800">
+                          <ToggleSwitch label={t('نمط زجاجي', 'Glassy Style')} value={template.config.locationGlassy} onChange={(v: boolean) => updateConfig('locationGlassy', v)} icon={GlassWater} color="bg-blue-500" />
+                          <ColorPicker label={t('لون خلفية', 'Background Color')} value={template.config.locationBgColor} onChange={(v: string) => updateConfig('locationBgColor', v)} />
                           <ColorPicker label={t('لون الأيقونة', 'Icon Color')} value={template.config.locationIconColor} onChange={(v: string) => updateConfig('locationIconColor', v)} />
                           <ColorPicker label={t('لون النص', 'Text Color')} value={template.config.locationTextColor} onChange={(v: string) => updateConfig('locationTextColor', v)} />
-                          <ToggleSwitch label={t('نمط زجاجي', 'Glassy Style')} value={template.config.locationGlassy} onChange={(v: boolean) => updateConfig('locationGlassy', v)} icon={GlassWater} color="bg-blue-500" />
                        </div>
                     </div>
                  </div>
@@ -1042,7 +1172,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        <div className="flex gap-4 items-start border-b dark:border-white/5 pb-6">
                           <AlertTriangle size={24} className="text-amber-500 shrink-0" />
                           <div className="space-y-1">
-                             <h4 className="text-xs font-black dark:text-white">{isRtl ? 'تحكم في الميزات الخاصة للبطاقة' : 'Control Card Special Features'}</h4>
+                             <h4 className="text-xs font-black dark:text-white">{isRtl ? 'تحكم في الميزات خاصة للبطاقة' : 'Control Card Special Features'}</h4>
                              <p className="text-[10px] font-bold text-gray-500 leading-relaxed">
                                 {isRtl 
                                   ? 'هذا القسم يسمح لك بتفعيل ميزات مرئية إضافية تجعل القالب فريداً واحترافياً للغاية.' 
@@ -1172,7 +1302,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        showSpecialLinks: template.config.showSpecialLinksByDefault,
                        showLocation: template.config.showLocationByDefault,
                        location: isRtl ? 'عنوان الموقع الجغرافي الافتراضي' : 'Default Location Address',
-                       locationUrl: 'https://maps.google.com'
+                       locationUrl: 'https://maps.google.com',
+                       linksShowText: template.config.linksShowText,
+                       linksShowBg: template.config.linksShowBg,
+                       emails: defaultEmails.length > 0 ? defaultEmails : sampleCardData.emails,
+                       websites: defaultWebsites.length > 0 ? defaultWebsites : sampleCardData.websites
                      } as any} 
                      lang={lang} 
                      customConfig={template.config} 
@@ -1187,13 +1321,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showSaveModal && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-gray-900 w-full max-xl rounded-[3.5rem] shadow-2xl border dark:border-gray-800 overflow-hidden p-8 space-y-8 animate-zoom-in">
+           <div className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 space-y-8 animate-zoom-in">
               <div className="flex justify-between items-center">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
                  <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
               </div>
               <div className="space-y-6">
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                        <label className={labelTextClasses}>{t('الاسم (AR)', 'Name (AR)')}</label>
                        <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className={inputClasses} />
@@ -1204,7 +1338,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
                  </div>
                  
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                        <label className={labelTextClasses}>{t('القسم (Category)', 'Section Category')}</label>
                        <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className={inputClasses}>
@@ -1218,17 +1352,19 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
                  </div>
 
-                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                       <Star className={template.isFeatured ? "text-amber-500" : "text-gray-300"} size={20} fill={template.isFeatured ? "currentColor" : "none"} />
-                       <span className="text-[11px] font-black uppercase tracking-widest dark:text-white">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
+                 <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-[1.8rem] border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <div className={`p-3 rounded-xl ${template.isFeatured ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          <Star size={20} fill={template.isFeatured ? "currentColor" : "none"} />
+                       </div>
+                       <span className="text-xs font-black uppercase tracking-widest dark:text-white">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
                     </div>
-                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-12 h-6 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-50 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-7' : 'right-1') : (template.isFeatured ? 'left-7' : 'left-1')}`} />
+                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-14 h-7 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-8' : 'right-1') : (template.isFeatured ? 'left-8' : 'left-1')}`} />
                     </button>
                  </div>
               </div>
-              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>
+              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl hover:scale-[1.01] active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>
            </div>
         </div>
       )}
@@ -1253,7 +1389,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                 </button>
                 <button 
                   onClick={() => setShowResetConfirm(false)}
-                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase transition-all"
+                  className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-3xl font-black text-sm uppercase transition-all"
                 >
                   {t('إلغاء', 'Cancel')}
                 </button>

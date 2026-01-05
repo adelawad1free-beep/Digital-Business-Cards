@@ -1,5 +1,5 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon, Link as LinkIcon, ShoppingCart } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
@@ -80,11 +80,45 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const phoneBtnColor = data.contactPhoneColor || config.contactPhoneColor || '#2563eb';
   const whatsappBtnColor = data.contactWhatsappColor || config.contactWhatsappColor || '#10b981';
 
-  // Geographical Location Colors
-  const locBg = config.locationBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.05)');
+  const hexToRgb = (hex: string) => {
+    hex = (hex || '#000000').replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 4), 16) || 0;
+    const b = parseInt(hex.substring(4, 6), 16) || 0;
+    return { r, g, b, string: `${r}, ${g}, ${b}` };
+  };
+
+  // --- Location Section Config ---
+  const isLocGlassy = config.locationGlassy;
+  let locBg = config.locationBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.05)');
+  if (isLocGlassy && locBg.startsWith('#')) {
+    const rgb = hexToRgb(locBg);
+    locBg = `rgba(${rgb.string}, 0.2)`;
+  }
   const locIconColor = config.locationIconColor || themeColor;
   const locTextColor = config.locationTextColor || (isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.8)');
   const locRadius = config.locationBorderRadius ?? 24;
+  const locPaddingV = config.locationPaddingV ?? 20; // التحكم في ارتفاع الجسم
+  const locAddressSize = config.locationAddressSize ?? 13; // تصغير حجم خط العنوان
+
+  // --- Direct Links Section Config ---
+  const dLinksShowBg = data.linksShowBg ?? config.linksShowBg ?? true;
+  const dLinksShowText = data.linksShowText ?? config.linksShowText ?? true;
+  const isDLinksGlassy = config.linksSectionGlassy;
+  
+  let dLinksSectionBg = config.linksSectionBgColor || (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)');
+  if (isDLinksGlassy && dLinksSectionBg.startsWith('#')) {
+    const rgb = hexToRgb(dLinksSectionBg);
+    dLinksSectionBg = `rgba(${rgb.string}, 0.2)`;
+  }
+
+  const dLinksTextColor = config.linksSectionTextColor || (isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.8)');
+  const dLinksIconColor = config.linksSectionIconColor || themeColor;
+  const dLinksRadius = config.linksSectionRadius ?? 24;
+  const dLinksVariant = config.linksSectionVariant || 'list';
+  const dLinksItemBg = config.linksItemBgColor || (isDark ? 'rgba(255,255,255,0.1)' : '#ffffff');
+  const dLinksItemRadius = config.linksItemRadius ?? (dLinksVariant === 'pills' ? 999 : 16);
 
   // Special Features Overrides/Checks
   const isVerified = data.isVerified ?? config.isVerifiedByDefault;
@@ -206,15 +240,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
-  const hexToRgb = (hex: string) => {
-    hex = (hex || '#000000').replace('#', '');
-    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-    const r = parseInt(hex.substring(0, 2), 16) || 0;
-    const g = parseInt(hex.substring(2, 4), 16) || 0;
-    const b = parseInt(hex.substring(4, 6), 16) || 0;
-    return `${r}, ${g}, ${b}`;
-  };
-
   const finalCardBgColor = data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff');
 
   const showAnimatedBorder = config.avatarAnimatedBorder;
@@ -282,11 +307,17 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return inner ? 'rounded-[22%]' : 'rounded-[28%]';
   };
 
-  const slCols = config.specialLinksCols || 2;
+  /* Use data.specialLinksCols override if present to fix TS errors and support user customization */
+  const slCols = data.specialLinksCols || config.specialLinksCols || 2;
   const slGap = config.specialLinksGap || 12;
   const slRadius = config.specialLinksRadius ?? 24;
   const slAspect = config.specialLinksAspectRatio || 'square';
   const slOffsetY = config.specialLinksOffsetY || 0;
+
+  // استخراج قوائم الإيميلات والمواقع
+  const finalEmails = data.emails && data.emails.length > 0 ? data.emails : (data.email ? [data.email] : []);
+  const finalWebsites = data.websites && data.websites.length > 0 ? data.websites : (data.website ? [data.website] : []);
+  const hasDirectLinks = (showEmail && finalEmails.length > 0) || (showWebsite && finalWebsites.length > 0);
 
   return (
     <div 
@@ -321,7 +352,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                  transform: `translate(${config.avatarOffsetX || 0}px, ${config.avatarOffsetY || 0}px)`,
                  padding: `${config.avatarBorderWidth ?? 4}px`, 
                  backgroundColor: showAnimatedBorder ? 'transparent' : (config.avatarBorderColor || '#ffffff'),
-                 boxShadow: config.avatarAnimatedGlow ? `0 0 20px rgba(${hexToRgb(borderClr1)}, 0.5)` : '0 20px 40px rgba(0,0,0,0.1)'
+                 boxShadow: config.avatarAnimatedGlow ? `0 0 20px rgba(${hexToRgb(borderClr1).string}, 0.5)` : '0 20px 40px rgba(0,0,0,0.1)'
                }}>
             
             {showAnimatedBorder && (
@@ -380,9 +411,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                  minHeight: `${featureHeight}px`,
                  backdropFilter: isFeatureGlassy ? 'blur(10px)' : 'none',
                  WebkitBackdropFilter: isFeatureGlassy ? 'blur(10px)' : 'none',
-                 border: isFeatureGlassy ? `1px solid rgba(${hexToRgb(featureBg)}, 0.3)` : 'none',
+                 border: isFeatureGlassy ? `1px solid rgba(${hexToRgb(featureBg).string}, 0.3)` : 'none',
                  background: isFeatureGlassy 
-                    ? `rgba(${hexToRgb(featureBg)}, 0.15)` 
+                    ? `rgba(${hexToRgb(featureBg).string}, 0.15)` 
                     : featureBg
                }}
              >
@@ -401,18 +432,66 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
              </div>
            )}
 
-           <div className="space-y-3 pt-6">
-              {showEmail && data.email && (
-                <a href={`mailto:${data.email}`} className="flex items-center gap-3 justify-center text-sm font-bold opacity-60 hover:opacity-100 transition-opacity" style={{ color: linksColor, transform: `translateY(${config.emailOffsetY || 0}px)` }}>
-                  <Mail size={16} /> {data.email}
-                </a>
-              )}
-              {showWebsite && data.website && (
-                <a href={data.website} target="_blank" className="flex items-center gap-3 justify-center text-sm font-bold opacity-60 hover:opacity-100 transition-opacity" style={{ color: linksColor, transform: `translateY(${config.websiteOffsetY || 0}px)` }}>
-                  <Globe size={16} /> {data.website}
-                </a>
-              )}
-           </div>
+           {/* Direct Links Section (Email & Website) */}
+           {hasDirectLinks ? (
+              <div 
+                className={`w-full px-2 animate-fade-in-up flex flex-col items-center gap-3`}
+                style={{ 
+                  transform: `translateY(${config.linksSectionOffsetY || 0}px)`,
+                  padding: `${config.linksSectionPadding || 0}px`
+                }}
+              >
+                <div 
+                  className={`w-full transition-all duration-500 flex flex-col items-center ${dLinksShowBg ? 'p-6 shadow-xl' : 'p-0 shadow-none'}`}
+                  style={{ 
+                    borderRadius: `${dLinksRadius}px`,
+                    backgroundColor: dLinksSectionBg,
+                    backdropFilter: (dLinksShowBg && isDLinksGlassy) ? 'blur(15px)' : 'none',
+                    WebkitBackdropFilter: (dLinksShowBg && isDLinksGlassy) ? 'blur(15px)' : 'none',
+                    border: (isDark && dLinksShowBg) ? '1px solid rgba(255,255,255,0.1)' : (!isDark && dLinksShowBg ? '1px solid rgba(0,0,0,0.05)' : 'none')
+                  }}
+                >
+                   <div className={`flex flex-wrap items-center justify-center gap-4 ${dLinksVariant === 'grid' ? 'grid grid-cols-2' : (dLinksVariant === 'pills' ? 'flex-row' : 'flex-col')} w-full`}>
+                      {showEmail && finalEmails.map((email, idx) => (
+                        <a 
+                          key={`em-${idx}`}
+                          href={`mailto:${email}`} 
+                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10'}`} 
+                          style={{ 
+                            color: dLinksTextColor, 
+                            backgroundColor: dLinksItemBg,
+                            borderRadius: `${dLinksItemRadius}px` 
+                          }}
+                        >
+                          <div className={`shrink-0 ${dLinksVariant === 'pills' ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
+                            <Mail size={18} />
+                          </div>
+                          {dLinksShowText && <span className="break-all text-start leading-tight">{email}</span>}
+                        </a>
+                      ))}
+                      {showWebsite && finalWebsites.map((web, idx) => (
+                        <a 
+                          key={`web-${idx}`}
+                          href={web.startsWith('http') ? web : `https://${web}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10'}`} 
+                          style={{ 
+                            color: dLinksTextColor, 
+                            backgroundColor: dLinksItemBg,
+                            borderRadius: `${dLinksItemRadius}px`
+                          }}
+                        >
+                          <div className={`shrink-0 ${dLinksVariant === 'pills' ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
+                            {config.linksWebsiteIconType === 'store' ? <ShoppingCart size={18} /> : <Globe size={18} />}
+                          </div>
+                          {dLinksShowText && <span className="break-all text-start leading-tight">{web}</span>}
+                        </a>
+                      ))}
+                   </div>
+                </div>
+              </div>
+           ) : null}
 
            {hasContactButtons && (
               <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
@@ -473,25 +552,29 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                <a 
                  href={data.locationUrl} 
                  target="_blank" 
-                 className={`flex items-center gap-4 p-5 md:p-6 transition-all duration-500 hover:scale-[1.02] shadow-xl group relative overflow-hidden`}
+                 className={`flex items-center gap-4 transition-all duration-500 hover:scale-[1.02] shadow-xl group relative overflow-hidden`}
                  style={{ 
                    borderRadius: `${locRadius}px`, 
                    backgroundColor: locBg,
-                   backdropFilter: config.locationGlassy ? 'blur(10px)' : 'none',
-                   WebkitBackdropFilter: config.locationGlassy ? 'blur(10px)' : 'none',
-                   border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'
+                   paddingTop: `${locPaddingV}px`,
+                   paddingBottom: `${locPaddingV}px`,
+                   paddingLeft: '20px',
+                   paddingRight: '20px',
+                   backdropFilter: isLocGlassy ? 'blur(15px)' : 'none',
+                   WebkitBackdropFilter: isLocGlassy ? 'blur(15px)' : 'none',
+                   border: (isDark) ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'
                  }}
                >
                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                 <div className="p-3.5 bg-white dark:bg-gray-800 rounded-2xl shadow-md text-blue-600 transition-transform group-hover:rotate-12" style={{ color: locIconColor }}>
-                   <MapIcon size={24} />
+                 <div className="p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-md text-blue-600 transition-transform group-hover:rotate-12" style={{ color: locIconColor }}>
+                   <MapIcon size={22} />
                  </div>
-                 <div className="flex-1 text-start">
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">{t('locationSection')}</h4>
-                   <p className="text-sm font-black dark:text-white truncate" style={{ color: locTextColor }}>{data.location || t('visitUs')}</p>
+                 <div className="flex-1 text-start min-w-0">
+                   <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1 leading-none">{t('locationSection')}</h4>
+                   <p className="font-bold dark:text-white truncate leading-tight" style={{ color: locTextColor, fontSize: `${locAddressSize}px` }}>{data.location || t('visitUs')}</p>
                  </div>
                  <div className="shrink-0 p-2 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-600/20 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0" style={{ backgroundColor: themeColor }}>
-                   <Navigation2 size={16} />
+                   <Navigation2 size={14} />
                  </div>
                </a>
              </div>
