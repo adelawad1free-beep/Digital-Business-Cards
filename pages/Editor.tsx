@@ -260,6 +260,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const labelClasses = "block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-widest px-1";
 
   const handleFinalSaveInternal = () => {
+    if (!auth.currentUser) {
+      setShowAuthWarning(true);
+      return;
+    }
     if (isUploading || isUploadingBg) {
       alert(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
       return;
@@ -280,10 +284,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                  <UserIcon size={40} />
               </div>
               <h3 className="text-xl font-black dark:text-white leading-relaxed">
-                 {isRtl ? "لرفع صورة خاصة الرجاء التسجيل في الموقع" : "To upload a custom image, please register on the site"}
+                 {isRtl ? "لحفظ بطاقتك وتعديلها الرجاء تسجيل الدخول أو إنشاء حساب" : "To save and customize your card, please login or register"}
               </h3>
               <p className="text-xs font-bold text-gray-400 leading-relaxed">
-                 {isRtl ? "سجل حسابك الآن لتتمكن من تخصيص بطاقتك بصورك الشخصية وخلفياتك الخاصة." : "Sign up now to customize your card with your personal photos and custom backgrounds."}
+                 {isRtl ? "سجل حسابك الآن لتتمكن من حفظ هويتك الرقمية ومشاركتها مع العالم وتعديلها في أي وقت." : "Register now to save your digital identity, share it with the world, and edit it anytime."}
               </p>
               <div className="flex flex-col gap-3 pt-4">
                  <button 
@@ -749,7 +753,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
       {showMobilePreview && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-[#0a0a0c] w-full max-w-sm rounded-[3.5rem] overflow-hidden flex flex-col h-[90vh]">
+           <div className="bg-white dark:bg-[#0a0a0c] w-full max-sm rounded-[3.5rem] overflow-hidden flex flex-col h-[90vh]">
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
                  <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>

@@ -18,13 +18,33 @@ import { auth, getCardBySerial, saveCardToDB, ADMIN_EMAIL, getUserCards, getSite
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { Sun, Moon, Loader2, Plus, User as UserIcon, LogIn, AlertCircle, Home as HomeIcon, LayoutGrid, CreditCard, Mail, Coffee, Heart, Trash2 } from 'lucide-react';
 
+/**
+ * وظيفة للتعرف على لغة المتصفح ومطابقتها مع اللغات المدعومة
+ */
+const getBrowserLanguage = (): Language => {
+  const supportedLanguages = Object.keys(LANGUAGES_CONFIG);
+  const browserLang = navigator.language.split('-')[0]; // الحصول على أول جزئين مثل 'en' من 'en-US'
+  
+  if (supportedLanguages.includes(browserLang)) {
+    return browserLang as Language;
+  }
+  
+  // الافتراضي في حال عدم المطابقة
+  return 'ar';
+};
+
 const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
   
   const langParam = params.lang as Language;
-  const lang = (Object.keys(LANGUAGES_CONFIG).includes(langParam) ? langParam : (localStorage.getItem('preferred_lang') as Language || 'ar')) as Language;
+  
+  // تحديد اللغة: الأولوية للرابط، ثم الذاكرة المحلية، ثم لغة المتصفح
+  const lang = (Object.keys(LANGUAGES_CONFIG).includes(langParam) 
+    ? langParam 
+    : (localStorage.getItem('preferred_lang') as Language || getBrowserLanguage())
+  ) as Language;
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userCards, setUserCards] = useState<CardData[]>([]);
@@ -66,7 +86,6 @@ const AppContent: React.FC = () => {
   const handleCloseShare = () => {
     setShowShareModal(false);
     setSharingData(null);
-    // بعد إغلاق نافذة المشاركة، نعود لقائمة البطاقات
     navigateWithLang('/my-cards');
   };
 
@@ -267,7 +286,6 @@ const AppContent: React.FC = () => {
                 await saveCardToDB({cardData: d, oldId}); 
                 setSharingData(d);
                 setShowShareModal(true);
-                // تحديث قائمة البطاقات محلياً بدلاً من إعادة التحميل
                 if (currentUser) {
                   const updatedCards = await getUserCards(currentUser.uid);
                   setUserCards(updatedCards as CardData[]);
@@ -295,11 +313,12 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const browserLang = getBrowserLanguage();
   return (
     <HashRouter>
       <Routes>
         <Route path="/:lang/*" element={<AppContent />} />
-        <Route path="/" element={<Navigate to="/ar/" replace />} />
+        <Route path="/" element={<Navigate to={`/${browserLang}/`} replace />} />
       </Routes>
     </HashRouter>
   );
