@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'ar' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'ru' | 'hi';
 
 export interface SocialLink {
@@ -35,6 +36,7 @@ export interface TemplateConfig {
   avatarOffsetX: number;
   avatarBorderWidth?: number;
   avatarBorderColor?: string;
+  avatarBorderRadius?: number;
   avatarAnimatedBorder?: boolean;
   avatarAnimatedBorderColor1?: string;
   avatarAnimatedBorderColor2?: string;
@@ -215,6 +217,7 @@ export interface TemplateConfig {
   defaultCompany?: string;
   defaultNameSize?: number;
   defaultIsDark?: boolean;
+  cardBodyColor?: string;
   cardBgColor?: string; 
   pageBgColor?: string; 
   pageBgStrategy?: PageBgStrategy; 
@@ -329,6 +332,7 @@ export interface CardData {
   qrBorderWidth?: number;
   qrBorderColor?: string;
   qrBorderRadius?: number;
+  cardBodyColor?: string;
   cardBgColor?: string; 
   pageBgColor?: string;
   pageBgStrategy?: PageBgStrategy;

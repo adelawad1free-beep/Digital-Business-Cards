@@ -111,6 +111,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          themeGradient: selectedTmpl.config.defaultThemeGradient || baseData.themeGradient,
          backgroundImage: selectedTmpl.config.defaultBackgroundImage || baseData.backgroundImage,
          isDark: selectedTmpl.config.defaultIsDark ?? baseData.isDark,
+         cardBodyColor: selectedTmpl.config.cardBodyColor || '',
+         cardBgColor: selectedTmpl.config.cardBgColor || '',
          pageBgColor: selectedTmpl.config.pageBgColor || '',
          showOccasion: false,
          showName: selectedTmpl.config.showNameByDefault ?? true,
@@ -341,7 +343,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
             <input 
               type="color" 
               value={(formData[field] as string) || '#3b82f6'} 
-              onChange={(e) => handleChange(field, e.target.value)} 
+              onChange={(v) => handleChange(field, v.target.value)} 
               className="absolute inset-0 opacity-0 cursor-pointer scale-150" 
             />
             <div className="w-full h-full" style={{ backgroundColor: (formData[field] as string) || '#3b82f6' }} />
@@ -511,7 +513,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                           type="button" 
                           onClick={handleCheckSlug}
                           disabled={isCheckingSlug}
-                          className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border-2 border-emerald-500`}
+                          className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-2 border-emerald-500`}
                         >
                            {isCheckingSlug ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                            {t('تحقق', 'Verify')}

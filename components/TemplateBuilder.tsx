@@ -15,7 +15,7 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, Type, ShoppingCart, Quote, User, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, ShoppingCart, Quote, User as UserIcon, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone
 } from 'lucide-react';
 
 type BuilderTab = 'header' | 'body-style' | 'avatar' | 'visuals' | 'bio-lab' | 'identity-lab' | 'direct-links' | 'contact-lab' | 'desktop-lab' | 'special-links' | 'location' | 'social-lab' | 'qrcode' | 'special-features';
@@ -187,7 +187,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       defaultTitle: '',
       defaultCompany: '',
       defaultIsDark: false,
-      cardBgColor: '', 
+      cardBodyColor: '#ffffff',
+      cardBgColor: '#f1f5f9', 
       pageBgColor: '',
       pageBgStrategy: 'solid',
       desktopLayout: 'centered-card',
@@ -394,7 +395,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
              {Icon && <Icon size={14} />}
            </div>
            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{label}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
               {hint && <span className="text-[8px] text-gray-400 font-bold">{hint}</span>}
            </div>
         </div>
@@ -518,7 +519,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="body-style" label={t('جسم البطاقة', 'Card Body Style')} icon={Box} />
           <NavItem id="avatar" label={t('الصورة الشخصية', 'Avatar Style')} icon={Circle} />
           <NavItem id="visuals" label={t('الألوان والسمة', 'Colors & Theme')} icon={Palette} />
-          <NavItem id="identity-lab" label={t('بيانات الهوية', 'Identity Details')} icon={User} />
+          <NavItem id="identity-lab" label={t('بيانات الهوية', 'Identity Details')} icon={UserIcon} />
           <NavItem id="bio-lab" label={t('النبذة المهنية', 'Professional Bio')} icon={Quote} />
           <NavItem id="direct-links" label={t('قسم الروابط المباشرة', 'Direct Links Section')} icon={LinkIcon} />
           <NavItem id="contact-lab" label={t('قسم الاتصال', 'Contact Section')} icon={Phone} />
@@ -576,7 +577,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            {id: 'glass-card', icon: GlassWater, label: 'زجاجي'},
                            {id: 'modern-split', icon: Columns, label: 'حديث'}
                          ].map(item => (
-                           <button type="button" key={item.id} onClick={() => updateConfig('headerType', item.id)} className={`py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}>
+                           <button 
+                            key={item.id} 
+                            onClick={() => updateConfig('headerType', item.id)} 
+                            className={`py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.headerType === item.id ? 'bg-blue-600 text-white border-blue-600 shadow-lg scale-105' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}
+                           >
                              <item.icon size={20} /> 
                              <span className="text-[7px] font-black uppercase text-center leading-tight">{t(item.label, item.id)}</span>
                            </button>
@@ -594,6 +599,9 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <ToggleSwitch label={t('تفعيل تأثير زجاجي شفاف (Glassmorphism)', 'Premium Glass Body')} value={template.config.bodyGlassy} onChange={(v: boolean) => updateConfig('bodyGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
+                        
+                        <ColorPicker label={isRtl ? 'لون جسم البطاقة' : 'Card Body Color'} value={template.config.cardBodyColor || ''} onChange={(v: string) => updateConfig('cardBodyColor', v)} />
+
                         <RangeControl 
                            label={t('شفافية جسم البطاقة', 'Body Transparency')} 
                            min={0} max={100} unit="%" 
@@ -602,8 +610,12 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            icon={Sun} 
                            hint={t('اضبطه على 0 للكتابة مباشرة فوق الصورة', 'Set to 0 to write directly over background')}
                         />
+                        
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
-                        <RangeControl label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} min={-200} max={200} value={template.config.mobileBodyOffsetY ?? 0} onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} icon={Move} hint={isRtl ? "تزامن مع خيار إزاحة الجوال" : "Synced with mobile offset option"} />
+                        
+                        <div className="md:col-span-2">
+                           <RangeControl label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} min={-200} max={200} value={template.config.mobileBodyOffsetY ?? 0} onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} icon={Move} hint={isRtl ? "تزامن مع خيار إزاحة الجوال" : "Synced with mobile offset option"} />
+                        </div>
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -823,7 +835,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
             {activeTab === 'identity-lab' && (
                <div className="space-y-8 animate-fade-in">
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
-                     <div className="flex items-center gap-3"><User className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('بيانات الهوية والظهور', 'Identity Details & Visibility')}</h4></div>
+                     <div className="flex items-center gap-3"><UserIcon className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('بيانات الهوية والظهور', 'Identity Details & Visibility')}</h4></div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 dark:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800">
                         <div className="space-y-4">
@@ -951,7 +963,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        </div>
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t dark:border-gray-800">
-                          <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('linksSectionRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('locationBorderRadius', v)} icon={Ruler} />
                           <RangeControl label={t('انحناء حواف الروابط', 'Item Radius')} min={0} max={50} value={template.config.linksItemRadius ?? 16} onChange={(v: number) => updateConfig('linksItemRadius', v)} icon={Ruler} />
                           <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-200} max={200} value={template.config.linksSectionOffsetY || 0} onChange={(v: number) => updateConfig('linksSectionOffsetY', v)} icon={Move} />
                        </div>
@@ -1476,7 +1488,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                       <div className="w-full overflow-hidden relative shrink-0" style={{ height: `${template.config.headerHeight}px` }}>
                         <div className="absolute inset-0 z-0">
                           {template.config.defaultThemeType === 'image' && template.config.defaultBackgroundImage && (
-                            <img src={template.config.defaultBackgroundImage} className="w-full h-full object-cover" />
+                            <img src={template.config.defaultThemeType === 'image' ? template.config.defaultBackgroundImage : undefined} className="w-full h-full object-cover" alt="Full Header" />
                           )}
                           {template.config.defaultThemeType === 'gradient' && (
                             <div className="w-full h-full" style={{ background: template.config.defaultThemeGradient }} />
@@ -1514,6 +1526,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        data={{ 
                          ...sampleCardData, 
                          name: template.config.defaultName || sampleCardData.name,
+                         /* Fix: Changed 'sampleData.title' to 'sampleCardData.title' */
                          title: template.config.defaultTitle || sampleCardData.title,
                          company: template.config.defaultCompany || sampleCardData.company,
                          profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',
@@ -1547,6 +1560,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          bioOpacity: template.config.bioOpacity,
                          bioMaxWidth: template.config.bioMaxWidth,
                          bioTextAlign: template.config.bioTextAlign,
+                         cardBodyColor: template.config.cardBodyColor,
                          cardBgColor: template.config.cardBgColor
                        } as any} 
                        lang={lang} 

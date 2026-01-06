@@ -14,7 +14,7 @@ interface CardPreviewProps {
   hideSaveButton?: boolean; 
   isFullFrame?: boolean; 
   hideHeader?: boolean; 
-  bodyOffsetYOverride?: number; // خاصية جديدة للفصل التام
+  bodyOffsetYOverride?: number;
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -118,7 +118,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     textAlign: (data.bioTextAlign ?? config.bioTextAlign ?? 'center') as any
   };
 
-  // --- Location Section Config ---
   const isLocGlassy = config.locationGlassy;
   let locBg = config.locationBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.05)');
   if (isLocGlassy && locBg.startsWith('#')) {
@@ -131,7 +130,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const locPaddingV = config.locationPaddingV ?? 20; 
   const locAddressSize = config.locationAddressSize ?? 13; 
 
-  // --- Direct Links Section Config ---
   const dLinksShowBg = data.linksShowBg ?? config.linksShowBg ?? true;
   const dLinksShowText = data.linksShowText ?? config.linksShowText ?? true;
   const isDLinksGlassy = config.linksSectionGlassy;
@@ -242,6 +240,10 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
   const isBodyGlassy = data.bodyGlassy ?? config.bodyGlassy;
   const bodyOpacity = (data.bodyOpacity ?? config.bodyOpacity ?? 100) / 100;
+  
+  // دمج اللون المختار لصندوق المحتوى (Body) مع الشفافية
+  const bodyBaseColor = data.cardBodyColor || config.cardBodyColor || (isDark ? '#1a1a20' : '#ffffff');
+  const rgbBody = hexToRgb(bodyBaseColor);
 
   const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating' || hideHeader;
 
@@ -250,9 +252,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const bodyContentStyles: React.CSSProperties = {
     marginTop: hideHeader ? '0px' : (headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px')),
     transform: `translateY(${finalBodyOffsetY}px)`, 
-    backgroundColor: isDark 
-      ? `rgba(15, 15, 18, ${bodyOpacity})` 
-      : `rgba(255, 255, 255, ${bodyOpacity})`,
+    backgroundColor: `rgba(${rgbBody.string}, ${bodyOpacity})`,
     borderRadius: `${config.bodyBorderRadius ?? 48}px`,
     paddingTop: '24px',
     position: 'relative',
@@ -270,7 +270,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
-  const finalCardBgColor = hideHeader ? 'transparent' : (data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff'));
+  // لون الأرضية (القاعدة خلف البطاقة)
+  const finalCardBaseGroundColor = hideHeader ? 'transparent' : (data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#f1f5f9'));
 
   const showAnimatedBorder = config.avatarAnimatedBorder;
   const borderClr1 = config.avatarAnimatedBorderColor1 || themeColor;
@@ -351,7 +352,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const finalTitle = data.title || config.defaultTitle || '';
   const finalCompany = data.company || config.defaultCompany || '';
   
-  // تصحيح منطق الروابط الخاصة: إذا كانت القائمة فارغة (ولكن تم تعريفها كـ []) نعرضها كما هي (أي لا تظهر صور)
   const finalSpecialLinks = (data.specialLinks !== undefined) ? data.specialLinks : (config.defaultSpecialLinks || []);
 
   const cbRadius = config.contactButtonsRadius ?? 16;
@@ -376,7 +376,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   return (
     <div 
       className={`w-full min-h-full flex flex-col transition-all duration-500 relative overflow-hidden ${isFullFrame ? 'rounded-none' : 'rounded-[2.25rem]'} ${isDark ? 'text-white' : 'text-gray-900'} ${hasGoldenFrame ? 'ring-[10px] ring-yellow-500/30 ring-inset shadow-[0_0_50px_rgba(234,179,8,0.3)]' : ''}`}
-      style={{ backgroundColor: finalCardBgColor }}
+      style={{ backgroundColor: finalCardBaseGroundColor }}
     >
       
       {!hideHeader && (
