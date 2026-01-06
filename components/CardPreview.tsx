@@ -13,6 +13,7 @@ interface CardPreviewProps {
   hideSaveButton?: boolean; 
   isFullFrame?: boolean; 
   hideHeader?: boolean; 
+  bodyOffsetYOverride?: number; // خاصية جديدة للفصل التام
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -57,7 +58,7 @@ const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: stri
   );
 };
 
-const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false, hideHeader = false }) => {
+const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false, hideHeader = false, bodyOffsetYOverride }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
 
@@ -243,12 +244,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
   const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating' || hideHeader;
 
-  // Final offset selection logic based on responsive width if needed, but here we use props or config
-  const bodyYOffset = data.desktopBodyOffsetY ?? config.desktopBodyOffsetY ?? 0;
+  // فصل منطق الإزاحة: 
+  // إذا كان هناك bodyOffsetYOverride (مُمرر من PublicProfile) نستخدمه فوراً
+  // وإلا نستخدم الـ bodyOffsetY الافتراضي من القالب
+  const finalBodyOffsetY = bodyOffsetYOverride !== undefined ? bodyOffsetYOverride : (config.bodyOffsetY || 0);
 
   const bodyContentStyles: React.CSSProperties = {
     marginTop: hideHeader ? '0px' : (headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px')),
-    transform: `translateY(${config.bodyOffsetY || 0}px)`, 
+    transform: `translateY(${finalBodyOffsetY}px)`, 
     backgroundColor: isDark 
       ? `rgba(15, 15, 18, ${bodyOpacity})` 
       : `rgba(255, 255, 255, ${bodyOpacity})`,
@@ -340,7 +343,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const slGap = config.specialLinksGap || 12;
   const slRadius = config.specialLinksRadius ?? 24;
   const slAspect = config.specialLinksAspectRatio || 'square';
-  const slOffsetY = config.specialLinksOffsetY || 0;
+  const slOffsetY = config.specialLinksAspectRatio === 'video' ? 0 : (config.specialLinksOffsetY || 0);
 
   const finalEmails = data.emails && data.emails.length > 0 ? data.emails : (data.email ? [data.email] : []);
   const finalWebsites = data.websites && data.websites.length > 0 ? data.websites : (data.website ? [data.website] : []);

@@ -14,6 +14,15 @@ export const LANGUAGES_CONFIG: Record<Language, { name: string, native: string, 
   hi: { name: 'Hindi', native: 'हिंदी', dir: 'ltr', flag: '🇮🇳' },
 };
 
+export const AVAILABLE_FONTS = [
+  { id: 'Cairo', name: 'Cairo (Default)', nameAr: 'خط كاييرو (الافتراضي)' },
+  { id: 'Almarai', name: 'Almarai', nameAr: 'خط المراعي' },
+  { id: 'Tajawal', name: 'Tajawal', nameAr: 'خط تجول' },
+  { id: 'IBM Plex Sans Arabic', name: 'IBM Plex Sans', nameAr: 'خط آي بي إم' },
+  { id: 'Montserrat', name: 'Montserrat', nameAr: 'خط مونتيسرات' },
+  { id: 'Roboto', name: 'Roboto', nameAr: 'خط روبوتو' }
+];
+
 export const THEME_COLORS = [
   '#2563eb', '#1e40af', '#3b82f6', '#0ea5e9', '#06b6d4', 
   '#14b8a6', '#10b981', '#22c55e', '#84cc16', 
@@ -189,13 +198,13 @@ export const TRANSLATIONS: TranslationStrings = {
   templates: { en: 'Templates', ar: 'القوالب', es: 'Plantillas', fr: 'Modèles', de: 'Vorlagen', zh: '模板', ja: 'テンプレート', pt: 'Modelos', ru: 'Шаبلوоны', hi: '테म्पलेट्स' },
   myCards: { en: 'My Cards', ar: 'بطاقاتي', es: 'Mis Tarjetas', fr: 'Mes Cartes', de: 'Meine Karten', zh: '我的名片', ja: 'マイカード', pt: 'Meus Cardões', ru: 'Мои Карطчки', hi: 'मेरे كارد' },
   admin: { en: 'Admin', ar: 'الإدارة', es: 'Admin', fr: 'Admin', de: 'Admin', zh: '管理', ja: '管理', pt: 'Admin', ru: 'Админ', hi: 'प्रशासन' },
-  account: { en: 'Account', ar: 'الحساب', es: 'Cuenta', fr: 'Compte', de: 'Konto', zh: '账户', ja: 'アカウント', pt: 'Conta', ru: 'Аккауنت', hi: 'खाता' },
+  account: { en: 'Account', ar: 'الحساب', es: 'Cuenta', fr: 'Compte', de: 'Konto', zh: '账户', ja: 'أكاونت', pt: 'Conta', ru: 'Аккауنت', hi: 'खाता' },
   login: { en: 'Login / Register', ar: 'دخول / تسجيل', es: 'Iniciar sesión', fr: 'Connexion', de: 'Anmelden', zh: '登录', ja: 'ログイン', pt: 'Entrar', ru: 'Вход', hi: 'لوجين' },
   loginOnly: { en: 'Login', ar: 'دخول' },
   registerOnly: { en: 'Register', ar: 'تسجيل جديد' },
   logout: { en: 'Logout', ar: 'خروج', es: 'Cerrار sesión', fr: 'Déconnexion', de: 'Abmelden', zh: '退出', ja: 'ログアウト', pt: 'Sair', ru: 'Выход', hi: 'لوجأوت' },
   saveChanges: { en: 'Save Changes', ar: 'حفظ التعديلات', es: 'Guardar', fr: 'Enregistrer', de: 'Speichern', zh: '保存更改', ja: '変更を保存', pt: 'Salvar', ru: 'Сохранить', hi: 'परिवर्तन سहेजें' },
-  fullName: { en: 'Full Name', ar: 'الاسم الكامل', es: 'Nombre completo', fr: 'Nom complet', de: 'Vollständiger Name', zh: '全名', ja: 'フルネーム', pt: 'Nome Completo', ru: 'Полное имя', hi: 'पूرا नाम' },
+  fullName: { en: 'Full Name', ar: 'الاسم الكامل', es: 'Nombre completo', fr: 'Nom complet', de: 'Vollständiger Name', zh: '全名', ja: 'フルネーム', pt: 'Nome Completo', ru: 'Полное имя', hi: 'पूرا نام' },
   placeholderName: { en: 'Enter your name', ar: 'أدخل اسمك الكامل', es: 'Ingresa tu nombre', fr: 'Entrez votre nom', de: 'Name eingeben', zh: '输入姓名', ja: '名前を入力', pt: 'Digite seu نام', ru: 'Введите имя', hi: 'अपना नाम दर्ज करें' },
   theme: { en: 'Theme', ar: 'السمة', es: 'Tema', fr: 'Thème', de: 'Theما', zh: '主题', ja: 'テーマ', pt: 'Tema', ru: 'Теما', hi: 'थीم' },
   saveContact: { en: 'Save Contact', ar: 'حفظ جهة الاتصال', es: 'Guardar contacto', fr: 'Enregistrer le contact', de: 'Kontakt speichern', zh: '保存联系人', ja: '連絡先を保存', pt: 'Salvar contacto', ru: 'Сохранить контакт', hi: 'संपرك سहेजें' },
@@ -206,14 +215,14 @@ export const TRANSLATIONS: TranslationStrings = {
   heroDesc: { en: 'The easiest way to share your professional profile with the world.', ar: 'الطريقة الأسهل لمشاركة ملفك المهني مع العالم.', es: 'La forma más fácil de compartir tu perfil.', fr: 'Le moyen le plus simple de partager votre profil.', de: 'Der einfachste Weg, Ihr Profil zu teilen.', zh: '分享您的个人资料的最简单方法。', ja: 'プロフィールを共有する最も簡単な方法。', pt: 'A maneira más fácil de compartilhar seu perfil.', ru: 'Самый простой способ поделиться своим профилем.', hi: 'अपनी प्रोफ़ائل साझा करने का सबसे आसान तरीका।' },
   createBtn: { en: 'Create Now', ar: 'ابدأ الآن', es: 'Creار ahora', fr: 'Créer maintenant', de: 'Jetzt erstellen', zh: '立即创建', ja: '今すぐ创建', pt: 'Criار agora', ru: 'Создать сейчас', hi: 'अभी बनाएं' },
   template: { en: 'Layout Template', ar: 'قالب التوزيع', es: 'Plantilla', fr: 'Modèle', de: 'Layout', zh: '布局模板', ja: 'レイアウト', pt: 'Modelo de Layout', ru: 'Шаблон макета', hi: 'लेوات टेम्पलेट' },
-  selectTemplate: { en: 'Select Style', ar: 'اختر النمط الهيكلي', es: 'Seleccionar estilo', fr: 'Choisir le style', de: 'Stيل wählen', zh: '选择样式', ja: 'スタイルを選択', pt: 'Selecionار Estilo', ru: 'Выбрать стиль', hi: 'शैली चुनें' },
+  selectTemplate: { en: 'Select Style', ar: 'اختر النمط الهيكلي', es: 'Seleccionar estilo', fr: 'Choisير le style', de: 'Stيل wählen', zh: '选择样式', ja: 'スタイルを選択', pt: 'Selecionار Estilo', ru: 'Выбрать стиль', hi: 'शैली चुनें' },
   bio: { en: 'Professional Bio', ar: 'النبذة المهنية', es: 'Bio profesional', fr: 'Bio professionnelle', de: 'Professionelle Bio', zh: '职业简介', ja: 'プロフィールの概要', pt: 'Bio Profissional', ru: 'Биография', hi: 'पेशेور जैव' },
   email: { en: 'Email Address', ar: 'البريد الإلكتروني', es: 'Correo electrónico', fr: 'Email', de: 'E-Mail', zh: '电子邮件', ja: 'メールアドレス', pt: 'E-mail', ru: 'Эл. почта', hi: 'ईमेल पता' },
   phone: { en: 'Phone Number', ar: 'رقم الهاتف', es: 'Teléfono', fr: 'Téléphone', de: 'Telefon', zh: '电话号码', ja: '電話番号', pt: 'Telefone', ru: 'Телефон', hi: 'फ़ोन नंबर' },
   whatsapp: { en: 'WhatsApp', ar: 'رقم الواتساب', es: 'WhatsApp', fr: 'WhatsApp', de: 'WhatsApp', zh: 'WhatsApp', ja: 'WhatsApp', pt: 'WhatsApp', ru: 'WhatsApp', hi: 'واتس اب' },
-  website: { en: 'Website URL', ar: 'رابط الموقع', es: 'Sitio web', fr: 'Site web', de: 'Webseite', zh: '网址', ja: 'ウェブサイト', pt: 'Website', ru: 'Веب-сайт', hi: 'वेبไซต์' },
+  website: { en: 'Website URL', ar: 'رابط الموقع', es: 'Sitio web', fr: 'Site web', de: 'Webseite', zh: '网址', ja: 'ウェブサイト', pt: 'Website', ru: 'Веб-сайт', hi: 'वेبไซต์' },
   location: { en: 'Location Address', ar: 'عنوان الموقع', es: 'Dirección', fr: 'Adresse', de: 'Adresse', zh: '地址', ja: '住所', pt: 'Endereço', ru: 'Адрес', hi: 'पता' },
-  locationUrl: { en: 'Google Maps Link', ar: 'رابط خريطة قوقل', es: 'Enlace Google Maps', fr: 'Lien Google Maps', de: 'Google Maps Link', zh: 'Google Maps 链接', ja: 'Google Maps リンク', pt: 'Link Google Maps', ru: 'Ссылка Google Maps', hi: 'गूغل मैप्स لينك' },
+  locationUrl: { en: 'Google Maps Link', ar: 'رابط خريطة قوقل', es: 'Enlace Google Maps', fr: 'Lien Google Maps', de: 'Google Maps Link', zh: 'Google Maps 链接', ja: 'Google Maps リンク', pt: 'Link Google Maps', ru: 'Ссылка Google Maps', hi: 'गूغل मैपس لينك' },
   locationSection: { en: 'Geographical Location', ar: 'الموقع الجغرافي', es: 'Ubicación geográfica', fr: 'Localisation géographique', de: 'Geographischer Standort', zh: '地理位置', ja: '地理的位置', pt: 'Localização Geográfica', ru: 'Географическое положение', hi: 'भौगोलिक स्थिति' },
   visitUs: { en: 'Visit Us', ar: 'تفضل بزيارتنا', es: 'Visítanos', fr: 'Visitez-nous', de: 'Besuchen Sie uns', zh: '访问เรา', ja: 'お問い合わせ', pt: 'Visite-nos', ru: 'Посетите нас', hi: 'हमसे मिलें' },
   socials: { en: 'Social Links', ar: 'روابط التواصل', es: 'Redes sociales', fr: 'Réseaux sociaux', de: 'Soziale Netzwerke', zh: '社交链接', ja: 'ソーシャルリンク', pt: 'Redes Sociais', ru: 'Соцсети', hi: 'सोशल لينك' },
@@ -249,7 +258,7 @@ export const TRANSLATIONS: TranslationStrings = {
   featureDashboard: { en: 'Team Control', ar: 'لوحة تحكم للفريق' },
 
   invitationPrefix: { en: 'Invited by', ar: 'يتشرف', es: 'Invitado por', fr: 'Invité par', de: 'Eingeladen von', zh: '受邀于', ja: '招待者', pt: 'Convidado por', ru: 'Приглашен', hi: 'के द्वारा आमंत्रित' },
-  invitationWelcome: { en: 'Welcomes you to', ar: 'بدعوتكم لحضور', es: 'Te invita a', fr: 'Vous invite à', de: 'Lädt Sie ein zu', zh: '欢迎您参加', ja: 'あなたを歓迎します', pt: 'Convida vous pour', ru: 'Приглашает вас на', hi: 'आपका स्वागत करता है' },
+  invitationWelcome: { en: 'Welcomes you to', ar: 'بدعوتكم لحضور', es: 'Te invita a', fr: 'Vous invite à', de: 'Lädt Sie ein zu', zh: '欢迎您参加', ja: 'あなたを歓迎します', pt: 'Convida vous pour', ru: 'Приглашает вас на', hi: 'आपका स्वागत کرتا ہے' },
 
   editTemplate: { en: 'Edit Template', ar: 'تعديل القالب', es: 'Editar plantilla', fr: 'Modifier le modèle', de: 'Vorlage bearbeiten', zh: '编辑模板', ja: 'テンプレートを編集', pt: 'Editar Modelo', ru: 'Изменить шаблон', hi: '테مپ렛 संपादित करें' },
   saveTemplate: { en: 'Save Template', ar: 'حفظ القالب', es: 'Guardار plantilla', fr: 'Enregistrer le modèle', de: 'Vorlage speichern', zh: '保存模板', ja: 'テンプレートを保存', pt: 'Salvar Modelo', ru: 'Сохранить шаблон', hi: '테مپ렛 سहेजें' },
@@ -264,8 +273,8 @@ export const TRANSLATIONS: TranslationStrings = {
   height: { en: 'Height', ar: 'الارتفاع', es: 'Altura', fr: 'Hauteur', de: 'Höhe', zh: '高度', ja: '高さ', pt: 'Altura', ru: 'Высота', hi: 'ऊंचाई' },
   size: { en: 'Size', ar: 'الحجم', es: 'Tamaño', fr: 'Taille', de: 'Größe', zh: '尺寸', ja: 'サイズ', pt: 'Tamanho', ru: 'Размер', hi: 'آكار' },
   yOffset: { en: 'Y Offset', ar: 'الإزاحة الرأسية', es: 'Desplazamiento Y', fr: 'Décalage Y', de: 'Y-Versatz', zh: 'Y偏移', ja: 'Yオフセット', pt: 'Deslocamento Y', ru: 'Смещение по Y', hi: 'Y آفسيٹ' },
-  name: { en: 'Name', ar: 'الاسم', es: 'Nombre', fr: 'Nom', de: 'Name', zh: '名称', ja: '名前', pt: 'Nome', ru: 'Имя', hi: 'نام' },
-  buttons: { en: 'Buttons', ar: 'الأزرار', es: 'Botones', fr: 'Boutons', de: 'Buttons', zh: '按钮', ja: 'ボタン', pt: 'Botões', ru: 'Кнопки', hi: 'بٹن' },
+  name: { en: 'Name', ar: 'الاسم', es: 'Nombre', fr: 'Nom', de: 'Name', zh: '名称', ja: '名前', pt: 'Nome', ru: 'Имя', hi: 'नाम' },
+  buttons: { en: 'Buttons', ar: 'الأزرار', es: 'Botones', fr: 'Boutons', de: 'Buttons', zh: '按钮', ja: 'ボタン', pt: 'Botões', ru: 'Кнопكي', hi: 'بٹن' },
   socialLinks: { en: 'Socials', ar: 'التواصل', es: 'Social', fr: 'Social', de: 'Soziales', zh: '社交', ja: 'ソーシャル', pt: 'Social', ru: 'Соцсети', hi: 'सोशल' },
   classic: { en: 'Classic', ar: 'كلاسيك', es: 'Clásico', fr: 'Classique', de: 'Klassisch', zh: '经典', ja: 'クラシック', pt: 'Clásico', ru: 'Классика', hi: 'क्لاسيك' },
   split: { en: 'Split', ar: 'منقسم', es: 'Dividido', fr: 'Dividido', de: 'Geteilt', zh: '分屏', ja: 'スプリット', pt: 'Dividido', ru: 'Разделение', hi: 'विभाजित' },
@@ -297,5 +306,6 @@ export const TRANSLATIONS: TranslationStrings = {
   linksShowBg: { ar: 'إظهار خلفية للقسم', en: 'Show Section Background' },
   addEmail: { ar: 'إضافة إيميل', en: 'Add Email' },
   addWebsite: { ar: 'إضافة موقع', en: 'Add Website' },
-  manageLinks: { ar: 'إدارة روابط الصور', en: 'Manage Image Links' }
+  manageLinks: { ar: 'إدارة روابط الصور', en: 'Manage Image Links' },
+  selectSiteFont: { ar: 'خط الموقع الرئيسي', en: 'Primary Site Font' }
 };

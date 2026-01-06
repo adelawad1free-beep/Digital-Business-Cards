@@ -155,7 +155,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
           </div>
         )}
         
-        {/* FIX: Inset(0) to allow background to flow edge-to-edge behind the bezel, just like the editor preview */}
+        {/* Container for the preview */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none" 
              style={{ 
                borderRadius: '2.6rem', 
@@ -187,6 +187,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
                 customConfig={tmpl.config}
                 hideSaveButton={true} 
                 isFullFrame={true}
+                bodyOffsetYOverride={tmpl.config.mobileBodyOffsetY ?? 0}
               />
            </div>
         </div>

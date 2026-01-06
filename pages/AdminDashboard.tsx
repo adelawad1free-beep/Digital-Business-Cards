@@ -14,6 +14,7 @@ import { Language, CardData, CustomTemplate, TemplateCategory, VisualStyle } fro
 import { generateShareUrl } from '../utils/share';
 import TemplateBuilder from '../components/TemplateBuilder';
 import StyleManager from '../components/StyleManager';
+import { AVAILABLE_FONTS, THEME_GRADIENTS, TRANSLATIONS, THEME_COLORS } from '../constants';
 import { 
   BarChart3, Users, Clock, Loader2,
   ShieldCheck, Trash2, Edit3, Eye, Settings, 
@@ -21,7 +22,7 @@ import {
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, 
   Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle, Pin, PinOff, ArrowUpAZ,
   MoreVertical, ToggleLeft, ToggleRight, MousePointer2, TrendingUp, Filter, ListFilter, Activity, Type, FolderEdit, Check, FolderOpen, Tag, PlusCircle, Zap, HardDrive, Database, Link as LinkIcon, FolderSync, Server,
-  Info, BarChart, Copy, FileJson, Code, Mail, UserCheck, Calendar, Contact2, CreditCard, RefreshCw, Crown
+  Info, BarChart, Copy, FileJson, Code, Mail, UserCheck, Calendar, Contact2, CreditCard, RefreshCw, Crown, Type as FontIcon
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -203,7 +204,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
   const [templateSearch, setTemplateSearch] = useState('');
   const [securityData, setSecurityData] = useState({ currentPassword: '', newEmail: ADMIN_EMAIL, newPassword: '', confirmPassword: '' });
 
-  const t = (ar: string, en: string) => isRtl ? ar : en;
+  // دالة الترجمة المرنة
+  const t = (arOrKey: string, en?: string) => {
+    if (en) return isRtl ? arOrKey : en;
+    return TRANSLATIONS[arOrKey] ? (TRANSLATIONS[arOrKey][lang] || TRANSLATIONS[arOrKey]['en']) : arOrKey;
+  };
 
   const TabButton = ({ id, label, icon: Icon }: any) => (
     <button onClick={() => setActiveTab(id)} className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase transition-all whitespace-nowrap ${activeTab === id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
@@ -478,7 +483,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('تحكم في شكل وخيارات منصتك', 'Customize platform layouts')}</p>
                     </div>
                  </div>
-                 <button onClick={() => { setEditingTemplate(undefined); setActiveTab('builder'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all">
+                 <button onClick={() => { setEditingTemplate(undefined); setActiveTab('builder'); }} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all">
                     <Plus size={18} /> {t('إنشاء قالب جديد', 'Create Template')}
                  </button>
               </div>
@@ -550,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                       <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/20"><PlusCircle size={28} /></div>
                       <div className="flex flex-col">
                         <h2 className="text-2xl font-black dark:text-white uppercase leading-none">{editingCategoryId ? t('تعديل القسم', 'Edit Section') : t('إضافة قسم جديد', 'New Section')}</h2>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{t('تنظيم وتصنيف القوالب', 'Categorize your templates')}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('تنظيم وتصنيف القوالب', 'Categorize your templates')}</span>
                       </div>
                    </div>
                    
@@ -696,6 +701,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                 </div>
 
                 <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
+                   <div className="flex items-center gap-4"><div className="p-3 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-2xl"><FontIcon size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('selectSiteFont')}</h2></div>
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                      {AVAILABLE_FONTS.map((font) => (
+                        <button 
+                          key={font.id} 
+                          onClick={() => setSettings({...settings, fontFamily: font.id})}
+                          className={`py-4 px-2 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${settings.fontFamily === font.id ? 'bg-violet-600 text-white border-violet-600 shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700'}`}
+                          style={{ fontFamily: font.id }}
+                        >
+                           <span className="text-base font-black">Aa</span>
+                           <span className="text-[8px] font-black uppercase text-center leading-tight">{isRtl ? font.nameAr : font.name}</span>
+                        </button>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="pt-10 border-t border-gray-100 dark:border-gray-800 space-y-8">
                    <div className="flex items-center gap-4"><div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl"><Server size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('إعدادات مجلد رفع الصور', 'Image Upload Destination')}</h2></div>
                    
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -813,13 +835,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
       {templateToDelete && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-[400px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Trash2 size={40} /></div>
             <h3 className="text-2xl font-black mb-4 dark:text-white">{t('تأكيد حذف القالب', 'Confirm Template Delete')}</h3>
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('هل أنت متأكد من رغبتك في حذف هذا التصميم نهائياً؟ لا يمكن التراجع عن هذا الإجراء.', 'This template will be permanently removed. This action cannot be undone.')}</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteTemplate} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، حذف القالب</button>
-              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
             </div>
           </div>
         </div>
@@ -827,7 +849,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
       {categoryToDelete && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-[400px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-[360px] rounded-[3.5rem] p-10 text-center shadow-2xl animate-fade-in border border-gray-100 dark:border-gray-800">
             <div className="w-20 h-20 bg-red-50 text-red-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Trash2 size={40} /></div>
             <h3 className="text-2xl font-black mb-4 dark:text-white">{t('تأكيد حذف القسم', 'Confirm Category Delete')}</h3>
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('سيؤدي هذا إلى حذف القسم. القوالب المرتبطة به ستصبح "بدون تصنيف". هل أنت متأكد؟', 'Deleting this category will make all linked templates uncategorized. Are you sure?')}</p>

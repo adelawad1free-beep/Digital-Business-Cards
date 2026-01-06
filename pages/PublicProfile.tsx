@@ -190,6 +190,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
   const isDesktop = windowWidth >= 1024;
   const isFullHeaderEnabled = customConfig?.desktopLayout === 'full-width-header' && isDesktop;
 
+  // فصل منطق الإزاحة التام:
+  // في الجوال: نستخدم mobileBodyOffsetY كإزاحة داخلية لجسم البطاقة.
+  // في سطح المكتب (الترويسة الممتدة): نستخدم desktopBodyOffsetY لسحب البطاقة بالكامل للأعلى.
+  const cardBodyOffset = isDesktop ? 0 : (customConfig?.mobileBodyOffsetY ?? 0);
+  const containerMarginTop = isFullHeaderEnabled 
+    ? (customConfig?.desktopBodyOffsetY ?? -60) 
+    : 0;
+
   return (
     <article className={`min-h-screen flex flex-col items-center relative transition-colors duration-1000 ${data.isDark ? 'dark' : ''}`}>
       
@@ -231,9 +239,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
         className="w-full z-10 animate-fade-in-up pb-32 transition-all duration-700 mx-auto flex justify-center" 
         style={{ 
           maxWidth: isFullHeaderEnabled ? '100%' : `${customConfig?.cardMaxWidth || 500}px`,
-          marginTop: isFullHeaderEnabled 
-            ? `${customConfig?.desktopBodyOffsetY ?? -60}px` 
-            : `${customConfig?.mobileBodyOffsetY ?? 0}px`
+          marginTop: `${containerMarginTop}px`
         }}
       >
         <div className="w-full" style={{ maxWidth: `${customConfig?.cardMaxWidth || 500}px` }}>
@@ -243,6 +249,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ data, lang, customConfig,
              customConfig={customConfig} 
              hideSaveButton={true} 
              hideHeader={isFullHeaderEnabled} 
+             bodyOffsetYOverride={cardBodyOffset}
            />
            
            <div className="mt-12 text-center flex flex-col items-center gap-8 px-6">

@@ -439,7 +439,16 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
   const isFullHeaderPreview = template.config.desktopLayout === 'full-width-header' && previewDevice === 'desktop';
 
-  // Fix: Use template's cardBgColor and pageBgColor for preview container
+  // منطق المعاينة الحية ليعكس السلوك الفعلي تماماً
+  const previewBodyOffsetY = (previewDevice === 'mobile' || previewDevice === 'tablet') 
+    ? (template.config.mobileBodyOffsetY ?? 0) 
+    : 0;
+
+  // استخدام transform لضمان عمل الإزاحة بدقة في المحاكي المقيّد بالحجم
+  const previewDesktopPullUp = (previewDevice === 'desktop' && template.config.desktopLayout === 'full-width-header')
+    ? (template.config.desktopBodyOffsetY ?? -60)
+    : 0;
+
   const previewPageBg = template.config.pageBgStrategy === 'mirror-header' 
     ? (template.config.defaultThemeType === 'color' ? template.config.defaultThemeColor : '#f8fafc')
     : (template.config.pageBgColor || (template.config.defaultIsDark ? '#050507' : '#f8fafc'));
@@ -593,7 +602,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            hint={t('اضبطه على 0 للكتابة مباشرة فوق الصورة', 'Set to 0 to write directly over background')}
                         />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
-                        <RangeControl label={t('إزاحة منطقة المحتوى (أعلى/أسفل)', 'Body Y Offset')} min={-1000} max={500} value={template.config.bodyOffsetY || 0} onChange={(v: number) => updateConfig('bodyOffsetY', v)} icon={Move} />
+                        <RangeControl 
+                          label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} 
+                          min={-200} max={200} 
+                          value={template.config.mobileBodyOffsetY ?? 0} 
+                          onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} 
+                          icon={Move} 
+                          hint={isRtl ? "تزامن مع خيار إزاحة الجوال" : "Synced with mobile offset option"} 
+                        />
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -815,7 +831,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">
                      <div className="flex items-center gap-3"><User className="text-blue-600" size={24} /><h4 className="text-[12px] font-black uppercase tracking-widest dark:text-white">{t('بيانات الهوية والظهور', 'Identity Details & Visibility')}</h4></div>
                      
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 dark:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-700">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-gray-50 dark:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800">
                         <div className="space-y-4">
                            <div>
                               <label className={labelTextClasses}>{t('الاسم الافتراضي', 'Default Name')}</label>
@@ -1358,19 +1374,20 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <RangeControl 
-                             label={isRtl ? 'إزاحة البطاقة للأعلى (سطح المكتب)' : 'Desktop Body Y Offset'} 
+                             label={isRtl ? 'سحب البطاقة للأعلى (سطح المكتب)' : 'Desktop Global Pull-up'} 
                              min={-500} max={200} 
                              value={template.config.desktopBodyOffsetY ?? -60} 
                              onChange={(v: number) => updateConfig('desktopBodyOffsetY', v)} 
                              icon={Move} 
-                             hint={isRtl ? "ارفع البطاقة للأعلى لتتداخل مع الترويسة الممتدة" : "Pull card up to overlap full width header"}
+                             hint={isRtl ? "سحب البطاقة كاملة للأعلى ليتداخل جسمها مع الترويسة الخارجية" : "Pull the whole card up to overlap external header"}
                           />
                           <RangeControl 
-                             label={isRtl ? 'إزاحة البطاقة للأعلى (الجوال)' : 'Mobile Body Y Offset'} 
+                             label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} 
                              min={-200} max={200} 
                              value={template.config.mobileBodyOffsetY ?? 0} 
                              onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} 
                              icon={Smartphone} 
+                             hint={isRtl ? "إزاحة محتوى البطاقة فوق ترويستها الداخلية في الجوال" : "Offset internal body over card's header on mobile"}
                           />
                        </div>
 
@@ -1482,14 +1499,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                    
                    <div 
                      style={{ 
-                        marginTop: isFullHeaderPreview 
-                          ? `${template.config.desktopBodyOffsetY ?? -60}px` 
-                          : `${template.config.mobileBodyOffsetY ?? 0}px`,
+                        transform: previewDevice === 'desktop' ? `translateY(${previewDesktopPullUp}px)` : 'none',
                         maxWidth: isFullHeaderPreview ? `${template.config.cardMaxWidth || 500}px` : '100%',
                         marginRight: 'auto',
                         marginLeft: 'auto',
                         position: 'relative',
-                        zIndex: 10
+                        zIndex: 10,
+                        transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
                      }}
                    >
                      <CardPreview 
@@ -1535,6 +1551,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        hideSaveButton={true} 
                        isFullFrame={true}
                        hideHeader={isFullHeaderPreview}
+                       bodyOffsetYOverride={previewBodyOffsetY}
                      />
                    </div>
                 </div>
