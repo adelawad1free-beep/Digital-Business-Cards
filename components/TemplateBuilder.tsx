@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, AVATAR_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
@@ -602,14 +603,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                            hint={t('اضبطه على 0 للكتابة مباشرة فوق الصورة', 'Set to 0 to write directly over background')}
                         />
                         <RangeControl label={t('انحناء الحواف العلوي', 'Border Radius')} min={0} max={120} value={template.config.bodyBorderRadius ?? 48} onChange={(v: number) => updateConfig('bodyBorderRadius', v)} icon={Ruler} />
-                        <RangeControl 
-                          label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} 
-                          min={-200} max={200} 
-                          value={template.config.mobileBodyOffsetY ?? 0} 
-                          onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} 
-                          icon={Move} 
-                          hint={isRtl ? "تزامن مع خيار إزاحة الجوال" : "Synced with mobile offset option"} 
-                        />
+                        <RangeControl label={isRtl ? 'إزاحة جسم البطاقة (الجوال/الداخلي)' : 'Mobile/Internal Body Offset'} min={-200} max={200} value={template.config.mobileBodyOffsetY ?? 0} onChange={(v: number) => updateConfig('mobileBodyOffsetY', v)} icon={Move} hint={isRtl ? "تزامن مع خيار إزاحة الجوال" : "Synced with mobile offset option"} />
                      </div>
 
                      <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -1163,10 +1157,18 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
             {activeTab === 'social-lab' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
-                    <div className="flex items-center gap-4"><div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl"><Share2 size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('مختبر أيقونات التواصل', 'Social Icons Lab')}</h2></div>
+                    <div className="flex items-center gap-4"><div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl shadow-sm"><Share2 size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('مختبر أيقونات التواصل', 'Social Icons Lab')}</h2></div>
                     
                     <div className="space-y-6">
-                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('شكل وحجم الأيقونة', 'Shape & Size DNA')}</h4>
+                       <ToggleSwitch 
+                        label={t('تفعيل عرض قسم التواصل', 'Show Social Section')} 
+                        value={template.config.showSocialLinksByDefault} 
+                        onChange={(v: boolean) => updateConfig('showSocialLinksByDefault', v)} 
+                        icon={Eye} 
+                        color="bg-indigo-600" 
+                       />
+
+                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pt-4 border-t dark:border-gray-800">{t('شكل وحجم الأيقونة', 'Shape & Size DNA')}</h4>
                        
                        <ToggleSwitch 
                         label={t('استخدام ألوان المنصات الأصلية', 'Use Brand Colors')} 
@@ -1528,6 +1530,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          backgroundImage: template.config.defaultBackgroundImage,
                          specialLinks: currentSpecialLinks,
                          showSpecialLinks: template.config.showSpecialLinksByDefault,
+                         showSocialLinks: template.config.showSocialLinksByDefault,
                          showLocation: template.config.showLocationByDefault,
                          location: isRtl ? 'عنوان الموقع الجغرافي الافتراضي' : 'Default Location Address',
                          locationUrl: 'https://maps.google.com',
