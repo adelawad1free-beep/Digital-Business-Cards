@@ -1,3 +1,4 @@
+
 import { 
   Save, Plus, X, Loader2, Sparkles, Moon, Sun, 
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
@@ -6,7 +7,8 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle, Zap
+  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle, Zap,
+  Type, Briefcase
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -328,6 +330,36 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     );
   };
 
+  const ColorPickerUI = ({ label, field, icon: Icon }: { label: string, field: keyof CardData, icon?: any }) => (
+    <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between shadow-sm">
+      <div className="flex items-center gap-2">
+         {Icon && <Icon size={14} className="text-gray-400" />}
+         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
+      </div>
+      <div className="flex items-center gap-3">
+         <div className="relative w-8 h-8 rounded-xl overflow-hidden border-2 border-white dark:border-gray-700 shadow-md">
+            <input 
+              type="color" 
+              value={(formData[field] as string) || '#3b82f6'} 
+              onChange={(e) => handleChange(field, e.target.value)} 
+              className="absolute inset-0 opacity-0 cursor-pointer scale-150" 
+            />
+            <div className="w-full h-full" style={{ backgroundColor: (formData[field] as string) || '#3b82f6' }} />
+         </div>
+         <input 
+           type="text" 
+           value={((formData[field] as string) || '').toUpperCase()} 
+           onChange={(e) => handleChange(field, e.target.value)} 
+           className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg px-2 py-1 text-[9px] font-black text-blue-600 w-16 uppercase text-center outline-none" 
+           placeholder="#HEX" 
+         />
+         {(formData[field]) && (
+           <button onClick={() => handleChange(field, undefined)} className="text-gray-300 hover:text-red-500 transition-colors"><X size={12}/></button>
+         )}
+      </div>
+    </div>
+  );
+
   const inputClasses = "w-full px-5 py-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950 text-gray-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/10 transition-all font-bold text-sm shadow-none";
   const labelClasses = "block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-widest px-1";
 
@@ -337,7 +369,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       setShowAuthWarning(true);
       return;
     }
-    if (isUploading || isUploadingBg || isUploadingLinkImg) {
+    if (isUploading || isUploadingBg || isUploadingLinkImg || isCheckingSlug) {
       setShowValidationError(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
       scrollToError();
       return;
@@ -431,7 +463,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           <div className="bg-white dark:bg-[#121215] p-5 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 dark:border-gray-800 animate-fade-in relative overflow-hidden">
             
             {showValidationError && (
-               <div className="mb-6 p-5 bg-red-500 text-white rounded-[1.8rem] shadow-xl shadow-red-500/20 flex items-center gap-4 animate-shake relative overflow-hidden">
+               <div className="mb-6 p-5 bg-red-50 text-white rounded-[1.8rem] shadow-xl shadow-red-500/20 flex items-center gap-4 animate-shake relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-transparent pointer-events-none"></div>
                   <div className="shrink-0 p-2 bg-white/20 rounded-xl">
                     <AlertTriangle size={24} />
@@ -444,7 +476,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
             <div className="space-y-8 mt-4 animate-fade-in">
               {activeTab === 'identity' && (
                 <div className="space-y-6 animate-fade-in relative z-10">
-                  {/* قسم حجز الرابط المطور */}
                   <div className="p-8 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/10 dark:to-[#121215] rounded-[3.5rem] border-2 border-emerald-100 dark:border-emerald-900/20 shadow-xl shadow-emerald-500/5 space-y-6 relative overflow-hidden group">
                      <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:rotate-12 transition-transform duration-700 pointer-events-none">
                         <Zap size={140} className="text-emerald-600" />
@@ -535,7 +566,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                              onClick={() => handleChange('profileImage', url)} 
                              className={`aspect-square rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-900 border-2 ${formData.profileImage === url ? 'border-blue-600 scale-105 shadow-md' : 'border-transparent hover:border-blue-100'}`}
                            >
-                              <img src={url} className="w-full h-full object-contain p-1" alt={`Preset ${i}`} />
+                              <img src={url} className="w-full h-full object-contain p-1" alt={`Avatar ${i}`} />
                            </button>
                         ))}
                      </div>
@@ -739,7 +770,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                          {(formData.specialLinks || []).map((link) => (
                            <div key={link.id} className="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row gap-6 items-center animate-fade-in group">
                               <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-white dark:border-gray-700">
-                                 <img src={link.imageUrl} className="w-full h-full object-cover" />
+                                 <img src={link.imageUrl} className="w-full h-full object-cover" alt="Link Preview" />
                               </div>
                               <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-4">
                                  <div className="space-y-1">
@@ -804,7 +835,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                       {formData.themeType === 'image' && (
                          <div className="space-y-4 animate-fade-in">
                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-[200px] overflow-y-auto no-scrollbar p-2 bg-white dark:bg-gray-800 rounded-2xl">
-                               {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" /></button>)}
+                               {BACKGROUND_PRESETS.map((u, i) => <button key={i} onClick={() => handleChange('backgroundImage', u)} className={`aspect-square rounded-lg overflow-hidden transition-all ${formData.backgroundImage === u ? 'ring-4 ring-blue-500/30' : 'opacity-50'}`}><img src={u} className="w-full h-full object-cover" alt={`Background preset ${i}`} /></button>)}
                             </div>
                             <button type="button" disabled={isUploadingBg} onClick={() => checkAuthAndClick(bgFileInputRef)} className="w-full py-4 bg-white dark:bg-gray-800 text-blue-600 border border-dashed rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-3 transition-all hover:bg-blue-50/50 disabled:opacity-50">
                                {isUploadingBg ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
@@ -813,6 +844,32 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                             <input type="file" ref={bgFileInputRef} onChange={handleBgUpload} accept="image/*" className="hidden" />
                          </div>
                       )}
+                   </div>
+
+                   <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-8 animate-fade-in">
+                      <div className="flex items-center gap-4">
+                         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl shadow-sm"><Pipette size={22} /></div>
+                         <div>
+                            <h2 className="text-xl font-black dark:text-white uppercase leading-none mb-1">{t('elementsColorLab')}</h2>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('تخصيص ألوان المحتوى بشكل مستقل', 'Customize content colors independently')}</p>
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <ColorPickerUI label={t('nameColor')} field="nameColor" icon={UserIcon} />
+                         <ColorPickerUI label={t('titleColor')} field="titleColor" icon={Briefcase} />
+                         <ColorPickerUI label={t('bioColor')} field="bioTextColor" icon={TypographyIcon} />
+                         <ColorPickerUI label={t('linksBtnColor')} field="linksColor" icon={LinkIcon} />
+                         <ColorPickerUI label={t('socialIconColor')} field="socialIconsColor" icon={Share2} />
+                         <ColorPickerUI label={t('phoneBtnColor')} field="contactPhoneColor" icon={Phone} />
+                         <ColorPickerUI label={t('whatsappBtnColor')} field="contactWhatsappColor" icon={MessageCircle} />
+                      </div>
+                      
+                      <p className="text-[9px] font-bold text-gray-400 italic px-2 leading-relaxed">
+                         {isRtl 
+                           ? "* هذا القسم يسمح لك بتجاوز الألوان الافتراضية للقالب واختيار ألوان تناسب ذوقك الخاص." 
+                           : "* This section allows you to override default template colors and pick colors that match your own style."}
+                      </p>
                    </div>
 
                    <div className="p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">

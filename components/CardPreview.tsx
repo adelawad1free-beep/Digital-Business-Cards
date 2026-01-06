@@ -1,3 +1,4 @@
+
 import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon, Link as LinkIcon, ShoppingCart } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig, SpecialLinkItem } from '../types';
@@ -244,9 +245,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
   const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating' || hideHeader;
 
-  // فصل منطق الإزاحة: 
-  // إذا كان هناك bodyOffsetYOverride (مُمرر من PublicProfile) نستخدمه فوراً
-  // وإلا نستخدم الـ bodyOffsetY الافتراضي من القالب
   const finalBodyOffsetY = bodyOffsetYOverride !== undefined ? bodyOffsetYOverride : (config.bodyOffsetY || 0);
 
   const bodyContentStyles: React.CSSProperties = {
@@ -353,9 +351,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const finalTitle = data.title || config.defaultTitle || '';
   const finalCompany = data.company || config.defaultCompany || '';
   
-  const finalSpecialLinks = (data.specialLinks && data.specialLinks.length > 0) ? data.specialLinks : (config.defaultSpecialLinks || []);
+  // تصحيح منطق الروابط الخاصة: إذا كانت القائمة فارغة (ولكن تم تعريفها كـ []) نعرضها كما هي (أي لا تظهر صور)
+  const finalSpecialLinks = (data.specialLinks !== undefined) ? data.specialLinks : (config.defaultSpecialLinks || []);
 
-  // Contact Buttons Styling
   const cbRadius = config.contactButtonsRadius ?? 16;
   const cbGap = config.contactButtonsGap ?? 12;
   const cbPaddingV = config.contactButtonsPaddingV ?? 16;
