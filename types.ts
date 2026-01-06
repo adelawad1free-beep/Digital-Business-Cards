@@ -1,4 +1,3 @@
-
 export type Language = 'en' | 'ar' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'ru' | 'hi';
 
 export interface SocialLink {
@@ -47,7 +46,14 @@ export interface TemplateConfig {
   bioOffsetY: number;
   emailOffsetY: number;
   websiteOffsetY: number;
+  
+  // Contact Buttons Section
   contactButtonsOffsetY: number;
+  contactButtonsGap?: number;
+  contactButtonsRadius?: number;
+  contactButtonsPaddingV?: number;
+  contactButtonsGlassy?: boolean;
+  
   socialLinksOffsetY: number;
   contentAlign: 'start' | 'center' | 'end';
   buttonStyle: 'pill' | 'square' | 'glass';
@@ -71,6 +77,7 @@ export interface TemplateConfig {
   socialIconBorderWidth?: number;
   socialIconBorderColor?: string;
   socialIconGap?: number;
+  socialIconGapMobile?: number;
   socialIconColumns?: number;
   socialIconPadding?: number;
   useSocialBrandColors?: boolean;
@@ -82,6 +89,7 @@ export interface TemplateConfig {
   specialLinksRadius?: number;
   specialLinksAspectRatio?: 'square' | 'video' | 'portrait';
   specialLinksOffsetY?: number;
+  defaultSpecialLinks?: SpecialLinkItem[];
 
   // Location Config
   showLocationByDefault?: boolean;
@@ -91,8 +99,8 @@ export interface TemplateConfig {
   locationTextColor?: string;
   locationBorderRadius?: number;
   locationGlassy?: boolean;
-  locationPaddingV?: number; // التحكم في الارتفاع (المساحة الرأسية)
-  locationAddressSize?: number; // حجم خط العنوان التفصيلي
+  locationPaddingV?: number; 
+  locationAddressSize?: number; 
 
   // Direct Links Section (Email & Website)
   linksSectionVariant?: 'list' | 'grid' | 'pills';
@@ -157,6 +165,23 @@ export interface TemplateConfig {
   bodyFeatureBorderRadius?: number;
   bodyFeatureGlassy?: boolean;
 
+  // Bio Advanced Config
+  bioBorderRadius?: number;
+  bioBorderWidth?: number;
+  bioBorderColor?: string;
+  bioPaddingV?: number;
+  bioPaddingH?: number;
+  bioGlassy?: boolean;
+  bioOpacity?: number;
+  bioMaxWidth?: number;
+  bioTextAlign?: 'start' | 'center' | 'end';
+
+  // Desktop Display Config
+  desktopLayout?: 'full-width-header' | 'centered-card';
+  cardMaxWidth?: number;
+  desktopBodyOffsetY?: number;
+  mobileBodyOffsetY?: number;
+
   // Premium Features
   showStarsByDefault?: boolean;
   isVerifiedByDefault?: boolean;
@@ -183,8 +208,11 @@ export interface TemplateConfig {
   defaultThemeColor?: string;
   defaultThemeGradient?: string;
   defaultBackgroundImage?: string;
+  defaultBackgroundImageId?: string;
   defaultProfileImage?: string;
   defaultName?: string;
+  defaultTitle?: string;
+  defaultCompany?: string;
   defaultNameSize?: number;
   defaultIsDark?: boolean;
   cardBgColor?: string; 
@@ -239,7 +267,6 @@ export interface CardData {
   showLocation?: boolean;
   linksShowText?: boolean;
   linksShowBg?: boolean;
-  /* Fixed TS error in Editor.tsx by adding specialLinksCols to allow per-card overrides */
   specialLinksCols?: number;
 
   // Premium Overrides
@@ -282,6 +309,18 @@ export interface CardData {
   socialIconsColor?: string;
   contactPhoneColor?: string;
   contactWhatsappColor?: string;
+
+  // Bio Advanced Overrides
+  bioBorderRadius?: number;
+  bioBorderWidth?: number;
+  bioBorderColor?: string;
+  bioPaddingV?: number;
+  bioPaddingH?: number;
+  bioGlassy?: boolean;
+  bioOpacity?: number;
+  bioMaxWidth?: number;
+  bioTextAlign?: 'start' | 'center' | 'end';
+
   qrSize?: number;
   qrColor?: string; 
   qrBgColor?: string;
@@ -293,6 +332,8 @@ export interface CardData {
   cardBgColor?: string; 
   pageBgColor?: string;
   pageBgStrategy?: PageBgStrategy;
+  mobileBodyOffsetY?: number;
+  desktopBodyOffsetY?: number;
 }
 
 export interface VisualStyle {

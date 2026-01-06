@@ -1,4 +1,3 @@
-
 import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon, Link as LinkIcon, ShoppingCart } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig, SpecialLinkItem } from '../types';
@@ -13,6 +12,7 @@ interface CardPreviewProps {
   customConfig?: TemplateConfig; 
   hideSaveButton?: boolean; 
   isFullFrame?: boolean; 
+  hideHeader?: boolean; 
 }
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
@@ -57,7 +57,7 @@ const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: stri
   );
 };
 
-const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false }) => {
+const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hideSaveButton = false, isFullFrame = false, hideHeader = false }) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
 
@@ -73,8 +73,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
   const nameColor = data.nameColor || config.nameColor || (isDark ? '#ffffff' : '#111827');
   const titleColor = data.titleColor || config.titleColor || '#2563eb';
-  const bioTextColor = data.bioTextColor || config.bioTextColor || (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)');
-  const bioBgColor = data.bioBgColor || config.bioBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)');
   const linksColor = data.linksColor || config.linksColor || '#3b82f6';
   const socialIconsColor = data.socialIconsColor || config.socialIconsColor || linksColor;
   const phoneBtnColor = data.contactPhoneColor || config.contactPhoneColor || '#2563eb';
@@ -89,6 +87,35 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return { r, g, b, string: `${r}, ${g}, ${b}` };
   };
 
+  // --- Bio Styling Logic ---
+  const bTextColor = data.bioTextColor || config.bioTextColor || (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)');
+  let bBgColor = data.bioBgColor || config.bioBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)');
+  const bGlassy = data.bioGlassy ?? config.bioGlassy;
+  const bOpacity = (data.bioOpacity ?? config.bioOpacity ?? 100) / 100;
+  if (bGlassy && bBgColor.startsWith('#')) {
+    const rgb = hexToRgb(bBgColor);
+    bBgColor = `rgba(${rgb.string}, ${bOpacity})`;
+  } else if (!bBgColor.startsWith('rgba') && bOpacity < 1) {
+    const rgb = hexToRgb(bBgColor);
+    bBgColor = `rgba(${rgb.string}, ${bOpacity})`;
+  }
+
+  const bioStyles: React.CSSProperties = {
+    backgroundColor: bBgColor,
+    transform: `translateY(${config.bioOffsetY}px)`,
+    maxWidth: `${data.bioMaxWidth ?? config.bioMaxWidth ?? 90}%`,
+    borderRadius: `${data.bioBorderRadius ?? config.bioBorderRadius ?? 32}px`,
+    borderWidth: `${data.bioBorderWidth ?? config.bioBorderWidth ?? 1}px`,
+    borderColor: data.bioBorderColor ?? config.bioBorderColor ?? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'),
+    paddingTop: `${data.bioPaddingV ?? config.bioPaddingV ?? 20}px`,
+    paddingBottom: `${data.bioPaddingV ?? config.bioPaddingV ?? 20}px`,
+    paddingLeft: `${data.bioPaddingH ?? config.bioPaddingH ?? 20}px`,
+    paddingRight: `${data.bioPaddingH ?? config.bioPaddingH ?? 20}px`,
+    backdropFilter: bGlassy ? 'blur(15px)' : 'none',
+    WebkitBackdropFilter: bGlassy ? 'blur(15px)' : 'none',
+    textAlign: (data.bioTextAlign ?? config.bioTextAlign ?? 'center') as any
+  };
+
   // --- Location Section Config ---
   const isLocGlassy = config.locationGlassy;
   let locBg = config.locationBgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(59, 130, 246, 0.05)');
@@ -99,8 +126,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const locIconColor = config.locationIconColor || themeColor;
   const locTextColor = config.locationTextColor || (isDark ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.8)');
   const locRadius = config.locationBorderRadius ?? 24;
-  const locPaddingV = config.locationPaddingV ?? 20; // التحكم في ارتفاع الجسم
-  const locAddressSize = config.locationAddressSize ?? 13; // تصغير حجم خط العنوان
+  const locPaddingV = config.locationPaddingV ?? 20; 
+  const locAddressSize = config.locationAddressSize ?? 13; 
 
   // --- Direct Links Section Config ---
   const dLinksShowBg = data.linksShowBg ?? config.linksShowBg ?? true;
@@ -120,7 +147,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const dLinksItemBg = config.linksItemBgColor || (isDark ? 'rgba(255,255,255,0.1)' : '#ffffff');
   const dLinksItemRadius = config.linksItemRadius ?? (dLinksVariant === 'pills' ? 999 : 16);
 
-  // Special Features Overrides/Checks
   const isVerified = data.isVerified ?? config.isVerifiedByDefault;
   const showStars = data.showStars ?? config.showStarsByDefault;
   const hasGoldenFrame = data.hasGoldenFrame ?? config.hasGoldenFrameByDefault;
@@ -177,7 +203,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
       baseStyle = { ...baseStyle, backgroundImage: `url(${config.headerCustomAsset})`, backgroundSize: 'cover', backgroundPosition: 'center' };
     } else if (themeType === 'image' && backgroundImage) {
       baseStyle = { ...baseStyle, backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' };
-    } else if (themeType === 'gradient') {
+    } else if (themeType === 'gradient' && themeGradient) {
       baseStyle = { ...baseStyle, background: themeGradient };
     } else {
       baseStyle = { ...baseStyle, backgroundColor: themeColor };
@@ -215,15 +241,18 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const isBodyGlassy = data.bodyGlassy ?? config.bodyGlassy;
   const bodyOpacity = (data.bodyOpacity ?? config.bodyOpacity ?? 100) / 100;
 
-  const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating';
+  const needsSideMargins = headerType.startsWith('side') || isBodyGlassy || bodyOpacity < 1 || config.headerType === 'floating' || hideHeader;
 
-  const bodyStyles: React.CSSProperties = {
-    marginTop: headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px'),
+  // Final offset selection logic based on responsive width if needed, but here we use props or config
+  const bodyYOffset = data.desktopBodyOffsetY ?? config.desktopBodyOffsetY ?? 0;
+
+  const bodyContentStyles: React.CSSProperties = {
+    marginTop: hideHeader ? '0px' : (headerType === 'overlay' ? `${headerHeight * 0.4}px` : (headerType.startsWith('side') ? '40px' : '-60px')),
     transform: `translateY(${config.bodyOffsetY || 0}px)`, 
     backgroundColor: isDark 
       ? `rgba(15, 15, 18, ${bodyOpacity})` 
       : `rgba(255, 255, 255, ${bodyOpacity})`,
-    borderRadius: `${config.bodyBorderRadius ?? 48}px ${config.bodyBorderRadius ?? 48}px 0 0`,
+    borderRadius: `${config.bodyBorderRadius ?? 48}px`,
     paddingTop: '24px',
     position: 'relative',
     zIndex: 20,
@@ -240,7 +269,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
-  const finalCardBgColor = data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff');
+  const finalCardBgColor = hideHeader ? 'transparent' : (data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#ffffff'));
 
   const showAnimatedBorder = config.avatarAnimatedBorder;
   const borderClr1 = config.avatarAnimatedBorderColor1 || themeColor;
@@ -307,17 +336,41 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     return inner ? 'rounded-[22%]' : 'rounded-[28%]';
   };
 
-  /* Use data.specialLinksCols override if present to fix TS errors and support user customization */
   const slCols = data.specialLinksCols || config.specialLinksCols || 2;
   const slGap = config.specialLinksGap || 12;
   const slRadius = config.specialLinksRadius ?? 24;
   const slAspect = config.specialLinksAspectRatio || 'square';
   const slOffsetY = config.specialLinksOffsetY || 0;
 
-  // استخراج قوائم الإيميلات والمواقع
   const finalEmails = data.emails && data.emails.length > 0 ? data.emails : (data.email ? [data.email] : []);
   const finalWebsites = data.websites && data.websites.length > 0 ? data.websites : (data.website ? [data.website] : []);
   const hasDirectLinks = (showEmail && finalEmails.length > 0) || (showWebsite && finalWebsites.length > 0);
+
+  const finalName = data.name || config.defaultName || '---';
+  const finalTitle = data.title || config.defaultTitle || '';
+  const finalCompany = data.company || config.defaultCompany || '';
+  
+  const finalSpecialLinks = (data.specialLinks && data.specialLinks.length > 0) ? data.specialLinks : (config.defaultSpecialLinks || []);
+
+  // Contact Buttons Styling
+  const cbRadius = config.contactButtonsRadius ?? 16;
+  const cbGap = config.contactButtonsGap ?? 12;
+  const cbPaddingV = config.contactButtonsPaddingV ?? 16;
+  const cbGlassy = config.contactButtonsGlassy;
+
+  const getContactBtnStyle = (baseColor: string): React.CSSProperties => {
+    const style: React.CSSProperties = {
+      backgroundColor: cbGlassy ? `rgba(${hexToRgb(baseColor).string}, 0.15)` : baseColor,
+      borderRadius: `${cbRadius}px`,
+      paddingTop: `${cbPaddingV}px`,
+      paddingBottom: `${cbPaddingV}px`,
+      backdropFilter: cbGlassy ? 'blur(10px)' : 'none',
+      WebkitBackdropFilter: cbGlassy ? 'blur(10px)' : 'none',
+      border: cbGlassy ? `1px solid rgba(${hexToRgb(baseColor).string}, 0.3)` : 'none',
+      color: cbGlassy ? baseColor : '#ffffff'
+    };
+    return style;
+  };
 
   return (
     <div 
@@ -325,26 +378,30 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
       style={{ backgroundColor: finalCardBgColor }}
     >
       
-      <div className="absolute inset-0 z-[-1] opacity-40">
-        {themeType === 'image' && backgroundImage && <img src={backgroundImage} className="w-full h-full object-cover blur-sm scale-110" />}
-        {themeType === 'gradient' && <div className="w-full h-full" style={{ background: themeGradient }} />}
-      </div>
+      {!hideHeader && (
+        <div className="absolute inset-0 z-[-1] opacity-40">
+          {themeType === 'image' && backgroundImage && <img src={backgroundImage} className="w-full h-full object-cover blur-sm scale-110" />}
+          {themeType === 'gradient' && <div className="w-full h-full" style={{ background: themeGradient }} />}
+        </div>
+      )}
 
-      <div className="shrink-0 overflow-hidden relative" style={getHeaderStyles()}>
-          {headerType === 'custom-asset' && config.headerSvgRaw && (
-             <div className="absolute inset-0 flex items-start justify-center overflow-hidden" style={{ color: themeType === 'gradient' ? '#ffffff' : themeColor, opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: config.headerSvgRaw.replace('<svg', `<svg style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none"`) }} />
-          )}
-          {config.headerPatternId && config.headerPatternId !== 'none' && (
-            <div className="absolute inset-0 pointer-events-none opacity-[0.2]" 
-                 style={{ 
-                   backgroundImage: `url("data:image/svg+xml;base64,${window.btoa((PATTERN_PRESETS.find(p => p.id === config.headerPatternId)?.svg || '').replace('currentColor', isDark ? '#ffffff' : '#000000'))}")`,
-                   backgroundSize: `${config.headerPatternScale || 100}%`,
-                   opacity: (config.headerPatternOpacity || 20) / 100
-                 }} />
-          )}
-      </div>
+      {!hideHeader && (
+        <div className="shrink-0 overflow-hidden relative" style={getHeaderStyles()}>
+            {headerType === 'custom-asset' && config.headerSvgRaw && (
+               <div className="absolute inset-0 flex items-start justify-center overflow-hidden" style={{ color: themeType === 'gradient' ? '#ffffff' : themeColor, opacity: 0.9 }} dangerouslySetInnerHTML={{ __html: config.headerSvgRaw.replace('<svg', `<svg style="width: 100%; height: 100%; display: block;" preserveAspectRatio="none"`) }} />
+            )}
+            {config.headerPatternId && config.headerPatternId !== 'none' && (
+              <div className="absolute inset-0 pointer-events-none opacity-[0.2]" 
+                   style={{ 
+                     backgroundImage: `url("data:image/svg+xml;base64,${window.btoa((PATTERN_PRESETS.find(p => p.id === config.headerPatternId)?.svg || '').replace('currentColor', isDark ? '#ffffff' : '#000000'))}")`,
+                     backgroundSize: `${config.headerPatternScale || 100}%`,
+                     opacity: (config.headerPatternOpacity || 20) / 100
+                   }} />
+            )}
+        </div>
+      )}
 
-      <div className="flex flex-col flex-1 px-4 sm:px-6" style={bodyStyles}>
+      <div className="flex flex-col flex-1 px-4 sm:px-6" style={bodyContentStyles}>
         {config.avatarStyle !== 'none' && (
           <div className={`relative ${getAvatarRadiusClasses()} z-30 shrink-0 mx-auto transition-all`} 
                style={{ 
@@ -373,13 +430,13 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
           </div>
         )}
 
-        <div className={`w-full ${config.spacing === 'relaxed' ? 'space-y-6' : config.spacing === 'compact' ? 'space-y-2' : 'space-y-4'} relative z-10`} style={{ marginTop: headerType === 'overlay' ? '20px' : '24px' }}>
+        <div className={`w-full ${config.spacing === 'relaxed' ? 'space-y-6' : config.spacing === 'compact' ? 'space-y-2' : 'space-y-4'} relative z-10`} style={{ marginTop: hideHeader ? '20px' : (headerType === 'overlay' ? '20px' : '24px') }}>
            
            {showName && (
              <div className="flex flex-col items-center justify-center gap-1">
                 <div className="flex items-center justify-center gap-2">
                   <h2 className="font-black leading-tight" style={{ color: nameColor, transform: `translateY(${config.nameOffsetY}px)`, fontSize: `${config.nameSize}px` }}>
-                    {data.name || '---'}
+                    {finalName}
                   </h2>
                   {isVerified && <CheckCircle size={config.nameSize * 0.7} className="text-blue-500 animate-pulse" />}
                 </div>
@@ -393,9 +450,9 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
 
            {(showTitle || showCompany) && (
              <p className="font-bold opacity-80" style={{ color: titleColor, transform: `translateY(${config.titleOffsetY || 0}px)`, fontSize: '14px' }}>
-               {showTitle && data.title}
-               {(showTitle && showCompany) && data.company && ' • '}
-               {showCompany && data.company}
+               {showTitle && finalTitle}
+               {(showTitle && showCompany) && finalTitle && finalCompany && ' • '}
+               {showCompany && finalCompany}
              </p>
            )}
 
@@ -424,15 +481,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
            )}
 
            {showBio && data.bio && (
-             <div className="p-5 rounded-[2rem] mx-auto border border-gray-100 dark:border-white/10 relative" style={{ backgroundColor: bioBgColor, transform: `translateY(${config.bioOffsetY}px)`, maxWidth: '90%' }}>
+             <div className="mx-auto relative group overflow-hidden" style={bioStyles}>
                 <Quote size={12} className="absolute top-3 left-4 opacity-20 text-blue-500" />
-               <p className="font-bold leading-relaxed italic" style={{ color: bioTextColor, fontSize: `${config.bioSize}px` }}>
+               <p className="font-bold leading-relaxed italic" style={{ color: bTextColor, fontSize: `${config.bioSize}px` }}>
                  {data.bio}
                </p>
              </div>
            )}
 
-           {/* Direct Links Section (Email & Website) */}
            {hasDirectLinks ? (
               <div 
                 className={`w-full px-2 animate-fade-in-up flex flex-col items-center gap-3`}
@@ -494,14 +550,20 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
            ) : null}
 
            {hasContactButtons && (
-              <div className="flex flex-row items-center justify-center gap-3 w-full mt-6 px-2" style={{ transform: `translateY(${config.contactButtonsOffsetY || 0}px)` }}>
+              <div 
+                className="flex flex-row items-center justify-center w-full mt-6 px-2" 
+                style={{ 
+                  transform: `translateY(${config.contactButtonsOffsetY || 0}px)`,
+                  gap: `${cbGap}px`
+                }}
+              >
                 {showPhone && data.phone && (
-                  <a href={`tel:${data.phone}`} style={{ backgroundColor: phoneBtnColor }} className="flex-1 py-4 flex items-center justify-center gap-2 px-3 rounded-2xl text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
+                  <a href={`tel:${data.phone}`} style={getContactBtnStyle(phoneBtnColor)} className="flex-1 flex items-center justify-center gap-2 px-3 text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
                     <Phone size={14} className="shrink-0" /> <span className="truncate">{t('call')}</span>
                   </a>
                 )}
                 {showWhatsapp && data.whatsapp && (
-                  <a href={`https://wa.me/${data.whatsapp}`} target="_blank" style={{ backgroundColor: whatsappBtnColor }} className="flex-1 py-4 flex items-center justify-center gap-2 px-3 rounded-2xl text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
+                  <a href={`https://wa.me/${data.whatsapp}`} target="_blank" style={getContactBtnStyle(whatsappBtnColor)} className="flex-1 flex items-center justify-center gap-2 px-3 text-white font-black text-[10px] shadow-lg hover:brightness-110 transition-all min-w-0">
                     <MessageCircle size={14} className="shrink-0" /> <span className="truncate">{t('whatsappBtn')}</span>
                   </a>
                 )}
@@ -513,7 +575,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
               </div>
            )}
 
-           {showSpecialLinks && data.specialLinks && data.specialLinks.length > 0 && (
+           {showSpecialLinks && finalSpecialLinks.length > 0 && (
               <div 
                 className={`grid w-full px-2 animate-fade-in-up`}
                 style={{ 
@@ -522,7 +584,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                   transform: `translateY(${slOffsetY}px)`
                 }}
               >
-                {data.specialLinks.map((link) => (
+                {finalSpecialLinks.map((link) => (
                   <a 
                     key={link.id} 
                     href={link.linkUrl} 

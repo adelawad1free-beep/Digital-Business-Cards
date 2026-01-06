@@ -1,4 +1,3 @@
-
 import { 
   Save, Plus, X, Loader2, Sparkles, Moon, Sun, 
   Mail, Phone, Globe, MessageCircle, Link as LinkIcon, 
@@ -7,7 +6,7 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus
+  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -43,6 +42,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const specialLinkInputRef = useRef<HTMLInputElement>(null);
   const originalIdRef = useRef<string | null>(initialData?.id || null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const editorTopRef = useRef<HTMLDivElement>(null); // مرجع للوصول لأعلى المحرر
 
   const [activeTab, setActiveTab] = useState<EditorTab>('identity');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
@@ -55,8 +55,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugStatus, setSlugStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
-  const [isUploadingLinkImg, setIsUploadingLinkImg] = useState(false);
+  const [isSlugVerified, setIsSlugVerified] = useState(true);
+  const [showValidationError, setShowValidationError] = useState<string | null>(null);
   
+  const [isUploadingLinkImg, setIsUploadingLinkImg] = useState(false);
   const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
 
   useEffect(() => {
@@ -133,6 +135,43 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     return baseData;
   });
 
+  const scrollToError = () => {
+    if (editorTopRef.current) {
+      editorTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCheckSlug = async () => {
+    setShowValidationError(null);
+    if (!formData.id) {
+      setSlugStatus('invalid');
+      setIsSlugVerified(false);
+      return;
+    }
+    if (formData.id.length < 3) {
+      setSlugStatus('invalid');
+      setIsSlugVerified(false);
+      return;
+    }
+    setIsCheckingSlug(true);
+    try {
+      const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
+      if (available) {
+        setSlugStatus('available');
+        setIsSlugVerified(true);
+      } else {
+        setSlugStatus('taken');
+        setIsSlugVerified(false);
+      }
+    } catch (e) {
+      setSlugStatus('idle');
+    } finally {
+      setIsCheckingSlug(false);
+    }
+  };
+
   const handlePreviewMouseMove = (e: React.MouseEvent) => {
     if (!previewContainerRef.current) return;
     const rect = previewContainerRef.current.getBoundingClientRect();
@@ -140,30 +179,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     const percentage = Math.max(0, Math.min(100, (relativeY / rect.height) * 100));
     setPreviewMouseY(percentage);
   };
-
-  useEffect(() => {
-    if (!formData.id) {
-      setSlugStatus('idle');
-      return;
-    }
-    if (formData.id.length < 3) {
-      setSlugStatus('invalid');
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setIsCheckingSlug(true);
-      try {
-        const available = await isSlugAvailable(formData.id, auth.currentUser?.uid);
-        setSlugStatus('available');
-        if (!available) setSlugStatus('taken');
-      } catch (e) {
-        setSlugStatus('idle');
-      } finally {
-        setIsCheckingSlug(false);
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [formData.id]);
 
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingBg, setIsUploadingBg] = useState(false);
@@ -174,6 +189,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const handleChange = (field: keyof CardData, value: any) => {
     if (field === 'id') { 
       value = (value || '').toLowerCase().replace(/[^a-z0-9-]/g, ''); 
+      setIsSlugVerified(value === originalIdRef.current);
+      setSlugStatus('idle');
+      setShowValidationError(null);
     }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -314,18 +332,39 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const labelClasses = "block text-[10px] font-black text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-widest px-1";
 
   const handleFinalSaveInternal = () => {
+    setShowValidationError(null);
     if (!auth.currentUser) {
       setShowAuthWarning(true);
       return;
     }
     if (isUploading || isUploadingBg || isUploadingLinkImg) {
-      alert(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
+      setShowValidationError(isRtl ? "يرجى الانتظار حتى اكتمال رفع الصور" : "Please wait for images to finish uploading");
+      scrollToError();
       return;
     }
-    if (slugStatus === 'taken' || slugStatus === 'invalid') {
-       alert(isRtl ? "يرجى اختيار رابط متاح قبل الحفظ" : "Please choose an available link before saving");
+    
+    // التحقق من الرابط (Slug)
+    if (!isSlugVerified) {
+       setShowValidationError(isRtl ? "يجب التحقق من توفر الرابط أولاً بالضغط على زر (تحقق)" : "Please verify the link availability first by clicking (Verify)");
+       setActiveTab('identity');
+       setTimeout(scrollToError, 100);
        return;
     }
+    if (slugStatus === 'taken' || slugStatus === 'invalid') {
+       setShowValidationError(isRtl ? "الرابط المختار غير صالح أو محجوز، يرجى اختيار اسم آخر" : "The selected link is invalid or taken, please choose another");
+       setActiveTab('identity');
+       setTimeout(scrollToError, 100);
+       return;
+    }
+
+    // التحقق من وجود اسم
+    if (!formData.name || formData.name.trim() === '') {
+       setShowValidationError(isRtl ? "الاسم مطلوب لحفظ البطاقة" : "Name is required to save the card");
+       setActiveTab('identity');
+       setTimeout(scrollToError, 100);
+       return;
+    }
+
     const finalData = {
       ...formData,
       email: formData.emails && formData.emails.length > 0 ? formData.emails[0] : formData.email,
@@ -338,27 +377,29 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     <div className="max-w-[1440px] mx-auto">
       {showAuthWarning && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-[#121215] w-full max-sm rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 text-center space-y-6 animate-zoom-in">
-              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
-                 <UserIcon size={40} />
+           <div className="bg-white dark:bg-[#121215] w-full max-w-4xl rounded-[4rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-12 md:p-16 text-center space-y-8 animate-zoom-in">
+              <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <UserIcon size={48} />
               </div>
-              <h3 className="text-xl font-black dark:text-white leading-relaxed">
-                 {isRtl ? "لحفظ بطاقتك وتعديلها الرجاء تسجيل الدخول أو إنشاء حساب" : "To save and customize your card, please login or register"}
-              </h3>
-              <p className="text-xs font-bold text-gray-400 leading-relaxed">
-                 {isRtl ? "سجل حسابك الآن لتتمكن من حفظ هويتك الرقمية ومشاركتها مع العالم وتعديلها في أي وقت." : "Register now to save your digital identity, share it with the world, and edit it anytime."}
-              </p>
-              <div className="flex flex-col gap-3 pt-4">
+              <div className="space-y-3">
+                <h3 className="text-2xl md:text-3xl font-black dark:text-white leading-tight">
+                   {isRtl ? "لحفظ بطاقتك وتعديلها الرجاء تسجيل الدخول أو إنشاء حساب" : "To save and customize your card, please login or register"}
+                </h3>
+                <p className="text-sm font-bold text-gray-400 leading-relaxed max-w-2xl mx-auto">
+                   {isRtl ? "سجل حسابك الآن لتتمكن من حفظ هويتك الرقمية ومشاركتها مع العالم وتعديلها في أي وقت." : "Register now to save your digital identity, share it with the world, and edit it anytime."}
+                </p>
+              </div>
+              <div className="flex flex-col gap-4 pt-6 max-w-2xl mx-auto">
                  <button 
                    onClick={() => { setShowAuthWarning(false); setShowDirectAuth(true); }}
-                   className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                   className="w-full py-6 bg-blue-600 text-white rounded-3xl font-black text-sm uppercase shadow-2xl shadow-blue-600/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
                  >
-                    <LogIn size={18} />
+                    <LogIn size={20} />
                     {isRtl ? "تسجيل دخول / إنشاء حساب" : "Login / Register"}
                  </button>
                  <button 
                    onClick={() => setShowAuthWarning(false)}
-                   className="w-full py-4 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-2xl font-black text-[10px] uppercase hover:bg-gray-100 transition-all"
+                   className="w-full py-4 text-gray-400 font-black text-xs uppercase hover:text-blue-600 transition-colors"
                  >
                     {isRtl ? "لاحقاً" : "Maybe Later"}
                  </button>
@@ -387,20 +428,67 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
              </div>
           </div>
 
+          {/* عنصر مرجعي للتمرير إليه عند الخطأ */}
+          <div ref={editorTopRef} className="h-0 w-0 pointer-events-none invisible" />
+
           <div className="bg-white dark:bg-[#121215] p-5 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 dark:border-gray-800 animate-fade-in relative overflow-hidden">
             
+            {showValidationError && (
+               <div className="mb-6 p-5 bg-red-500 text-white rounded-[1.8rem] shadow-xl shadow-red-500/20 flex items-center gap-4 animate-shake relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-transparent pointer-events-none"></div>
+                  <div className="shrink-0 p-2 bg-white/20 rounded-xl">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <p className="flex-1 text-sm font-black uppercase tracking-tight leading-snug">{showValidationError}</p>
+                  <button onClick={() => setShowValidationError(null)} className="p-2 hover:bg-white/20 rounded-xl transition-all"><X size={20}/></button>
+               </div>
+            )}
+
             <div className="space-y-8 mt-4 animate-fade-in">
               {activeTab === 'identity' && (
                 <div className="space-y-6 animate-fade-in relative z-10">
-                  <div className="p-5 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-4">
+                  <div className="p-6 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2.5rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-5">
                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3"><Link2 size={18} className="text-blue-600" /><h4 className="text-xs font-black dark:text-white uppercase tracking-tighter">{t('رابط البطاقة', 'Card Link')}</h4></div>
-                        <div className="text-[10px] font-bold"><span className={`${slugStatus === 'available' ? 'text-emerald-500' : slugStatus === 'taken' ? 'text-red-500' : 'text-gray-400'}`}>{slugStatus === 'available' ? '✓ متاح' : slugStatus === 'taken' ? '✗ مأخوذ' : ''}</span></div>
+                        <div className="flex items-center gap-3">
+                          <Link2 size={18} className="text-blue-600" />
+                          <h4 className="text-xs font-black dark:text-white uppercase tracking-tighter">{t('رابط البطاقة', 'Card Link')}</h4>
+                        </div>
                      </div>
                      <div className="relative">
-                        <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest`}>.nextid.my</div>
-                        <input type="text" value={formData.id} onChange={e => handleChange('id', e.target.value)} className={`w-full px-5 py-4 rounded-xl border-2 bg-white/80 dark:bg-gray-950/50 text-lg font-black outline-none ${isRtl ? 'pl-20' : 'pr-20'} ${slugStatus === 'available' ? 'border-emerald-200' : 'border-gray-100'}`} />
+                        <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest pointer-events-none`}>.nextid.my</div>
+                        <input 
+                          type="text" 
+                          value={formData.id} 
+                          onChange={e => handleChange('id', e.target.value)} 
+                          className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/80 dark:bg-gray-950/50 text-lg font-black outline-none transition-all ${isRtl ? 'pl-20 pr-4' : 'pr-20 pl-4'} ${slugStatus === 'available' ? 'border-emerald-200 ring-4 ring-emerald-500/10 bg-emerald-50/30' : slugStatus === 'taken' || slugStatus === 'invalid' ? 'border-red-200 ring-4 ring-red-500/10 bg-red-50/30' : 'border-gray-100 focus:border-blue-200'}`} 
+                          placeholder={isRtl ? 'اكتب الرابط المفضل' : 'Type your link'}
+                        />
+                        
+                        {!isSlugVerified && formData.id && (
+                           <button 
+                             type="button" 
+                             onClick={handleCheckSlug}
+                             disabled={isCheckingSlug}
+                             className={`absolute ${isRtl ? 'left-24' : 'right-24'} top-1/2 -translate-y-1/2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-blue-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2`}
+                           >
+                              {isCheckingSlug ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                              {t('تحقق', 'Verify')}
+                           </button>
+                        )}
                      </div>
+
+                     {slugStatus !== 'idle' && (
+                       <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl animate-zoom-in border ${slugStatus === 'available' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                          <div className={`p-1.5 rounded-lg ${slugStatus === 'available' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                             {slugStatus === 'available' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                          </div>
+                          <span className="text-[11px] font-black uppercase tracking-tight">
+                             {slugStatus === 'available' ? t('هذا الرابط متاح للاستخدام الآن ✓', 'This link is available for use now ✓') : 
+                              slugStatus === 'taken' ? t('للأسف، هذا الرابط محجوز مسبقاً ✗', 'Sorry, this link is already taken ✗') : 
+                              t('الرابط غير صالح أو قصير جداً ⚠', 'Link is invalid or too short ⚠')}
+                          </span>
+                       </div>
+                     )}
                   </div>
 
                   <div className="flex flex-col md:flex-row gap-6 items-center">
@@ -653,7 +741,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                                     <input type="url" value={link.linkUrl} onChange={e => updateSpecialLink(link.id, 'linkUrl', e.target.value)} className={inputClasses + " !py-3 !text-xs"} placeholder="https://..." />
                                  </div>
                               </div>
-                              <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={18}/></button>
+                              <button onClick={() => removeSpecialLink(link.id)} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={16}/></button>
                            </div>
                          ))}
                          {(!formData.specialLinks || formData.specialLinks.length === 0) && (
@@ -753,10 +841,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
           <div className="flex flex-col sm:flex-row gap-3 pt-8 md:pt-10">
             <button 
               onClick={handleFinalSaveInternal}
-              disabled={isUploading || isUploadingBg || isUploadingLinkImg}
-              className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+              disabled={isUploading || isUploadingBg || isUploadingLinkImg || isCheckingSlug}
+              className="flex-[2] py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-sm uppercase shadow-xl flex items-center justify-center gap-3 hover:brightness-110 active:scale-95 disabled:opacity-50"
             >
-              { (isUploading || isUploadingBg || isUploadingLinkImg) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
+              { (isUploading || isUploadingBg || isUploadingLinkImg || isCheckingSlug) ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} /> } 
               {t('saveChanges')}
             </button>
             <button 
