@@ -172,6 +172,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     try { await deleteTemplate(templateToDelete); setTemplateToDelete(null); fetchData(true); } catch (e) { alert(isRtl ? "فشل حذف القالب" : "Error deleting template"); }
   };
 
+  const handleCloneTemplate = (tmpl: CustomTemplate) => {
+    const clonedTemplate: CustomTemplate = {
+      ...tmpl,
+      id: `tmpl_copy_${Date.now()}`,
+      nameAr: `${tmpl.nameAr} (${isRtl ? 'نسخة' : 'Copy'})`,
+      nameEn: `${tmpl.nameEn} (Copy)`,
+      usageCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setEditingTemplate(clonedTemplate);
+    setActiveTab('builder');
+  };
+
   const confirmDeleteCard = async () => {
     if (!cardToDelete) return;
     setLoading(true);
@@ -537,7 +551,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                                    </button>
                                 </td>
                                 <td className="px-8 py-6 text-center"><div className="flex flex-col"><span className="text-lg font-black text-indigo-600 leading-none">{tmpl.usageCount || 0}</span><span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t('استخدام', 'Uses')}</span></div></td>
-                                <td className="px-8 py-6 text-center"><div className="flex justify-center gap-2"><button onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit3 size={18} /></button><button onClick={() => setTemplateToDelete(tmpl.id)} className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} /></button></div></td>
+                                <td className="px-8 py-6 text-center">
+                                  <div className="flex justify-center gap-2">
+                                    <button 
+                                      onClick={() => handleCloneTemplate(tmpl)} 
+                                      title={isRtl ? "نسخ القالب" : "Clone Template"}
+                                      className="p-3 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"
+                                    >
+                                      <Copy size={18} />
+                                    </button>
+                                    <button 
+                                      onClick={() => { setEditingTemplate(tmpl); setActiveTab('builder'); }} 
+                                      className="p-3 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                                    >
+                                      <Edit3 size={18} />
+                                    </button>
+                                    <button 
+                                      onClick={() => setTemplateToDelete(tmpl.id)} 
+                                      className="p-3 text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                    >
+                                      <Trash2 size={18} />
+                                    </button>
+                                  </div>
+                                </td>
                              </tr>
                           ))}
                        </tbody>
@@ -800,7 +836,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
                } finally { setSavingSecurity(false); } 
              }} className="bg-white dark:bg-gray-900 p-10 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-8">
                 <div className="flex items-center gap-4"><div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-2xl"><Key size={24} /></div><h2 className="text-2xl font-black dark:text-white">{t('أمان المسؤول', 'Admin Security')}</h2></div>
-                {securityStatus && <div className={`p-4 rounded-2xl text-xs font-bold ${securityStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{securityStatus.message}</div>}
+                {securityStatus && <div className={`p-4 rounded-2xl flex items-center gap-3 animate-fade-in ${securityStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{securityStatus.message}</div>}
                 <div className="space-y-6">
                    <div><label className={labelTextClasses}>{t('كلمة المرور الحالية', 'Current Password')}</label><input type="password" required value={securityData.currentPassword} onChange={(e) => setSecurityData({...securityData, currentPassword: e.target.value})} className={inputClasses} placeholder="••••••••" /></div>
                    <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-4">
@@ -827,7 +863,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('سيتم مسح هذه البطاقة نهائياً من قاعدة البيانات ومن حساب المستخدم. هل أنت متأكد؟', 'This will delete the card from database and user account permanently. Are you sure?')}</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteCard} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، احذف البطاقة</button>
-              <button onClick={() => setCardToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              <button onClick={() => setCardToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
             </div>
           </div>
         </div>
@@ -841,7 +877,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             <p className="text-sm font-bold text-gray-400 mb-8 leading-relaxed px-4">{t('هل أنت متأكد من رغبتك في حذف هذا التصميم نهائياً؟ لا يمكن التراجع عن هذا الإجراء.', 'This template will be permanently removed. This action cannot be undone.')}</p>
             <div className="flex flex-col gap-3">
               <button onClick={confirmDeleteTemplate} className="py-5 bg-red-600 text-white rounded-3xl font-black text-sm uppercase shadow-xl shadow-red-500/20 active:scale-95 transition-all">نعم، حذف القالب</button>
-              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
+              <button onClick={() => setTemplateToDelete(null)} className="py-5 bg-gray-50 dark:bg-gray-800 text-gray-400 rounded-3xl font-black text-sm uppercase">إلغاء</button>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import {
   Pipette, Type as TypographyIcon, Smartphone, Tablet, Monitor, Eye, 
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
-  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle
+  QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle, Zap
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import CardPreview from '../components/CardPreview';
@@ -42,7 +42,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   const specialLinkInputRef = useRef<HTMLInputElement>(null);
   const originalIdRef = useRef<string | null>(initialData?.id || null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const editorTopRef = useRef<HTMLDivElement>(null); // مرجع للوصول لأعلى المحرر
+  const editorTopRef = useRef<HTMLDivElement>(null); 
 
   const [activeTab, setActiveTab] = useState<EditorTab>('identity');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
@@ -343,7 +343,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
       return;
     }
     
-    // التحقق من الرابط (Slug)
     if (!isSlugVerified) {
        setShowValidationError(isRtl ? "يجب التحقق من توفر الرابط أولاً بالضغط على زر (تحقق)" : "Please verify the link availability first by clicking (Verify)");
        setActiveTab('identity');
@@ -357,7 +356,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
        return;
     }
 
-    // التحقق من وجود اسم
     if (!formData.name || formData.name.trim() === '') {
        setShowValidationError(isRtl ? "الاسم مطلوب لحفظ البطاقة" : "Name is required to save the card");
        setActiveTab('identity');
@@ -428,7 +426,6 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
              </div>
           </div>
 
-          {/* عنصر مرجعي للتمرير إليه عند الخطأ */}
           <div ref={editorTopRef} className="h-0 w-0 pointer-events-none invisible" />
 
           <div className="bg-white dark:bg-[#121215] p-5 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 dark:border-gray-800 animate-fade-in relative overflow-hidden">
@@ -447,42 +444,55 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
             <div className="space-y-8 mt-4 animate-fade-in">
               {activeTab === 'identity' && (
                 <div className="space-y-6 animate-fade-in relative z-10">
-                  <div className="p-6 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-900/10 dark:to-[#121215] rounded-[2.5rem] border-2 border-blue-100/50 dark:border-blue-900/20 shadow-sm space-y-5">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Link2 size={18} className="text-blue-600" />
-                          <h4 className="text-xs font-black dark:text-white uppercase tracking-tighter">{t('رابط البطاقة', 'Card Link')}</h4>
+                  {/* قسم حجز الرابط المطور */}
+                  <div className="p-8 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/10 dark:to-[#121215] rounded-[3.5rem] border-2 border-emerald-100 dark:border-emerald-900/20 shadow-xl shadow-emerald-500/5 space-y-6 relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:rotate-12 transition-transform duration-700 pointer-events-none">
+                        <Zap size={140} className="text-emerald-600" />
+                     </div>
+                     
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20">
+                             <Link2 size={24} />
+                          </div>
+                          <div>
+                            <h4 className="text-xl font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-tighter leading-none mb-1">
+                               {isRtl ? 'احجز رابطك الخاص الآن' : 'Reserve Your Custom Link'}
+                            </h4>
+                            <p className="text-[10px] font-bold text-emerald-600/60 dark:text-emerald-400/40 uppercase tracking-widest">
+                               {isRtl ? 'اختر اسماً مميزاً يعبر عن هويتك' : 'Choose a unique name for your identity'}
+                            </p>
+                          </div>
                         </div>
                      </div>
-                     <div className="relative">
-                        <div className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest pointer-events-none`}>.nextid.my</div>
+
+                     <div className="relative z-10">
+                        <div className={`absolute ${isRtl ? 'left-6' : 'right-6'} top-1/2 -translate-y-1/2 text-[11px] font-black text-emerald-300 dark:text-emerald-900 uppercase tracking-widest pointer-events-none opacity-60`}>.nextid.my</div>
                         <input 
                           type="text" 
                           value={formData.id} 
                           onChange={e => handleChange('id', e.target.value)} 
-                          className={`w-full px-5 py-4 rounded-2xl border-2 bg-white/80 dark:bg-gray-950/50 text-lg font-black outline-none transition-all ${isRtl ? 'pl-20 pr-4' : 'pr-20 pl-4'} ${slugStatus === 'available' ? 'border-emerald-200 ring-4 ring-emerald-500/10 bg-emerald-50/30' : slugStatus === 'taken' || slugStatus === 'invalid' ? 'border-red-200 ring-4 ring-red-500/10 bg-red-50/30' : 'border-gray-100 focus:border-blue-200'}`} 
-                          placeholder={isRtl ? 'اكتب الرابط المفضل' : 'Type your link'}
+                          className={`w-full px-8 py-5 rounded-3xl border-2 bg-white/90 dark:bg-gray-950/80 text-xl font-black outline-none transition-all ${isRtl ? 'pl-24 pr-8' : 'pr-24 pl-8'} ${slugStatus === 'available' ? 'border-emerald-500 ring-8 ring-emerald-500/10 bg-emerald-50/20' : slugStatus === 'taken' || slugStatus === 'invalid' ? 'border-red-500 ring-8 ring-red-500/10 bg-red-50/20' : 'border-emerald-100 focus:border-emerald-300'}`} 
+                          placeholder={isRtl ? 'اكتب اسمك هنا...' : 'Type your link...'}
                         />
                         
-                        {!isSlugVerified && formData.id && (
-                           <button 
-                             type="button" 
-                             onClick={handleCheckSlug}
-                             disabled={isCheckingSlug}
-                             className={`absolute ${isRtl ? 'left-24' : 'right-24'} top-1/2 -translate-y-1/2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg shadow-blue-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2`}
-                           >
-                              {isCheckingSlug ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                              {t('تحقق', 'Verify')}
-                           </button>
-                        )}
+                        <button 
+                          type="button" 
+                          onClick={handleCheckSlug}
+                          disabled={isCheckingSlug}
+                          className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border-2 border-emerald-500`}
+                        >
+                           {isCheckingSlug ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                           {t('تحقق', 'Verify')}
+                        </button>
                      </div>
 
                      {slugStatus !== 'idle' && (
-                       <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl animate-zoom-in border ${slugStatus === 'available' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                          <div className={`p-1.5 rounded-lg ${slugStatus === 'available' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                             {slugStatus === 'available' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                       <div className={`flex items-center gap-3 px-6 py-4 rounded-3xl animate-zoom-in border relative z-10 ${slugStatus === 'available' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/50' : 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/50'}`}>
+                          <div className={`p-2 rounded-xl shadow-sm ${slugStatus === 'available' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+                             {slugStatus === 'available' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                           </div>
-                          <span className="text-[11px] font-black uppercase tracking-tight">
+                          <span className="text-xs font-black uppercase tracking-tight">
                              {slugStatus === 'available' ? t('هذا الرابط متاح للاستخدام الآن ✓', 'This link is available for use now ✓') : 
                               slugStatus === 'taken' ? t('للأسف، هذا الرابط محجوز مسبقاً ✗', 'Sorry, this link is already taken ✗') : 
                               t('الرابط غير صالح أو قصير جداً ⚠', 'Link is invalid or too short ⚠')}
