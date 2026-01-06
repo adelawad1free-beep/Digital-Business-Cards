@@ -176,6 +176,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       bioOpacity: 100,
       bioMaxWidth: 90,
       bioTextAlign: 'center',
+      defaultBioAr: '',
+      defaultBioEn: '',
       linksColor: '#3b82f6',
       socialIconsColor: '#3b82f6',
       contactPhoneColor: '#2563eb',
@@ -395,7 +397,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
              {Icon && <Icon size={14} />}
            </div>
            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{label}</span>
               {hint && <span className="text-[8px] text-gray-400 font-bold">{hint}</span>}
            </div>
         </div>
@@ -908,6 +910,27 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     <div className="space-y-6">
                        <ToggleSwitch label={t('تفعيل عرض النبذة', 'Show Bio')} value={template.config.showBioByDefault} onChange={(v: boolean) => updateConfig('showBioByDefault', v)} icon={Eye} />
                        
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t dark:border-gray-800 pt-6">
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('النبذة الافتراضية (AR)', 'Default Bio (AR)')}</label>
+                             <textarea 
+                               value={template.config.defaultBioAr || ''} 
+                               onChange={e => updateConfig('defaultBioAr', e.target.value)} 
+                               className={`${inputClasses} min-h-[100px] resize-none text-xs`} 
+                               placeholder="اكتب نبذة تظهر لمستخدمي هذا القالب..."
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('النبذة الافتراضية (EN)', 'Default Bio (EN)')}</label>
+                             <textarea 
+                               value={template.config.defaultBioEn || ''} 
+                               onChange={e => updateConfig('defaultBioEn', e.target.value)} 
+                               className={`${inputClasses} min-h-[100px] resize-none text-xs`} 
+                               placeholder="Write a bio that appears for this template users..."
+                             />
+                          </div>
+                       </div>
+
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <RangeControl label={t('حجم الخط', 'Font Size')} min={10} max={40} value={template.config.bioSize} onChange={(v: number) => updateConfig('bioSize', v)} icon={TypographyIcon} />
                           <RangeControl label={t('إزاحة القسم رأسياً', 'Y Offset')} min={-100} max={200} value={template.config.bioOffsetY} onChange={(v: number) => updateConfig('bioOffsetY', v)} icon={Move} />
@@ -919,7 +942,11 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           <label className={labelTextClasses}>{t('محاذاة النص', 'Text Alignment')}</label>
                           <div className="grid grid-cols-3 gap-2">
                              {['start', 'center', 'end'].map(align => (
-                                <button key={align} onClick={() => updateConfig('bioTextAlign', align)} className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center ${template.config.bioTextAlign === align ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}>
+                                <button 
+                                  key={align} 
+                                  onClick={() => updateConfig('bioTextAlign', align)} 
+                                  className={`py-3 rounded-xl border-2 transition-all flex items-center justify-center ${template.config.bioTextAlign === align ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-400'}`}
+                                >
                                    {align === 'start' ? <AlignLeft size={18}/> : align === 'center' ? <AlignCenter size={18}/> : <AlignRight size={18}/>}
                                 </button>
                              ))}
@@ -928,6 +955,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in pt-6 border-t dark:border-gray-800">
                           <ToggleSwitch label={t('تأثير زجاجي (Glassy)', 'Glassy Effect')} value={template.config.bioGlassy} onChange={(v: boolean) => updateConfig('bioGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
+                          <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                             <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('إظهار الإطار', 'Show Border')}</span>
+                                <span className="text-[8px] font-bold text-gray-300">0 تعني إخفاء</span>
+                             </div>
+                             <input type="number" min={0} max={10} value={template.config.bioBorderWidth ?? 1} onChange={e => updateConfig('bioBorderWidth', parseInt(e.target.value) || 0)} className="w-16 bg-gray-50 dark:bg-gray-800 border-none rounded-lg p-2 text-center text-xs font-black dark:text-white outline-none" />
+                          </div>
                           <ColorPicker label={t('لون خلفية النبذة', 'Bio Background')} value={template.config.bioBgColor} onChange={(v: string) => updateConfig('bioBgColor', v)} />
                           <ColorPicker label={t('لون نص النبذة', 'Bio Text Color')} value={template.config.bioTextColor} onChange={(v: string) => updateConfig('bioTextColor', v)} />
                           <ColorPicker label={t('لون البرواز (الحدود)', 'Border Color')} value={template.config.bioBorderColor} onChange={(v: string) => updateConfig('bioBorderColor', v)} />
@@ -950,6 +984,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           <ToggleSwitch label={t('إظهار البريد', 'Show Email')} value={template.config.showEmailByDefault} onChange={(v: boolean) => updateConfig('showEmailByDefault', v)} icon={Mail} />
                           <ToggleSwitch label={t('إظهار الموقع', 'Show Website')} value={template.config.showWebsiteByDefault} onChange={(v: boolean) => updateConfig('showWebsiteByDefault', v)} icon={ShoppingCart} />
                           <ToggleSwitch label={t('أزرار الحفظ', 'Show Save Buttons')} value={template.config.showButtonsByDefault} onChange={(v: boolean) => updateConfig('showButtonsByDefault', v)} icon={Save} />
+                          <ToggleSwitch label={t('إظهار النص (رابط/بريد)', 'Show Link Text')} value={template.config.linksShowText} onChange={(v: boolean) => updateConfig('linksShowText', v)} icon={TypographyIcon} />
                        </div>
 
                        <div className="pt-8 border-t dark:border-gray-800 space-y-6">
@@ -963,7 +998,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        </div>
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t dark:border-gray-800">
-                          <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('locationBorderRadius', v)} icon={Ruler} />
+                          <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('linksSectionRadius', v)} icon={Ruler} />
                           <RangeControl label={t('انحناء حواف الروابط', 'Item Radius')} min={0} max={50} value={template.config.linksItemRadius ?? 16} onChange={(v: number) => updateConfig('linksItemRadius', v)} icon={Ruler} />
                           <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-200} max={200} value={template.config.linksSectionOffsetY || 0} onChange={(v: number) => updateConfig('linksSectionOffsetY', v)} icon={Move} />
                        </div>
@@ -1117,7 +1152,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                         type="text" 
                                         value={link.titleAr || ''} 
                                         onChange={e => updateSpecialLink(link.id, 'titleAr', e.target.value)} 
-                                        className="w-full px-5 py-3.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+                                        className="w-full px-5 py-3.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 text-xs font-bold text-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
                                         placeholder={isRtl ? 'أدخل اسم العرض' : 'Display Title'}
                                       />
                                    </div>
@@ -1208,7 +1243,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
 
                     <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
-                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('نمط العرض والألوان', 'Visual Style & Colors')}</h4>
+                       <h4 className={labelTextClasses}>{t('نمط العرض والألوان', 'Visual Style & Colors')}</h4>
                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {['filled', 'outline', 'glass', 'ghost'].map(v => (
                              <button key={v} onClick={() => updateConfig('socialIconVariant', v)} className={`py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${template.config.socialIconVariant === v ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-gray-50 dark:bg-gray-800 text-gray-400 border-transparent'}`}>
@@ -1526,7 +1561,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                        data={{ 
                          ...sampleCardData, 
                          name: template.config.defaultName || sampleCardData.name,
-                         /* Fix: Changed 'sampleData.title' to 'sampleCardData.title' */
                          title: template.config.defaultTitle || sampleCardData.title,
                          company: template.config.defaultCompany || sampleCardData.company,
                          profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',

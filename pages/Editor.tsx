@@ -612,16 +612,16 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                                <VisibilityToggle field="showWebsite" label={t('website')} />
                                <button 
                                   onClick={() => handleChange('linksShowText', !formData.linksShowText)} 
-                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowText ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowText ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-400'}`}
                                >
-                                  {formData.linksShowText ? t('linksShowText') : t('linksIconsOnly')}
+                                  {formData.linksShowText ? t('إظهار النص', 'Show Text') : t('أيقونات فقط', 'Icons Only')}
                                </button>
                                <button 
                                   onClick={() => handleChange('linksShowBg', !formData.linksShowBg)} 
-                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowBg ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${formData.linksShowBg ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 text-gray-400'}`}
                                >
                                   {formData.linksShowBg ? t('linksShowBg') : t('بدون أرضية', 'No Background')}
-                               </button>
+                                </button>
                             </div>
                          </div>
 

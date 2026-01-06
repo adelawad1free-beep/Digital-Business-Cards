@@ -177,6 +177,8 @@ export interface TemplateConfig {
   bioOpacity?: number;
   bioMaxWidth?: number;
   bioTextAlign?: 'start' | 'center' | 'end';
+  defaultBioAr?: string;
+  defaultBioEn?: string;
 
   // Desktop Display Config
   desktopLayout?: 'full-width-header' | 'centered-card';
@@ -323,6 +325,8 @@ export interface CardData {
   bioOpacity?: number;
   bioMaxWidth?: number;
   bioTextAlign?: 'start' | 'center' | 'end';
+  defaultBioAr?: string;
+  defaultBioEn?: string;
 
   qrSize?: number;
   qrColor?: string; 

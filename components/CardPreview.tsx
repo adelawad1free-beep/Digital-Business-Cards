@@ -241,7 +241,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const isBodyGlassy = data.bodyGlassy ?? config.bodyGlassy;
   const bodyOpacity = (data.bodyOpacity ?? config.bodyOpacity ?? 100) / 100;
   
-  // دمج اللون المختار لصندوق المحتوى (Body) مع الشفافية
   const bodyBaseColor = data.cardBodyColor || config.cardBodyColor || (isDark ? '#1a1a20' : '#ffffff');
   const rgbBody = hexToRgb(bodyBaseColor);
 
@@ -270,7 +269,6 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     boxShadow: needsSideMargins ? '0 25px 50px -12px rgba(0, 0, 0, 0.15)' : 'none'
   };
 
-  // لون الأرضية (القاعدة خلف البطاقة)
   const finalCardBaseGroundColor = hideHeader ? 'transparent' : (data.cardBgColor || config.cardBgColor || (isDark ? '#0f0f12' : '#f1f5f9'));
 
   const showAnimatedBorder = config.avatarAnimatedBorder;
@@ -372,6 +370,8 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
     };
     return style;
   };
+
+  const finalBio = data.bio || (isRtl ? config.defaultBioAr : config.defaultBioEn);
 
   return (
     <div 
@@ -481,11 +481,11 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
              </div>
            )}
 
-           {showBio && data.bio && (
+           {showBio && finalBio && (
              <div className="mx-auto relative group overflow-hidden" style={bioStyles}>
                 <Quote size={12} className="absolute top-3 left-4 opacity-20 text-blue-500" />
                <p className="font-bold leading-relaxed italic" style={{ color: bTextColor, fontSize: `${config.bioSize}px` }}>
-                 {data.bio}
+                 {finalBio}
                </p>
              </div>
            )}
@@ -508,20 +508,21 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                     border: (isDark && dLinksShowBg) ? '1px solid rgba(255,255,255,0.1)' : (!isDark && dLinksShowBg ? '1px solid rgba(0,0,0,0.05)' : 'none')
                   }}
                 >
-                   <div className={`flex flex-wrap items-center justify-center gap-4 ${dLinksVariant === 'grid' ? 'grid grid-cols-2' : (dLinksVariant === 'pills' ? 'flex-row' : 'flex-col')} w-full`}>
+                   <div className={`flex flex-wrap items-center justify-center gap-4 ${!dLinksShowText ? 'flex-row' : (dLinksVariant === 'grid' ? 'grid grid-cols-2' : (dLinksVariant === 'pills' ? 'flex-row' : 'flex-col'))} w-full`}>
                       {showEmail && finalEmails.map((email, idx) => (
                         <a 
                           key={`em-${idx}`}
                           href={`mailto:${email}`} 
-                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10'}`} 
+                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${!dLinksShowText ? 'w-12 h-12 p-0' : (dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10')}`} 
                           style={{ 
                             color: dLinksTextColor, 
                             backgroundColor: dLinksItemBg,
-                            borderRadius: `${dLinksItemRadius}px` 
+                            borderRadius: !dLinksShowText ? '999px' : `${dLinksItemRadius}px` 
                           }}
+                          title={!dLinksShowText ? email : ''}
                         >
-                          <div className={`shrink-0 ${dLinksVariant === 'pills' ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
-                            <Mail size={18} />
+                          <div className={`shrink-0 ${dLinksVariant === 'pills' || !dLinksShowText ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
+                            <Mail size={!dLinksShowText ? 22 : 18} />
                           </div>
                           {dLinksShowText && <span className="break-all text-start leading-tight">{email}</span>}
                         </a>
@@ -532,15 +533,16 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                           href={web.startsWith('http') ? web : `https://${web}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10'}`} 
+                          className={`flex items-center gap-3 text-sm font-bold opacity-80 hover:opacity-100 transition-all hover:scale-[1.03] active:scale-95 justify-center ${!dLinksShowText ? 'w-12 h-12 p-0' : (dLinksVariant === 'pills' ? 'px-6 py-3 shadow-md' : 'w-full px-4 py-2 border border-white/10')}`} 
                           style={{ 
                             color: dLinksTextColor, 
                             backgroundColor: dLinksItemBg,
-                            borderRadius: `${dLinksItemRadius}px`
+                            borderRadius: !dLinksShowText ? '999px' : `${dLinksItemRadius}px`
                           }}
+                          title={!dLinksShowText ? web : ''}
                         >
-                          <div className={`shrink-0 ${dLinksVariant === 'pills' ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
-                            {config.linksWebsiteIconType === 'store' ? <ShoppingCart size={18} /> : <Globe size={18} />}
+                          <div className={`shrink-0 ${dLinksVariant === 'pills' || !dLinksShowText ? '' : 'p-2 bg-white/10 rounded-xl shadow-sm'}`} style={{ color: dLinksIconColor }}>
+                            {config.linksWebsiteIconType === 'store' ? <ShoppingCart size={!dLinksShowText ? 22 : 18} /> : <Globe size={!dLinksShowText ? 22 : 18} />}
                           </div>
                           {dLinksShowText && <span className="break-all text-start leading-tight">{web}</span>}
                         </a>
