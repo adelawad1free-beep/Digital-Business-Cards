@@ -113,6 +113,7 @@ export interface TemplateConfig {
   linksSectionGlassy?: boolean;
   linksSectionOffsetY?: number;
   linksSectionPadding?: number;
+  linksSectionPaddingV?: number;
   linksSectionGap?: number;
   linksShowText?: boolean; 
   linksShowBg?: boolean;   
@@ -342,6 +343,7 @@ export interface CardData {
   pageBgStrategy?: PageBgStrategy;
   mobileBodyOffsetY?: number;
   desktopBodyOffsetY?: number;
+  linksSectionPaddingV?: number;
 }
 
 export interface VisualStyle {

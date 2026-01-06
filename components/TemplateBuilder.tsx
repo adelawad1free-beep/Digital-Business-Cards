@@ -148,6 +148,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       linksSectionGlassy: false,
       linksSectionOffsetY: 0,
       linksSectionPadding: 0,
+      linksSectionPaddingV: 24,
       linksSectionGap: 12,
       linksShowText: true,
       linksShowBg: true,
@@ -1001,6 +1002,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           <RangeControl label={t('انحناء حواف القسم', 'Section Radius')} min={0} max={60} value={template.config.linksSectionRadius ?? 24} onChange={(v: number) => updateConfig('linksSectionRadius', v)} icon={Ruler} />
                           <RangeControl label={t('انحناء حواف الروابط', 'Item Radius')} min={0} max={50} value={template.config.linksItemRadius ?? 16} onChange={(v: number) => updateConfig('linksItemRadius', v)} icon={Ruler} />
                           <RangeControl label={t('إزاحة القسم رأسياً', 'Vertical Offset')} min={-200} max={200} value={template.config.linksSectionOffsetY || 0} onChange={(v: number) => updateConfig('linksSectionOffsetY', v)} icon={Move} />
+                          <RangeControl label={t('الارتفاع الداخلي للقسم', 'Vertical Padding')} min={0} max={100} value={template.config.linksSectionPaddingV ?? 24} onChange={(v: number) => updateConfig('linksSectionPaddingV', v)} icon={Maximize2} />
                        </div>
 
                        <div className="pt-6 space-y-4">
@@ -1147,7 +1149,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                                       />
                                    </div>
                                    <div className="space-y-1">
-                                      <label className={isRtl ? 'أدخل اسم العرض' : 'Display Title'}>{t('العنوان الافتراضي (AR)', 'Default Title (AR)')}</label>
+                                      <label className={isRtl ? 'أدخل اسم العرض' : 'Display Title'}>{t('العنوان الافتراضى (AR)', 'Default Title (AR)')}</label>
                                       <input 
                                         type="text" 
                                         value={link.titleAr || ''} 
@@ -1563,6 +1565,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          name: template.config.defaultName || sampleCardData.name,
                          title: template.config.defaultTitle || sampleCardData.title,
                          company: template.config.defaultCompany || sampleCardData.company,
+                         bio: (isRtl ? template.config.defaultBioAr : template.config.defaultBioEn) || sampleCardData.bio,
                          profileImage: template.config.defaultProfileImage || sampleCardData.profileImage || '',
                          isDark: template.config.defaultIsDark,
                          showOccasion: template.config.showOccasionByDefault,
@@ -1595,7 +1598,8 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          bioMaxWidth: template.config.bioMaxWidth,
                          bioTextAlign: template.config.bioTextAlign,
                          cardBodyColor: template.config.cardBodyColor,
-                         cardBgColor: template.config.cardBgColor
+                         cardBgColor: template.config.cardBgColor,
+                         linksSectionPaddingV: template.config.linksSectionPaddingV
                        } as any} 
                        lang={lang} 
                        customConfig={template.config} 
@@ -1613,13 +1617,13 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showSaveModal && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 space-y-8 animate-zoom-in">
+           <div className="bg-white dark:bg-gray-900 w-full max-w-3xl rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 space-y-8 animate-zoom-in">
               <div className="flex justify-between items-center">
                  <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
                  <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
               </div>
               <div className="space-y-6">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                        <label className={labelTextClasses}>{t('الاسم (AR)', 'Name (AR)')}</label>
                        <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className={inputClasses} />
@@ -1630,10 +1634,14 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
                  </div>
                  
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                       <label className={labelTextClasses}>{t('القسم (Category)', 'Section Category')}</label>
-                       <select value={template.categoryId} onChange={e => updateTemplate('categoryId', e.target.value)} className={inputClasses}>
+                       <label className={labelTextClasses}>{t('القسم (CATEGORY)', 'Template Category')}</label>
+                       <select 
+                          value={template.categoryId} 
+                          onChange={e => updateTemplate('categoryId', e.target.value)} 
+                          className={`${inputClasses} appearance-none cursor-pointer`}
+                       >
                           <option value="">{t('اختر القسم...', 'Select Category...')}</option>
                           {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
                        </select>
@@ -1644,19 +1652,22 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                     </div>
                  </div>
 
-                 <div className="p-5 bg-amber-50 dark:bg-amber-900/10 rounded-[1.8rem] border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
+                 <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                        <div className={`p-3 rounded-xl ${template.isFeatured ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
                           <Star size={20} fill={template.isFeatured ? "currentColor" : "none"} />
                        </div>
-                       <span className="text-xs font-black uppercase tracking-widest dark:text-white">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
+                       <div>
+                          <span className="text-xs font-black uppercase tracking-widest dark:text-white block">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{isRtl ? 'سيظهر القالب في بداية المعرض دائماً' : 'Template will always show at the gallery start'}</p>
+                       </div>
                     </div>
                     <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-14 h-7 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
                        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-8' : 'right-1') : (template.isFeatured ? 'left-8' : 'left-1')}`} />
                     </button>
                  </div>
               </div>
-              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl hover:scale-[1.01] active:scale-95 transition-all">{t('تأكيد الحفظ', 'Confirm Publish')}</button>
+              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl hover:scale-[1.01] active:scale-95 transition-all">{isRtl ? 'تأكيد الحفظ والنشر' : 'Confirm & Publish'}</button>
            </div>
         </div>
       )}

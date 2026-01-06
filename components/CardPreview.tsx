@@ -146,6 +146,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const dLinksVariant = config.linksSectionVariant || 'list';
   const dLinksItemBg = config.linksItemBgColor || (isDark ? 'rgba(255,255,255,0.1)' : '#ffffff');
   const dLinksItemRadius = config.linksItemRadius ?? (dLinksVariant === 'pills' ? 999 : 16);
+  const dLinksSectionPaddingV = data.linksSectionPaddingV ?? config.linksSectionPaddingV ?? 24;
 
   const isVerified = data.isVerified ?? config.isVerifiedByDefault;
   const showStars = data.showStars ?? config.showStarsByDefault;
@@ -499,10 +500,14 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                 }}
               >
                 <div 
-                  className={`w-full transition-all duration-500 flex flex-col items-center ${dLinksShowBg ? 'p-6 shadow-xl' : 'p-0 shadow-none'}`}
+                  className={`w-full transition-all duration-500 flex flex-col items-center ${dLinksShowBg ? 'shadow-xl' : 'shadow-none'}`}
                   style={{ 
                     borderRadius: `${dLinksRadius}px`,
                     backgroundColor: dLinksSectionBg,
+                    paddingTop: dLinksShowBg ? `${dLinksSectionPaddingV}px` : '0px',
+                    paddingBottom: dLinksShowBg ? `${dLinksSectionPaddingV}px` : '0px',
+                    paddingLeft: dLinksShowBg ? '24px' : '0px',
+                    paddingRight: dLinksShowBg ? '24px' : '0px',
                     backdropFilter: (dLinksShowBg && isDLinksGlassy) ? 'blur(15px)' : 'none',
                     WebkitBackdropFilter: (dLinksShowBg && isDLinksGlassy) ? 'blur(15px)' : 'none',
                     border: (isDark && dLinksShowBg) ? '1px solid rgba(255,255,255,0.1)' : (!isDark && dLinksShowBg ? '1px solid rgba(0,0,0,0.05)' : 'none')
