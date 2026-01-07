@@ -104,7 +104,8 @@ export const syncUserProfile = async (user: User) => {
         createdAt: userData.lastLogin,
         role: user.email === ADMIN_EMAIL ? 'admin' : 'user',
         planId: null,
-        premiumUntil: null
+        premiumUntil: null,
+        isActive: true
       });
     } else {
       await updateDoc(userRef, userData);
@@ -139,6 +140,15 @@ export const updateUserSubscription = async (uid: string, role: 'user' | 'premiu
     role, 
     planId,
     premiumUntil,
+    updatedAt: serverTimestamp()
+  });
+};
+
+export const toggleUserStatus = async (uid: string, isActive: boolean) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const userRef = doc(db, "users_registry", uid);
+  await updateDoc(userRef, { 
+    isActive,
     updatedAt: serverTimestamp()
   });
 };

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { 
   getAdminStats, ADMIN_EMAIL, deleteUserCard, 
@@ -7,7 +6,7 @@ import {
   saveCustomTemplate, getAllTemplates, deleteTemplate,
   getAllCategories, saveTemplateCategory, deleteTemplateCategory,
   auth, getAuthErrorMessage, toggleCardStatus, getAllVisualStyles,
-  getAllUsersWithStats, updateUserSubscription,
+  getAllUsersWithStats, updateUserSubscription, toggleUserStatus,
   getAllPricingPlans, savePricingPlan, deletePricingPlan
 } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
@@ -25,7 +24,7 @@ import {
   Lock, CheckCircle2, Image as ImageIcon, UploadCloud, X, Layout, User as UserIcon,
   Plus, Palette, ShieldAlert, Key, Star, Hash, AlertTriangle, Pin, PinOff, ArrowUpAZ,
   MoreVertical, ToggleLeft, ToggleRight, MousePointer2, TrendingUp, Filter, ListFilter, Activity, Type, FolderEdit, Check, FolderOpen, Tag, PlusCircle, Zap, HardDrive, Database, Link as LinkIcon, FolderSync, Server,
-  Info, BarChart, Copy, FileJson, Code, Mail, UserCheck, Calendar, Contact2, CreditCard, RefreshCw, Crown, Type as FontIcon, Shield, Activity as AnalyticsIcon, CreditCard as CardIcon
+  Info, BarChart, Copy, FileJson, Code, Mail, UserCheck, Calendar, Contact2, CreditCard, RefreshCw, Crown, Type as FontIcon, Shield, Activity as AnalyticsIcon, CreditCard as CardIcon, CreditCard as PaymentIcon, Webhook, ExternalLink, Activity as LiveIcon, Beaker as TestIcon, Link2
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -38,7 +37,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const isRtl = lang === 'ar';
   const logoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'templates' | 'styles' | 'categories' | 'plans' | 'settings' | 'security' | 'builder'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'templates' | 'styles' | 'categories' | 'plans' | 'payment' | 'settings' | 'security' | 'builder'>('stats');
   const [stats, setStats] = useState<{ totalCards: number; activeCards: number; totalViews: number; recentCards: any[] } | null>(null);
   const [usersStats, setUsersStats] = useState<any[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
@@ -60,7 +59,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
   const [planData, setPlanData] = useState<Partial<PricingPlan>>({ 
     id: '', nameAr: '', nameEn: '', price: '0', billingCycleAr: 'سنوياً', billingCycleEn: 'Yearly', 
     featuresAr: [], featuresEn: [], isPopular: false, isActive: true, order: 0, iconName: 'Shield',
-    buttonTextAr: 'اشترك الآن', buttonTextEn: 'Subscribe Now'
+    buttonTextAr: 'اشترك الآن', buttonTextEn: 'Subscribe Now', stripeLink: ''
   });
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [isPlanSubmitting, setIsPlanSubmitting] = useState(false);
@@ -80,7 +79,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
     fontFamily: 'Cairo',
     imageStorageType: 'database' as 'database' | 'server', 
     serverUploadUrl: '',
-    analyticsCode: ''
+    analyticsCode: '',
+    // Stripe Settings
+    stripeLiveMode: false,
+    stripeTestPublishableKey: '',
+    stripeTestSecretKey: '',
+    stripeLivePublishableKey: '',
+    stripeLiveSecretKey: '',
+    stripeWebhookSecret: ''
   });
 
   const fetchData = async (quiet = false) => {
@@ -119,7 +125,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
           fontFamily: stData.fontFamily || 'Cairo',
           imageStorageType: stData.imageStorageType || 'database',
           serverUploadUrl: stData.serverUploadUrl || '',
-          analyticsCode: stData.analyticsCode || ''
+          analyticsCode: stData.analyticsCode || '',
+          stripeLiveMode: stData.stripeLiveMode || false,
+          stripeTestPublishableKey: stData.stripeTestPublishableKey || '',
+          stripeTestSecretKey: stData.stripeTestSecretKey || '',
+          stripeLivePublishableKey: stData.stripeLivePublishableKey || '',
+          stripeLiveSecretKey: stData.stripeLiveSecretKey || '',
+          stripeWebhookSecret: stData.stripeWebhookSecret || ''
         });
       }
       setCustomTemplates(tData as CustomTemplate[]);
@@ -169,7 +181,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
       setPlanData({ 
         id: '', nameAr: '', nameEn: '', price: '0', billingCycleAr: 'سنوياً', billingCycleEn: 'Yearly', 
         featuresAr: [], featuresEn: [], isPopular: false, isActive: true, order: pricingPlans.length + 1, iconName: 'Shield',
-        buttonTextAr: 'اشترك الآن', buttonTextEn: 'Subscribe Now'
+        buttonTextAr: 'اشترك الآن', buttonTextEn: 'Subscribe Now', stripeLink: ''
       });
       setEditingPlanId(null);
       await fetchData(true);
@@ -186,6 +198,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
 
   const handleTogglePlanActive = async (plan: PricingPlan) => {
     try { await savePricingPlan({ ...plan, isActive: !plan.isActive }); fetchData(true); } catch (e) { alert("Failed to toggle status"); }
+  };
+
+  const handleToggleUserStatus = async (user: any) => {
+    const newStatus = user.isActive === false;
+    try {
+      await toggleUserStatus(user.uid, newStatus);
+      await fetchData(true);
+    } catch (e) {
+      alert(isRtl ? "فشل تحديث حالة المستخدم" : "Failed to update user status");
+    }
   };
 
   const handleToggleTemplateActive = async (tmpl: CustomTemplate) => {
@@ -264,10 +286,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
             <TabButton id="stats" label={t('البطاقات', 'Cards')} icon={BarChart3} />
             <TabButton id="users" label={t('المسجلين', 'Users')} icon={Users} />
             <TabButton id="plans" label={t('الباقات', 'Plans')} icon={CardIcon} />
+            <TabButton id="payment" label={t('الدفع', 'Payments')} icon={PaymentIcon} />
             <TabButton id="templates" label={t('القوالب', 'Templates')} icon={Layout} />
             <TabButton id="styles" label={t('الأنماط', 'Styles')} icon={Palette} />
             <TabButton id="categories" label={t('الأقسام', 'Categories')} icon={FolderEdit} />
-            <TabButton id="settings" label={t('الإعدادات', 'Settings')} icon={Settings} />
+            <TabButton id="settings" label={t('إعدادات الموقع العامة', 'Settings')} icon={Settings} />
             <TabButton id="security" label={t('الأمان', 'Security')} icon={Lock} />
           </div>
         </div>
@@ -351,27 +374,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                          <tr>
                             <td className="px-8 py-5">{t('المستخدم', 'User')}</td>
                             <td className="px-8 py-5">{t('الرتبة / الباقة', 'Role / Plan')}</td>
-                            <td className="px-8 py-5">{t('البطاقات', 'Cards')}</td>
-                            <td className="px-8 py-5">{t('المشاهدات', 'Views')}</td>
-                            <td className="px-8 py-5">{t('تاريخ التسجيل', 'Joined')}</td>
+                            <td className="px-8 py-5">{t('الحالة', 'Status')}</td>
+                            <td className="px-8 py-5 text-center">{t('الإحصائيات', 'Stats')}</td>
                             <td className="px-8 py-5">{t('الإجراءات', 'Actions')}</td>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                          {usersStats.filter(u => u.email?.toLowerCase().includes(userSearchTerm.toLowerCase())).map((user) => (
                             <tr key={user.uid} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                               <td className="px-8 py-6"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center"><UserIcon size={20}/></div><div><p className="font-black dark:text-white leading-none">{user.email}</p><p className="text-[9px] font-bold text-gray-400 uppercase mt-1">UID: {user.uid.substring(0, 8)}...</p></div></div></td>
+                               <td className="px-8 py-6"><div className="flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center"><UserIcon size={20}/></div><div><p className="font-black dark:text-white leading-none">{user.email}</p><p className="text-[9px] font-bold text-gray-400 uppercase mt-1">ID: {user.uid.substring(0, 8)}...</p></div></div></td>
                                <td className="px-8 py-6">
                                   <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : user.role === 'premium' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
                                      {user.role === 'admin' ? <ShieldCheck size={10}/> : user.role === 'premium' ? <Crown size={10}/> : <UserIcon size={10}/>}
                                      {user.planId ? pricingPlans.find(p => p.id === user.planId)?.[isRtl ? 'nameAr' : 'nameEn'] || user.role : user.role}
                                   </div>
                                </td>
-                               <td className="px-8 py-6"><span className="font-black text-gray-900 dark:text-white">{user.cardCount || 0}</span></td>
-                               <td className="px-8 py-6"><span className="font-black text-indigo-600">{user.totalViews || 0}</span></td>
-                               <td className="px-8 py-6"><div className="flex items-center gap-2 text-[10px] font-bold text-gray-400"><Calendar size={12}/>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '---'}</div></td>
                                <td className="px-8 py-6">
-                                  <button onClick={() => setSubEditUser(user)} className="p-2 text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg hover:bg-amber-500 hover:text-white transition-all"><Crown size={18}/></button>
+                                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase ${user.isActive !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                     {user.isActive !== false ? <CheckCircle2 size={10}/> : <AlertTriangle size={10}/>}
+                                     {user.isActive !== false ? t('نشط', 'Active') : t('محظور', 'Banned')}
+                                  </div>
+                               </td>
+                               <td className="px-8 py-6 text-center">
+                                  <div className="flex flex-col items-center">
+                                     <span className="font-black text-gray-900 dark:text-white text-xs">{user.cardCount || 0} {t('كروت', 'Cards')}</span>
+                                     <div className="flex items-center gap-1 text-[10px] text-indigo-600 font-bold"><Eye size={10}/>{user.totalViews || 0}</div>
+                                  </div>
+                               </td>
+                               <td className="px-8 py-6">
+                                  <div className="flex items-center gap-2">
+                                     <button 
+                                        onClick={() => setSubEditUser(user)} 
+                                        className="p-2.5 text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                        title={t('تعديل الحساب والباقة', 'Edit Account & Plan')}
+                                     >
+                                        <Edit3 size={18}/>
+                                     </button>
+                                     <button 
+                                        onClick={() => handleToggleUserStatus(user)} 
+                                        className={`p-2.5 rounded-xl transition-all shadow-sm ${user.isActive !== false ? 'text-red-500 bg-red-50 hover:bg-red-500 hover:text-white' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-600 hover:text-white'}`}
+                                        title={user.isActive !== false ? t('إيقاف الحساب', 'Disable User') : t('تنشيط الحساب', 'Enable User')}
+                                     >
+                                        <Power size={18}/>
+                                     </button>
+                                  </div>
                                </td>
                             </tr>
                          ))}
@@ -414,13 +460,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                       <div><label className={labelTextClasses}>{t('نص الزر (AR)', 'Button Text AR')}</label><input type="text" value={planData.buttonTextAr} onChange={e => setPlanData({...planData, buttonTextAr: e.target.value})} className={inputClasses} /></div>
                    </div>
 
+                   <div className="grid grid-cols-1 gap-6">
+                      <div className="p-6 bg-blue-50 dark:bg-blue-900/10 rounded-[2rem] border border-blue-100 dark:border-blue-900/30 space-y-4">
+                         <div className="flex items-center gap-3">
+                            <Link2 className="text-blue-600" size={20} />
+                            <label className={labelTextClasses + " !mb-0"}>{t('رابط الدفع من Stripe', 'Stripe Payment Link')}</label>
+                         </div>
+                         <input 
+                           type="url" 
+                           value={planData.stripeLink || ''} 
+                           onChange={e => setPlanData({...planData, stripeLink: e.target.value})} 
+                           className={inputClasses + " font-mono text-xs"} 
+                           placeholder="https://buy.stripe.com/..." 
+                         />
+                         <p className="text-[9px] font-bold text-gray-400 italic px-2">
+                           {isRtl ? "* سيتم توجيه المستخدم لهذا الرابط مباشرة عند الضغط على زر الاشتراك." : "* User will be redirected to this link when clicking subscribe."}
+                         </p>
+                      </div>
+                   </div>
+
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                       <div><label className={labelTextClasses}>{t('الترتيب', 'Order')}</label><input type="number" value={planData.order} onChange={e => setPlanData({...planData, order: parseInt(e.target.value) || 0})} className={inputClasses} /></div>
                       <div><label className={labelTextClasses}>{t('الأيقونة (Lucide Name)', 'Icon')}</label><input type="text" value={planData.iconName} onChange={e => setPlanData({...planData, iconName: e.target.value})} className={inputClasses} placeholder="Crown, Star, Shield" /></div>
                       <div className="flex items-center gap-4 h-14 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
                          <span className="text-[10px] font-black text-gray-400 uppercase">{t('الأكثر طلباً؟', 'Is Popular?')}</span>
                          <button type="button" onClick={() => setPlanData({...planData, isPopular: !planData.isPopular})} className={`w-10 h-6 rounded-full relative transition-all ${planData.isPopular ? 'bg-amber-500' : 'bg-gray-300'}`}>
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isRtl ? (planData.isPopular ? 'left-1' : 'left-5') : (planData.isPopular ? 'right-1' : 'right-5')}`} />
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (planData.isPopular ? 'left-1' : 'left-5') : (planData.isPopular ? 'right-1' : 'right-5')}`} />
                          </button>
                       </div>
                       <button type="submit" disabled={isPlanSubmitting} className="py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
@@ -452,7 +517,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                                      </div>
                                      <div>
                                         <p className="font-black dark:text-white leading-none">{isRtl ? plan.nameAr : plan.nameEn}</p>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">{plan.id}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                           <p className="text-[10px] font-bold text-gray-400 uppercase">ID: {plan.id}</p>
+                                           {/* Fix: Wrap Link2 in a span because Lucide icons do not support the 'title' prop directly */}
+                                           {plan.stripeLink && <span title="Has Stripe Link"><Link2 size={10} className="text-blue-500" /></span>}
+                                        </div>
                                      </div>
                                   </div>
                                </td>
@@ -475,6 +544,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                 </div>
              </div>
           </div>
+        )}
+
+        {activeTab === 'payment' && (
+           <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-in">
+              <div className="bg-white dark:bg-gray-900 p-8 md:p-12 rounded-[3.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl space-y-12">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg"><PaymentIcon size={24}/></div>
+                    <h2 className="text-2xl font-black dark:text-white uppercase leading-none">{t('مختبر إعدادات الدفع (Stripe)', 'Payment DNA & Gateway Lab')}</h2>
+                 </div>
+
+                 <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/30 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                       <div className={`p-3 rounded-2xl ${settings.stripeLiveMode ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                          {settings.stripeLiveMode ? <LiveIcon size={24}/> : <TestIcon size={24}/>}
+                       </div>
+                       <div>
+                          <span className="text-xs font-black uppercase tracking-widest dark:text-white block">{settings.stripeLiveMode ? t('الوضع المباشر (LIVE)', 'Live Production Mode') : t('وضع الاختبار (TEST)', 'Development Test Mode')}</span>
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{settings.stripeLiveMode ? t('يتم استقبال دفع حقيقي الآن', 'Real payments are active') : t('الدفع في بيئة تجريبية فقط', 'Sandboxed test environment')}</p>
+                       </div>
+                    </div>
+                    <button onClick={() => setSettings({...settings, stripeLiveMode: !settings.stripeLiveMode})} className={`w-14 h-7 rounded-full relative transition-all ${settings.stripeLiveMode ? 'bg-emerald-600 shadow-lg' : 'bg-amber-600 shadow-lg'}`}>
+                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (settings.stripeLiveMode ? 'left-1' : 'left-8') : (settings.stripeLiveMode ? 'right-1' : 'right-8')}`} />
+                    </button>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-10">
+                    <div className="space-y-6">
+                       <div className="flex items-center gap-2 mb-4">
+                          {/* Fix: Use TestIcon instead of Beaker as it was imported with an alias */}
+                          <TestIcon size={16} className="text-amber-500" />
+                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('مفاتيح الاختبار', 'Test Mode Credentials')}</h4>
+                       </div>
+                       <div><label className={labelTextClasses}>{t('المفتاح العام للاختبار', 'Test Publishable Key')}</label><input type="text" value={settings.stripeTestPublishableKey} onChange={e => setSettings({...settings, stripeTestPublishableKey: e.target.value})} className={inputClasses} placeholder="pk_test_..." /></div>
+                       <div><label className={labelTextClasses}>{t('المفتاح السري للاختبار', 'Test Secret Key')}</label><input type="password" value={settings.stripeTestSecretKey} onChange={e => setSettings({...settings, stripeTestSecretKey: e.target.value})} className={inputClasses} placeholder="sk_test_..." /></div>
+                    </div>
+
+                    <div className="pt-10 border-t dark:border-gray-800 space-y-6">
+                       <div className="flex items-center gap-2 mb-4">
+                          <Zap size={16} className="text-emerald-500" />
+                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('مفاتيح الوضع المباشر', 'Live Mode Credentials')}</h4>
+                       </div>
+                       <div><label className={labelTextClasses}>{t('المفتاح العام المباشر', 'Live Publishable Key')}</label><input type="text" value={settings.stripeLivePublishableKey} onChange={e => setSettings({...settings, stripeLivePublishableKey: e.target.value})} className={inputClasses} placeholder="pk_live_..." /></div>
+                       <div><label className={labelTextClasses}>{t('المفتاح السري المباشر', 'Live Secret Key')}</label><input type="password" value={settings.stripeLiveSecretKey} onChange={e => setSettings({...settings, stripeLiveSecretKey: e.target.value})} className={inputClasses} placeholder="sk_live_..." /></div>
+                    </div>
+
+                    <div className="pt-10 border-t dark:border-gray-800 space-y-8">
+                       <div className="flex items-center gap-4">
+                          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-2xl shadow-sm"><Webhook size={24}/></div>
+                          <h3 className="text-xl font-black dark:text-white uppercase leading-none">{t('إعدادات الـ Webhooks', 'Stripe Webhook DNA')}</h3>
+                       </div>
+
+                       <div className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-[2rem] border border-gray-100 dark:border-gray-700 space-y-4">
+                          <label className={labelTextClasses}>{t('رابط استماع الهوك (Webhook URL)', 'Your Webhook Endpoint')}</label>
+                          <div className="flex gap-2">
+                             <input type="text" readOnly value={`${window.location.origin}/api/webhook/stripe`} className={inputClasses + " bg-gray-100/50 dark:bg-black/20 font-mono text-xs cursor-default"} />
+                             <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/api/webhook/stripe`); alert("Copied!"); }} className="p-4 bg-white dark:bg-gray-800 border rounded-2xl text-indigo-600 hover:bg-indigo-50 transition-all"><Copy size={18}/></button>
+                          </div>
+                          <p className="text-[9px] font-bold text-gray-400 italic px-2">
+                             {isRtl ? "* قم بنسخ هذا الرابط ووضعه في لوحة تحكم Stripe لإرسال إشعارات الدفع التلقائية." : "* Copy this URL to your Stripe Dashboard to handle automatic payment notifications."}
+                          </p>
+                       </div>
+
+                       <div><label className={labelTextClasses}>{t('السر الخاص بالتوقيع (Signing Secret)', 'Webhook Signing Secret')}</label><input type="password" value={settings.stripeWebhookSecret} onChange={e => setSettings({...settings, stripeWebhookSecret: e.target.value})} className={inputClasses} placeholder="whsec_..." /></div>
+                    </div>
+                 </div>
+
+                 <button onClick={handleSaveSettings} disabled={savingSettings} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50">
+                    {savingSettings ? <Loader2 className="animate-spin" /> : <Save size={24} />}
+                    {t('حفظ إعدادات الدفع', 'Save Gateway Config')}
+                 </button>
+              </div>
+           </div>
         )}
 
         {activeTab === 'templates' && (
@@ -610,7 +751,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, onEditCard, onDel
                        <div><label className={labelTextClasses}>{t('الخط المستخدم', 'Primary Font')}</label><select value={settings.fontFamily} onChange={e => setSettings({...settings, fontFamily: e.target.value})} className={inputClasses}>{AVAILABLE_FONTS.map(f => <option key={f.id} value={f.id}>{isRtl ? f.nameAr : f.name}</option>)}</select></div>
                        <div className="flex items-center justify-between p-5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
                           <div className="flex items-center gap-3"><Power className="text-red-500" size={18}/><span className="text-[10px] font-black uppercase tracking-widest dark:text-white">{t('وضع الصيانة', 'Maintenance Mode')}</span></div>
-                          <button onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-12 h-6 rounded-full relative transition-all ${settings.maintenanceMode ? 'bg-red-500 shadow-md' : 'bg-gray-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${isRtl ? (settings.maintenanceMode ? 'right-7' : 'right-1') : (settings.maintenanceMode ? 'left-7' : 'left-1')}`} /></button>
+                          <button onClick={() => setSettings({...settings, maintenanceMode: !settings.maintenanceMode})} className={`w-12 h-6 rounded-full relative transition-all ${settings.maintenanceMode ? 'bg-red-500 shadow-md' : 'bg-gray-300'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isRtl ? (settings.maintenanceMode ? 'right-7' : 'right-1') : (settings.maintenanceMode ? 'left-7' : 'left-1')}`} /></button>
                        </div>
                     </div>
                     <div className="space-y-6">

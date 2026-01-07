@@ -33,6 +33,7 @@ export interface PricingPlan {
   iconName: string;
   buttonTextAr?: string;
   buttonTextEn?: string;
+  stripeLink?: string; // رابط الدفع المباشر من Stripe
 }
 
 export interface TemplateConfig {

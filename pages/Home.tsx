@@ -9,7 +9,6 @@ import {
   ArrowRight, Globe, Cpu, Palette, QrCode,
   Instagram, Twitter, Disc as Discord, Music, Youtube, MessageCircle,
   BarChart3, UserPlus, Leaf, Wand2, Sparkles, SmartphoneNfc, Check, Crown, Star, Shield,
-  // Fix: Added missing Loader2 import from lucide-react
   Loader2
 } from 'lucide-react';
 
@@ -37,6 +36,14 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
   const getIcon = (name: string) => {
     const Icon = (LucideIcons as any)[name] || Shield;
     return Icon;
+  };
+
+  const handleSubscribe = (plan: PricingPlan) => {
+    if (plan.stripeLink) {
+      window.open(plan.stripeLink, '_blank');
+    } else {
+      onStart();
+    }
   };
 
   const phrases = isRtl 
@@ -226,7 +233,10 @@ const Home: React.FC<HomeProps> = ({ lang, onStart }) => {
                             </li>
                           ))}
                        </ul>
-                       <button onClick={onStart} className={`w-full py-5 rounded-2xl font-black text-sm uppercase transition-all active:scale-95 ${plan.isPopular ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 hover:brightness-110' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-gray-50'}`}>
+                       <button 
+                         onClick={() => handleSubscribe(plan)} 
+                         className={`w-full py-5 rounded-2xl font-black text-sm uppercase transition-all active:scale-95 ${plan.isPopular ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 hover:brightness-110' : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-gray-50'}`}
+                       >
                           {isRtl ? (plan.buttonTextAr || 'اشترك الآن') : (plan.buttonTextEn || 'Subscribe Now')}
                        </button>
                     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CardData, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -7,6 +6,8 @@ import {
   Plus, Trash2, ExternalLink, Edit2, User as UserIcon, 
   Share2, AlertTriangle, X, Eye, Calendar, ShieldCheck, 
   Clock, TrendingUp, Sparkles, Crown, Zap, ArrowUpRight,
+  // Fix: Added missing Loader2 import from lucide-react
+  Loader2,
   // Added missing imports
   CreditCard, Star
 } from 'lucide-react';
