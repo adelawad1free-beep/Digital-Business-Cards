@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CustomTemplate, TemplateConfig, Language, CardData, TemplateCategory, VisualStyle, ThemeType, PageBgStrategy, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA, THEME_COLORS, THEME_GRADIENTS, BACKGROUND_PRESETS, AVATAR_PRESETS, PATTERN_PRESETS, SVG_PRESETS } from '../constants';
 import { uploadImageToCloud } from '../services/uploadService';
-import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth, getSiteSettings } from '../services/firebase';
+import { getAllCategories, saveTemplateCategory, getAllVisualStyles, auth, getSiteSettings, searchUsersByEmail } from '../services/firebase';
 import CardPreview from './CardPreview';
 import AuthModal from './AuthModal';
 import { 
@@ -15,7 +15,7 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, ShoppingCart, Quote, User as UserIcon, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone, ShieldCheck
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, ShoppingCart, Quote, User as UserIcon, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone, ShieldCheck, UserCheck, Search
 } from 'lucide-react';
 
 type BuilderTab = 'header' | 'body-style' | 'avatar' | 'visuals' | 'bio-lab' | 'identity-lab' | 'direct-links' | 'membership-lab' | 'contact-lab' | 'desktop-lab' | 'special-links' | 'location' | 'social-lab' | 'qrcode' | 'special-features';
@@ -59,12 +59,19 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   const [showAuthWarning, setShowAuthWarning] = useState(false);
   const [showDirectAuth, setShowDirectAuth] = useState(false);
   
+  // منطق البحث عن الأعضاء
+  const [userQuery, setUserQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+
   const [uploadConfig, setUploadConfig] = useState({ storageType: 'database', uploadUrl: '' });
 
   const [template, setTemplate] = useState<CustomTemplate>(initialTemplate || {
     id: `tmpl_${Date.now()}`,
     categoryId: '',
     parentStyleId: '',
+    restrictedUserId: '',
     nameAr: 'قالب جديد مخصص',
     nameEn: 'New Custom Template',
     descAr: '',
@@ -256,6 +263,21 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
   useEffect(() => {
     updateConfig('defaultSpecialLinks', currentSpecialLinks);
   }, [currentSpecialLinks]);
+
+  // منطق البحث التلقائي عن المستخدم
+  useEffect(() => {
+    if (userQuery.length >= 3) {
+      setIsSearchingUsers(true);
+      const timer = setTimeout(async () => {
+        const results = await searchUsersByEmail(userQuery);
+        setUserSearchResults(results);
+        setIsSearchingUsers(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setUserSearchResults([]);
+    }
+  }, [userQuery]);
 
   const updateTemplate = (key: keyof CustomTemplate, value: any) => {
     setTemplate(prev => ({ ...prev, [key]: value }));
@@ -1708,57 +1730,122 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
       {showSaveModal && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-           <div className="bg-white dark:bg-gray-900 w-full max-w-3xl rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden p-10 space-y-8 animate-zoom-in">
-              <div className="flex justify-between items-center">
-                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
-                 <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
+           <div className="bg-white dark:bg-gray-900 w-full max-w-5xl rounded-[3.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col lg:flex-row h-[90vh] lg:h-auto animate-zoom-in">
+              
+              {/* القسم الأيسر: البحث عن عضو مخصص */}
+              <div className="w-full lg:w-[400px] bg-indigo-50/30 dark:bg-black/20 p-8 border-b lg:border-b-0 lg:border-l dark:border-gray-800 flex flex-col space-y-6">
+                 <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-600 text-white rounded-xl shadow-lg"><UserCheck size={20} /></div>
+                    <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'تخصيص القالب لعضو محدد' : 'Restrict to Member'}</h3>
+                 </div>
+
+                 <div className="relative">
+                    <Search className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={18} />
+                    <input 
+                      type="text" 
+                      value={userQuery} 
+                      onChange={e => setUserQuery(e.target.value)} 
+                      placeholder={isRtl ? "ابحث عن العضو بالبريد الإلكتروني..." : "Search member by email..."}
+                      className={`w-full ${isRtl ? 'pr-12' : 'pl-12'} py-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-black dark:text-white outline-none focus:ring-4 focus:ring-indigo-100 transition-all`}
+                    />
+                 </div>
+
+                 <div className="flex-1 space-y-3 overflow-y-auto no-scrollbar max-h-[300px]">
+                    {isSearchingUsers && <div className="flex justify-center py-4"><Loader2 className="animate-spin text-indigo-600" /></div>}
+                    
+                    {userSearchResults.map(user => (
+                       <button 
+                         key={user.uid} 
+                         onClick={() => { setSelectedUser(user); updateTemplate('restrictedUserId', user.uid); }}
+                         className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${selectedUser?.uid === user.uid ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 hover:border-indigo-200'}`}
+                       >
+                          <div className="flex items-center gap-3 min-w-0">
+                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedUser?.uid === user.uid ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-900'}`}>
+                                <UserIcon size={14} />
+                             </div>
+                             <span className="text-[11px] font-black truncate">{user.email}</span>
+                          </div>
+                          {selectedUser?.uid === user.uid ? <Check size={16} /> : <div className="w-5 h-5 rounded-full border-2 border-gray-100 dark:border-gray-700 group-hover:border-indigo-300"></div>}
+                       </button>
+                    ))}
+
+                    {userQuery.length >= 3 && userSearchResults.length === 0 && !isSearchingUsers && (
+                       <div className="text-center py-10 opacity-30">
+                          <AlertTriangle size={32} className="mx-auto mb-2" />
+                          <p className="text-[10px] font-black uppercase">{isRtl ? 'لا يوجد نتائج' : 'No users found'}</p>
+                       </div>
+                    )}
+                 </div>
+
+                 {selectedUser && (
+                    <button 
+                       onClick={() => { setSelectedUser(null); updateTemplate('restrictedUserId', ''); }}
+                       className="w-full py-3 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                    >
+                       <X size={14} /> {isRtl ? 'إلغاء التخصيص' : 'Clear Restriction'}
+                    </button>
+                 )}
+
+                 <p className="text-[9px] font-bold text-gray-400 leading-relaxed italic border-t dark:border-gray-800 pt-4">
+                    {isRtl ? "* في حال اختيار عضو، لن يظهر هذا التصميم إلا له في صفحة (التصاميم الخاصة) ولن يظهر في المعرض العام." : "* If a member is selected, this design will only appear for them in the (Private Designs) page and won't show in the public gallery."}
+                 </p>
               </div>
-              <div className="space-y-6">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <label className={labelTextClasses}>{t('الاسم (AR)', 'Name (AR)')}</label>
-                       <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className={inputClasses} />
-                    </div>
-                    <div className="space-y-2">
-                       <label className={labelTextClasses}>{t('الاسم (EN)', 'Name (EN)')}</label>
-                       <input type="text" value={template.nameEn} onChange={e => updateTemplate('nameEn', e.target.value)} className={inputClasses} />
-                    </div>
+
+              {/* القسم الأيمن: بيانات القالب الأساسية */}
+              <div className="flex-1 p-8 md:p-12 flex flex-col space-y-8 justify-center">
+                 <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{isRtl ? 'حفظ التصميم ونشره' : 'Publish Template'}</h3>
+                    <button type="button" onClick={() => setShowSaveModal(false)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><X size={24}/></button>
                  </div>
                  
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                       <label className={labelTextClasses}>{t('القسم (CATEGORY)', 'Template Category')}</label>
-                       <select 
-                          value={template.categoryId} 
-                          onChange={e => updateTemplate('categoryId', e.target.value)} 
-                          className={`${inputClasses} appearance-none cursor-pointer`}
-                       >
-                          <option value="">{t('اختر القسم...', 'Select Category...')}</option>
-                          {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
-                       </select>
+                 <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="space-y-2">
+                          <label className={labelTextClasses}>{t('الاسم (AR)', 'Name (AR)')}</label>
+                          <input type="text" value={template.nameAr} onChange={e => updateTemplate('nameAr', e.target.value)} className={inputClasses} />
+                       </div>
+                       <div className="space-y-2">
+                          <label className={labelTextClasses}>{t('الاسم (EN)', 'Name (EN)')}</label>
+                          <input type="text" value={template.nameEn} onChange={e => updateTemplate('nameEn', e.target.value)} className={inputClasses} />
+                       </div>
                     </div>
-                    <div className="space-y-2">
-                       <label className={labelTextClasses}>{t('ترتيب العرض', 'Display Order')}</label>
-                       <input type="number" value={template.order} onChange={e => updateTemplate('order', parseInt(e.target.value) || 0)} className={inputClasses} />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="space-y-2">
+                          <label className={labelTextClasses}>{t('القسم (CATEGORY)', 'Template Category')}</label>
+                          <select 
+                             value={template.categoryId} 
+                             onChange={e => updateTemplate('categoryId', e.target.value)} 
+                             className={`${inputClasses} appearance-none cursor-pointer`}
+                          >
+                             <option value="">{t('اختر القسم...', 'Select Category...')}</option>
+                             {categories.map(cat => <option key={cat.id} value={cat.id}>{isRtl ? cat.nameAr : cat.nameEn}</option>)}
+                          </select>
+                       </div>
+                       <div className="space-y-2">
+                          <label className={labelTextClasses}>{t('ترتيب العرض', 'Display Order')}</label>
+                          <input type="number" value={template.order} onChange={e => updateTemplate('order', parseInt(e.target.value) || 0)} className={inputClasses} />
+                       </div>
+                    </div>
+
+                    <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${template.isFeatured ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                             <Star size={20} fill={template.isFeatured ? "currentColor" : "none"} />
+                          </div>
+                          <div>
+                             <span className="text-xs font-black uppercase tracking-widest dark:text-white block">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
+                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{isRtl ? 'سيظهر القالب في بداية المعرض دائماً' : 'Template will always show at the gallery start'}</p>
+                          </div>
+                       </div>
+                       <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-14 h-7 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                          <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-8' : 'right-1') : (template.isFeatured ? 'left-8' : 'left-1')}`} />
+                       </button>
                     </div>
                  </div>
 
-                 <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-[2rem] border border-amber-100 dark:border-amber-800/30 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                       <div className={`p-3 rounded-xl ${template.isFeatured ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                          <Star size={20} fill={template.isFeatured ? "currentColor" : "none"} />
-                       </div>
-                       <div>
-                          <span className="text-xs font-black uppercase tracking-widest dark:text-white block">{t('تمييز القالب (تثبيت في المقدمة)', 'Feature Template (Stay on top)')}</span>
-                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{isRtl ? 'سيظهر القالب في بداية المعرض دائماً' : 'Template will always show at the gallery start'}</p>
-                       </div>
-                    </div>
-                    <button type="button" onClick={() => updateTemplate('isFeatured', !template.isFeatured)} className={`w-14 h-7 rounded-full relative transition-all ${template.isFeatured ? 'bg-amber-500 shadow-md' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                       <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (template.isFeatured ? 'right-8' : 'right-1') : (template.isFeatured ? 'left-8' : 'left-1')}`} />
-                    </button>
-                 </div>
+                 <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl hover:scale-[1.01] active:scale-95 transition-all">{isRtl ? 'تأكيد الحفظ والنشر' : 'Confirm & Publish'}</button>
               </div>
-              <button type="button" onClick={() => onSave(template)} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-lg uppercase shadow-2xl hover:scale-[1.01] active:scale-95 transition-all">{isRtl ? 'تأكيد الحفظ والنشر' : 'Confirm & Publish'}</button>
            </div>
         </div>
       )}

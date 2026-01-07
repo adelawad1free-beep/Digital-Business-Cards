@@ -47,7 +47,6 @@ const AppContent: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [editingCard, setEditingCard] = useState<CardData | null>(null);
-  /* Fix: Removed duplicate assignment and corrected state declaration for siteConfig */
   const [siteConfig, setSiteConfig] = useState({ 
     siteNameAr: 'هويتي الرقمية', 
     siteNameEn: 'My Digital Identity', 
@@ -65,6 +64,9 @@ const AppContent: React.FC = () => {
   const isRtl = LANGUAGES_CONFIG[lang]?.dir === 'rtl';
   const displaySiteName = isRtl ? siteConfig.siteNameAr : siteConfig.siteNameEn;
   const t = (key: string) => TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
+
+  // تحديد ما إذا كنا في الصفحة الرئيسية (Home)
+  const isHomePage = location.pathname === `/${lang}` || location.pathname === `/${lang}/`;
 
   const navigateWithLang = (path: string) => {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -180,7 +182,6 @@ const AppContent: React.FC = () => {
                   <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-[0_10px_25px_rgba(37,99,235,0.4)] flex items-center justify-center group active:scale-95 transition-all border-4 border-white dark:border-[#0a0a0c]">
                     <Plus size={28} strokeWidth={3} />
                   </div>
-                  {/* Removed the label text below the button as requested */}
                 </button>
               );
             }
@@ -243,7 +244,11 @@ const AppContent: React.FC = () => {
           <Route path="*" element={<Navigate to={`/${lang}/`} replace />} />
         </Routes>
       </main>
-      <Footer lang={lang} /><BottomNav />
+      
+      {/* ظهور التذييل فقط في الصفحة الرئيسية */}
+      {isHomePage && <Footer lang={lang} />}
+      
+      <BottomNav />
       {showAuthModal && <AuthModal lang={lang} onClose={() => setShowAuthModal(false)} onSuccess={() => { setShowAuthModal(false); navigateWithLang('/my-cards'); }} />}
       {showShareModal && sharingData && <ShareModal data={sharingData} lang={lang} onClose={handleCloseShare} isNewSave={true} />}
     </div>

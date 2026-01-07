@@ -1,10 +1,11 @@
 
 import { Language, CardData, CustomTemplate, TemplateCategory } from '../types';
 import { TRANSLATIONS, SAMPLE_DATA } from '../constants';
-import { getAllTemplates, getAllCategories } from '../services/firebase';
+import { getAllTemplates, getAllCategories, auth } from '../services/firebase';
 import CardPreview from '../components/CardPreview';
-import { Layout, Palette, Loader2, Plus, FolderOpen, Briefcase, PartyPopper, LayoutGrid, Star } from 'lucide-react';
+import { Layout, Palette, Loader2, Plus, FolderOpen, Briefcase, PartyPopper, LayoutGrid, Star, ShieldCheck, Crown } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 
 interface TemplatesGalleryProps {
   lang: Language;
@@ -13,6 +14,10 @@ interface TemplatesGalleryProps {
 
 const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) => {
   const isRtl = lang === 'ar';
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isPrivateMode = searchParams.get('mode') === 'private';
+
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
@@ -28,11 +33,27 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
           getAllTemplates(),
           getAllCategories()
         ]);
+        
+        let filteredTemplates = (tData as CustomTemplate[]).filter(t => t.isActive);
+        
+        const currentUid = auth.currentUser?.uid;
+
+        if (isPrivateMode) {
+           // في الوضع الخاص، نظهر فقط القوالب المخصصة لهذا المستخدم
+           filteredTemplates = filteredTemplates.filter(t => t.restrictedUserId === currentUid);
+        } else {
+           // في الوضع العام، نظهر فقط القوالب التي ليس لها تقييد لمستخدم معين
+           filteredTemplates = filteredTemplates.filter(t => !t.restrictedUserId);
+        }
+
         const activeCats = (cData as TemplateCategory[]).filter(c => c.isActive);
-        setCustomTemplates(tData as CustomTemplate[]);
+        setCustomTemplates(filteredTemplates);
         setCategories(activeCats);
+        
         if (activeCats.length > 0) {
-          setActiveCategoryId(activeCats[0].id);
+          // في الوضع الخاص، نحتاج لتفعيل أول قسم يحتوي على قوالب مخصصة
+          const firstUsedCatId = activeCats.find(c => filteredTemplates.some(t => t.categoryId === c.id))?.id;
+          setActiveCategoryId(firstUsedCatId || activeCats[0].id);
         }
       } catch (err) {
         console.error("Error fetching gallery data:", err);
@@ -41,10 +62,9 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
       }
     };
     fetchData();
-  }, []);
+  }, [isPrivateMode]);
 
-  const activeTemplates = customTemplates.filter(t => t.isActive);
-  const filteredTemplates = activeTemplates.filter(tmpl => tmpl.categoryId === activeCategoryId);
+  const filteredTemplates = customTemplates.filter(tmpl => tmpl.categoryId === activeCategoryId);
 
   const getCategoryTheme = (name: string) => {
     const n = name.toLowerCase();
@@ -64,14 +84,16 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 animate-fade-in-up space-y-10 md:space-y-16">
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/10 text-blue-600 text-[10px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-900/20">
-          <Palette size={12} />
-          {t('templates')}
+          {isPrivateMode ? <Crown size={12} className="text-amber-500" /> : <Palette size={12} />}
+          {isPrivateMode ? (isRtl ? 'معرض التصاميم الخاصة بك' : 'Your Private Designs') : t('templates')}
         </div>
         <h1 className="text-3xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tight">
-          {isRtl ? 'اختر نمط هويتك' : 'Select Your Identity Style'}
+          {isPrivateMode ? (isRtl ? 'تصاميم صممت لك خصيصاً' : 'Designs Crafted For You') : (isRtl ? 'اختر نمط هويتك' : 'Select Your Identity Style')}
         </h1>
         <p className="text-xs md:text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-bold opacity-80">
-          {isRtl ? 'مجموعة من القوالب الاحترافية المصممة بعناية لتناسب كافة احتياجاتك.' : 'A collection of professional templates carefully designed for all your needs.'}
+          {isPrivateMode 
+            ? (isRtl ? 'هنا تجد القوالب الحصرية المخصصة لحسابك فقط من قبل فريق هويتي.' : 'Here you find exclusive templates assigned to your account by the NextID team.')
+            : (isRtl ? 'مجموعة من القوالب الاحترافية المصممة بعناية لتناسب كافة احتياجاتك.' : 'A collection of professional templates carefully designed for all your needs.')}
         </p>
       </div>
 
@@ -102,22 +124,22 @@ const TemplatesGallery: React.FC<TemplatesGalleryProps> = ({ lang, onSelect }) =
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-10 md:gap-14 pt-4 max-w-6xl mx-auto">
         {filteredTemplates.map(tmpl => (
-          <TemplateCard key={tmpl.id} tmpl={tmpl} lang={lang} onSelect={onSelect} sampleData={sampleCardData} />
+          <TemplateCard key={tmpl.id} tmpl={tmpl} lang={lang} onSelect={onSelect} sampleData={sampleCardData} isPrivate={isPrivateMode} />
         ))}
       </div>
 
       {filteredTemplates.length === 0 && (
         <div className="text-center py-24 bg-white dark:bg-gray-900 rounded-[2.5rem] border-2 border-dashed border-gray-100 dark:border-gray-800 animate-fade-in mx-4">
            <FolderOpen className="mx-auto text-gray-200 dark:text-gray-800 mb-6 opacity-30" size={64} />
-           <h3 className="text-xl font-black dark:text-white mb-2">{isRtl ? 'قريباً.. تصاميم جديدة' : 'New designs coming soon'}</h3>
-           <p className="text-xs text-gray-400 font-bold">{isRtl ? 'نعمل حالياً على إضافة المزيد من القوالب لهذا القسم.' : 'We are working on adding more templates to this section.'}</p>
+           <h3 className="text-xl font-black dark:text-white mb-2">{isRtl ? 'لا توجد تصاميم هنا حالياً' : 'No designs here yet'}</h3>
+           <p className="text-xs text-gray-400 font-bold">{isPrivateMode ? (isRtl ? 'لم يتم تخصيص أي قوالب حصرية لحسابك بعد.' : 'No exclusive templates assigned to your account yet.') : (isRtl ? 'نعمل حالياً على إضافة المزيد من القوالب لهذا القسم.' : 'We are working on adding more templates to this section.')}</p>
         </div>
       )}
     </div>
   );
 };
 
-const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
+const TemplateCard = ({ tmpl, lang, onSelect, sampleData, isPrivate }: any) => {
   const isRtl = lang === 'ar';
   const t = (key: string) => TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en'];
   const [mouseYPercentage, setMouseYPercentage] = useState(0);
@@ -148,7 +170,12 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
         {/* Bezel is top layer */}
         <div className="absolute inset-0 border-[12px] border-gray-900 dark:border-gray-800 rounded-[3.5rem] pointer-events-none z-50"></div>
         
-        {tmpl.isFeatured && (
+        {isPrivate ? (
+           <div className="absolute top-8 left-8 z-[60] flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
+             <ShieldCheck size={10} fill="currentColor" />
+             {isRtl ? 'حصري لك' : 'Exclusive'}
+           </div>
+        ) : tmpl.isFeatured && (
           <div className="absolute top-8 left-8 z-[60] flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase shadow-xl">
             <Star size={10} fill="currentColor" />
             {isRtl ? 'مميز' : 'Pro'}
@@ -200,7 +227,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
              }}
              className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-[11px] md:text-xs uppercase shadow-2xl flex items-center gap-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-700 hover:scale-110 active:scale-95 pointer-events-auto cursor-pointer"
            >
-             {t('useTemplate')}
+             {isPrivate ? (isRtl ? 'تحرير بطاقتي الخاصة' : 'Edit My Private Card') : t('useTemplate')}
              <Plus size={16} />
            </button>
         </div>
@@ -208,7 +235,7 @@ const TemplateCard = ({ tmpl, lang, onSelect, sampleData }: any) => {
 
       <div className="px-6 text-center sm:text-start flex flex-col gap-2">
          <div className="flex items-center justify-center sm:justify-start gap-3">
-            <div className={`w-3 h-3 rounded-full ${tmpl.isFeatured ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-600'}`}></div>
+            <div className={`w-3 h-3 rounded-full ${isPrivate ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)]' : tmpl.isFeatured ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-blue-600'}`}></div>
             <h3 className="text-lg md:text-2xl font-black dark:text-white uppercase tracking-tight truncate">
               {isRtl ? tmpl.nameAr : tmpl.nameEn}
             </h3>

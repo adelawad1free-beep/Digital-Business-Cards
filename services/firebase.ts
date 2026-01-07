@@ -30,9 +30,8 @@ import {
   sum,
   serverTimestamp
 } from "firebase/firestore";
-import { CardData, TemplateCategory, VisualStyle } from "../types";
+import { CardData, TemplateCategory, VisualStyle, PricingPlan } from "../types";
 
-// تصدير الأدوات الأساسية لاستخدامها في المكونات
 export { doc, getDoc };
 
 const firebaseConfig = {
@@ -65,43 +64,93 @@ const sanitizeData = (data: any) => {
   return clean;
 };
 
-// --- وظائف إدارة المستخدمين (User Management) ---
+// --- User Management ---
+
+export const searchUsersByEmail = async (emailSearch: string) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return [];
+  if (!emailSearch || emailSearch.length < 3) return [];
+  
+  try {
+    const q = query(
+      collection(db, "users_registry"),
+      where("email", ">=", emailSearch.toLowerCase()),
+      where("email", "<=", emailSearch.toLowerCase() + "\uf8ff"),
+      limit(5)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
+  } catch (e) {
+    console.error("Search error:", e);
+    return [];
+  }
+};
 
 export const syncUserProfile = async (user: User) => {
   if (!user) return;
   try {
     const userRef = doc(db, "users_registry", user.uid);
+    const snap = await getDoc(userRef);
+    
     const userData = {
       uid: user.uid,
-      email: user.email,
+      email: user.email?.toLowerCase(),
       lastLogin: new Date().toISOString(),
       updatedAt: serverTimestamp()
     };
 
-    // استخدام setDoc مع merge لضمان عدم مسح تاريخ التسجيل الأصلي
-    await setDoc(userRef, {
-      ...userData,
-      createdAt: userData.lastLogin, // سيتم تجاهلها إذا كان الحقل موجوداً بفضل merge
-      role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
-    }, { merge: true });
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        ...userData,
+        createdAt: userData.lastLogin,
+        role: user.email === ADMIN_EMAIL ? 'admin' : 'user',
+        planId: null,
+        premiumUntil: null
+      });
+    } else {
+      await updateDoc(userRef, userData);
+    }
   } catch (error) {
-    console.warn("User registry sync skipped (Permission denied or network issue):", error);
+    console.warn("Registry sync failed:", error);
   }
+};
+
+export const getUserProfile = async (uid: string) => {
+  try {
+    const snap = await getDoc(doc(db, "users_registry", uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      if ((data.role === 'premium' || data.planId) && data.premiumUntil) {
+        const expiry = new Date(data.premiumUntil);
+        if (expiry < new Date()) {
+          await updateDoc(doc(db, "users_registry", uid), { role: 'user', planId: null });
+          return { ...data, role: 'user', planId: null };
+        }
+      }
+      return data;
+    }
+    return null;
+  } catch (e) { return null; }
+};
+
+export const updateUserSubscription = async (uid: string, role: 'user' | 'premium' | 'admin', planId: string | null, premiumUntil: string | null) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const userRef = doc(db, "users_registry", uid);
+  await updateDoc(userRef, { 
+    role, 
+    planId,
+    premiumUntil,
+    updatedAt: serverTimestamp()
+  });
 };
 
 export const getAllUsersWithStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
-  
   try {
-    // 1. جلب كافة المسجلين
     const usersSnap = await getDocs(query(collection(db, "users_registry"), orderBy("createdAt", "desc")));
-    const users = usersSnap.docs.map(doc => doc.data());
-
-    // 2. جلب كافة البطاقات لحساب عددها لكل مستخدم
+    const users = usersSnap.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
     const cardsSnap = await getDocs(collection(db, "public_cards"));
     const allCards = cardsSnap.docs.map(doc => doc.data());
 
-    // 3. ربط البيانات وعمل الإحصائيات
     return users.map(user => {
       const userCards = allCards.filter(card => card.ownerId === user.uid);
       return {
@@ -112,12 +161,36 @@ export const getAllUsersWithStats = async () => {
       };
     });
   } catch (error) {
-    console.error("Error fetching user stats:", error);
     throw error;
   }
 };
 
-// --- وظائف التوثيق (Auth Helpers) ---
+// --- Pricing Plans Management ---
+
+export const getAllPricingPlans = async () => {
+  try {
+    const snap = await getDocs(query(collection(db, "pricing_plans"), orderBy("order", "asc")));
+    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as PricingPlan));
+  } catch (error) { return []; }
+};
+
+export const savePricingPlan = async (plan: Partial<PricingPlan>) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  const planId = plan.id || `plan_${Date.now()}`;
+  await setDoc(doc(db, "pricing_plans", planId), { 
+    ...sanitizeData(plan), 
+    id: planId,
+    updatedAt: new Date().toISOString() 
+  }, { merge: true });
+  return planId;
+};
+
+export const deletePricingPlan = async (id: string) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
+  await deleteDoc(doc(db, "pricing_plans", id));
+};
+
+// --- Auth Helpers ---
 
 export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => {
   const isAr = lang === 'ar';
@@ -128,15 +201,13 @@ export const getAuthErrorMessage = (code: string, lang: 'ar' | 'en'): string => 
     case 'auth/email-already-in-use':
       return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
     case 'auth/weak-password':
-      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل).' : 'New password is too weak (min 6 characters).';
-    case 'auth/requires-recent-login':
-      return isAr ? 'يرجى تسجيل الدخول مرة أخرى لتنفيذ هذا الإجراء.' : 'Please re-login to perform this action.';
+      return isAr ? 'كلمة المرور الجديدة ضعيفة جداً.' : 'New password is too weak.';
     default:
-      return isAr ? 'حدث خطأ غير متوقع، يرجى المحاولة لاحقاً.' : 'An unexpected error occurred.';
+      return isAr ? 'حدث خطأ غير متوقع.' : 'An unexpected error occurred.';
   }
 };
 
-// --- وظائف الإعدادات والأنماط ---
+// --- App Core ---
 
 export const getSiteSettings = async () => {
   try {
@@ -166,8 +237,7 @@ export const getAllTemplates = async () => {
     const templates = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
     return templates.sort((a, b) => {
       if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
-      if (a.order !== b.order) return (a.order || 0) - (b.order || 0);
-      return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      return (a.order || 0) - (b.order || 0);
     });
   } catch (error) { return []; }
 };
@@ -182,22 +252,16 @@ export async function saveCardToDB({ cardData, oldId }: { cardData: CardData, ol
   if (!currentUser) throw new Error("Auth required");
   
   const finalOwnerId = cardData.ownerId || currentUser.uid;
-  const finalOwnerEmail = cardData.ownerEmail || currentUser.email || '';
-
   const dataToSave = { 
     ...sanitizeData(cardData), 
     ownerId: finalOwnerId,
-    ownerEmail: finalOwnerEmail,
+    ownerEmail: cardData.ownerEmail || currentUser.email || '',
     updatedAt: new Date().toISOString(),
     isActive: cardData.isActive ?? true,
     viewCount: cardData.viewCount || 0
   };
   const newId = cardData.id.toLowerCase();
   
-  const isNewCard = !oldId;
-  const oldCardSnap = oldId ? await getDoc(doc(db, "public_cards", oldId.toLowerCase())) : null;
-  const oldTemplateId = oldCardSnap?.exists() ? oldCardSnap.data().templateId : null;
-
   if (oldId && oldId.toLowerCase() !== newId) {
     await deleteDoc(doc(db, "public_cards", oldId.toLowerCase()));
     await deleteDoc(doc(db, "users", finalOwnerId, "cards", oldId.toLowerCase()));
@@ -207,17 +271,6 @@ export async function saveCardToDB({ cardData, oldId }: { cardData: CardData, ol
     setDoc(doc(db, "public_cards", newId), dataToSave),
     setDoc(doc(db, "users", finalOwnerId, "cards", newId), dataToSave)
   ]);
-
-  if (cardData.templateId) {
-    try {
-      if (isNewCard) {
-        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
-      } else if (oldTemplateId && oldTemplateId !== cardData.templateId) {
-        await updateDoc(doc(db, "custom_templates", oldTemplateId), { usageCount: increment(-1) });
-        await updateDoc(doc(db, "custom_templates", cardData.templateId), { usageCount: increment(1) });
-      }
-    } catch (e) {}
-  }
 }
 
 export const getCardBySerial = async (serialId: string) => {
@@ -225,10 +278,7 @@ export const getCardBySerial = async (serialId: string) => {
     const cardRef = doc(db, "public_cards", serialId.toLowerCase());
     const snap = await getDoc(cardRef);
     if (snap.exists()) {
-      updateDoc(cardRef, { 
-        viewCount: increment(1),
-        lastViewedAt: new Date().toISOString()
-      }).catch(() => {});
+      updateDoc(cardRef, { viewCount: increment(1) }).catch(() => {});
       return snap.data();
     }
     return null;
@@ -243,17 +293,10 @@ export const getUserCards = async (userId: string) => {
 };
 
 export const deleteUserCard = async (ownerId: string, cardId: string) => {
-  const cardSnap = await getDoc(doc(db, "public_cards", cardId.toLowerCase()));
-  const templateId = cardSnap.exists() ? cardSnap.data().templateId : null;
   await Promise.all([
     deleteDoc(doc(db, "public_cards", cardId.toLowerCase())),
     deleteDoc(doc(db, "users", ownerId, "cards", cardId.toLowerCase()))
   ]);
-  if (templateId) {
-    try {
-      await updateDoc(doc(db, "custom_templates", templateId), { usageCount: increment(-1) });
-    } catch (e) {}
-  }
 };
 
 export const isSlugAvailable = async (slug: string, currentUserId?: string): Promise<boolean> => {
@@ -269,20 +312,15 @@ export const getAdminStats = async () => {
   if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) throw new Error("Admin only");
   try {
     const totalSnap = await getCountFromServer(collection(db, "public_cards"));
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const activeQuery = query(collection(db, "public_cards"), where("updatedAt", ">=", thirtyDaysAgo.toISOString()));
-    const activeSnap = await getCountFromServer(activeQuery);
     const viewSumSnap = await getAggregateFromServer(collection(db, "public_cards"), { totalViews: sum('viewCount') });
     const recentDocs = await getDocs(query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(100)));
     return { 
       totalCards: totalSnap.data().count, 
-      activeCards: activeSnap.data().count,
+      activeCards: totalSnap.data().count,
       totalViews: viewSumSnap.data().totalViews || 0,
       recentCards: recentDocs.docs.map(doc => doc.data()) 
     };
   } catch (error) { 
-    console.error("Error fetching admin stats:", error);
     throw error;
   }
 };
@@ -353,5 +391,3 @@ export const updateUserSecurity = async (currentPassword: string, newEmail: stri
   if (newEmail && newEmail !== user.email) await updateEmail(user, newEmail);
   if (newPassword) await updatePassword(user, newPassword);
 };
-
-export const updateAdminSecurity = updateUserSecurity;

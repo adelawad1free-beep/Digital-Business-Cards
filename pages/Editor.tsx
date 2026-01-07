@@ -8,14 +8,15 @@ import {
   RefreshCcw, FileText, Calendar, MapPin, PartyPopper, Move, Wind, 
   GlassWater, Link2, Sparkle, LayoutGrid, EyeOff, Ruler, Wand2, Building2, Timer,
   QrCode, Share2, Trash2, LogIn, Shapes, Navigation2, ImagePlus, Check, Search, AlertTriangle, Zap,
-  Type, Briefcase
+  Type, Briefcase, ShieldCheck, Crown
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CardPreview from '../components/CardPreview';
 import SocialIcon from '../components/SocialIcon';
 import AuthModal from '../components/AuthModal';
 import { BACKGROUND_PRESETS, AVATAR_PRESETS, SAMPLE_DATA, SOCIAL_PLATFORMS, THEME_COLORS, THEME_GRADIENTS, TRANSLATIONS } from '../constants';
-import { isSlugAvailable, auth, getSiteSettings } from '../services/firebase';
+import { isSlugAvailable, auth, getSiteSettings, getUserProfile } from '../services/firebase';
 import { uploadImageToCloud } from '../services/uploadService';
 import { CardData, CustomTemplate, Language, SpecialLinkItem } from '../types';
 import { generateSerialId } from '../utils/share';
@@ -30,7 +31,7 @@ interface EditorProps {
   forcedTemplateId?: string; 
 }
 
-type EditorTab = 'identity' | 'social' | 'links' | 'design';
+type EditorTab = 'identity' | 'social' | 'links' | 'membership' | 'design';
 
 const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, isAdminEdit, templates, forcedTemplateId }) => {
   const isRtl = lang === 'ar';
@@ -39,6 +40,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     return TRANSLATIONS[key] ? (TRANSLATIONS[key][lang] || TRANSLATIONS[key]['en']) : key;
   };
 
+  const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
   const specialLinkInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +51,8 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
   const [activeTab, setActiveTab] = useState<EditorTab>('identity');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [userRole, setUserRole] = useState<'user' | 'premium' | 'admin'>('user');
+  const [userPremiumExpiry, setUserPremiumExpiry] = useState<string | null>(null);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [previewMouseY, setPreviewMouseY] = useState(0);
@@ -72,7 +77,18 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
         });
       }
     });
+
+    if (auth.currentUser) {
+      getUserProfile(auth.currentUser.uid).then(profile => {
+        if (profile) {
+          setUserRole(profile.role);
+          setUserPremiumExpiry(profile.premiumUntil || null);
+        }
+      });
+    }
   }, []);
+
+  const isPremium = userRole === 'premium' || userRole === 'admin' || isAdminEdit;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,6 +105,9 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
   }, [lastScrollY]);
 
   const [formData, setFormData] = useState<CardData>(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const isMembershipMode = searchParams.get('mode') === 'membership';
+    
     const targetTemplateId = initialData?.templateId || forcedTemplateId || templates[0]?.id || 'classic';
     const selectedTmpl = templates.find(t => t.id === targetTemplateId);
     
@@ -101,8 +120,10 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
 
     const baseData = { ...(SAMPLE_DATA[lang] || SAMPLE_DATA['en']), id: generateSerialId(), templateId: targetTemplateId } as CardData;
 
+    let finalData: CardData = baseData;
+
     if (selectedTmpl) {
-       return {
+       finalData = {
          ...baseData,
          name: selectedTmpl.config.defaultName || baseData.name,
          templateId: targetTemplateId,
@@ -134,10 +155,35 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
          emails: baseData.emails || (baseData.email ? [baseData.email] : []),
          websites: baseData.websites || (baseData.website ? [baseData.website] : []),
          specialLinks: baseData.specialLinks || []
-       } as CardData;
+       };
     }
-    return baseData;
+
+    // تطبيق إعدادات وضع العضوية
+    if (isMembershipMode) {
+      finalData = {
+        ...finalData,
+        showMembership: true,
+        membershipTitleAr: 'بطاقة عضوية رسمية',
+        membershipTitleEn: 'Official Membership ID',
+        isVerified: true,
+        showStars: true,
+        membershipAccentColor: '#eab308', // ذهبي
+      };
+    }
+
+    return finalData;
   });
+
+  // تحديث تاريخ العضوية بمجرد جلب بيانات المستخدم
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('mode') === 'membership' && userPremiumExpiry) {
+      setFormData(prev => ({
+        ...prev,
+        membershipExpiryDate: userPremiumExpiry
+      }));
+    }
+  }, [userPremiumExpiry, location.search]);
 
   const scrollToError = () => {
     if (editorTopRef.current) {
@@ -313,21 +359,27 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
     setFormData(prev => ({ ...prev, [field]: list }));
   };
 
-  const TabButton = ({ id, label, icon: Icon }: { id: EditorTab, label: string, icon: any }) => {
+  const TabButton = ({ id, label, icon: Icon, premium }: { id: EditorTab, label: string, icon: any, premium?: boolean }) => {
     const isActive = activeTab === id;
     let activeColor = 'bg-blue-600';
     if (id === 'social') activeColor = 'bg-emerald-600';
     if (id === 'links') activeColor = 'bg-purple-600';
+    if (id === 'membership') activeColor = 'bg-amber-600';
     if (id === 'design') activeColor = 'bg-indigo-600';
 
     return (
       <button 
         type="button"
         onClick={() => setActiveTab(id)}
-        className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-3 py-4 font-black text-[10px] uppercase tracking-tighter transition-all duration-300 min-w-[70px] ${isActive ? `${activeColor} text-white shadow-lg scale-105 rounded-2xl` : 'text-gray-400 opacity-60'}`}
+        className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-3 py-4 font-black text-[10px] uppercase tracking-tighter transition-all duration-300 min-w-[70px] relative ${isActive ? `${activeColor} text-white shadow-lg scale-105 rounded-2xl` : 'text-gray-400 opacity-60'}`}
       >
         <Icon size={18} className="shrink-0" /> 
         <span className="truncate">{label}</span>
+        {premium && !isPremium && (
+          <div className="absolute top-1 right-1">
+            <Crown size={10} className="text-amber-500 fill-amber-500" />
+          </div>
+        )}
       </button>
     );
   };
@@ -456,6 +508,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                 <TabButton id="identity" label={t('الهوية', 'Identity')} icon={UserIcon} />
                 <TabButton id="social" label={t('التواصل', 'Contact')} icon={MessageCircle} />
                 <TabButton id="links" label={t('روابط الصور', 'Links')} icon={ImagePlus} />
+                <TabButton id="membership" label={t('العضوية', 'Membership')} icon={ShieldCheck} premium={true} />
                 <TabButton id="design" label={t('التصميم', 'Design')} icon={Palette} />
              </div>
           </div>
@@ -513,7 +566,7 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                           type="button" 
                           onClick={handleCheckSlug}
                           disabled={isCheckingSlug}
-                          className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-2 border-emerald-500`}
+                          className={`absolute ${isRtl ? 'left-2.5' : 'right-2.5'} top-1/2 -translate-y-1/2 px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-2 border-emerald-50`}
                         >
                            {isCheckingSlug ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                            {t('تحقق', 'Verify')}
@@ -584,6 +637,79 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                         <textarea value={formData.bio} onChange={e => handleChange('bio', e.target.value)} className={`${inputClasses} min-h-[120px] resize-none leading-relaxed`} placeholder={t('اكتب نبذة مختصرة عنك...', 'Bio...')} />
                      </div>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'membership' && (
+                <div className="space-y-8 animate-fade-in relative z-10">
+                   {!isPremium ? (
+                     <div className="py-20 text-center space-y-6">
+                        <div className="w-24 h-24 bg-amber-50 dark:bg-amber-900/20 text-amber-500 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-xl">
+                           <Crown size={48} />
+                        </div>
+                        <div className="space-y-2">
+                           <h2 className="text-2xl font-black dark:text-white uppercase">{isRtl ? 'هذه الميزة للمشتركين المميزين' : 'Premium Feature Only'}</h2>
+                           <p className="text-sm font-bold text-gray-400 max-w-md mx-auto leading-relaxed">{isRtl ? 'احصل على رتبة "مميز" لتتمكن من تفعيل وعرض حالة عضوياتك واشتراكاتك مباشرة على بطاقتك الرقمية.' : 'Upgrade to Premium to enable and display your membership status and subscriptions directly on your digital card.'}</p>
+                        </div>
+                        <button onClick={() => navigate(`/${lang}/custom-orders`)} className="px-12 py-5 bg-amber-600 text-white rounded-2xl font-black text-xs uppercase shadow-xl shadow-amber-600/20 hover:scale-105 active:scale-95 transition-all">
+                           {isRtl ? 'اطلب الترقية الآن' : 'Upgrade Now'}
+                        </button>
+                     </div>
+                   ) : (
+                     <div className="space-y-10 animate-fade-in">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-2xl shadow-sm"><ShieldCheck size={24} /></div>
+                           <div>
+                              <h2 className="text-2xl font-black dark:text-white uppercase leading-none mb-1">{t('membershipSection')}</h2>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRtl ? 'تحكم في ظهور وصلاحية اشتراكاتك' : 'Control visibility and validity of your subscriptions'}</p>
+                           </div>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-gray-800/20 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 space-y-8">
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <Sparkles className="text-amber-500" size={20} />
+                                 <span className="text-xs font-black dark:text-white uppercase">{t('إظهار قسم العضوية', 'Show Membership Section')}</span>
+                              </div>
+                              <button 
+                                 onClick={() => handleChange('showMembership', !formData.showMembership)}
+                                 className={`w-14 h-7 rounded-full relative transition-all ${formData.showMembership ? 'bg-amber-600 shadow-lg' : 'bg-gray-300 dark:bg-gray-700'}`}
+                              >
+                                 <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-md ${isRtl ? (formData.showMembership ? 'right-8' : 'right-1') : (formData.showMembership ? 'left-8' : 'left-1')}`} />
+                              </button>
+                           </div>
+
+                           <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 transition-all ${formData.showMembership ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                              <div className="space-y-2">
+                                 <label className={labelClasses}>{t('عنوان العضوية (AR)', 'Membership Title (AR)')}</label>
+                                 <input type="text" value={formData.membershipTitleAr || ''} onChange={e => handleChange('membershipTitleAr', e.target.value)} className={inputClasses} placeholder="اشتراك سنوي" />
+                              </div>
+                              <div className="space-y-2">
+                                 <label className={labelClasses}>{t('عنوان العضوية (EN)', 'Membership Title (EN)')}</label>
+                                 <input type="text" value={formData.membershipTitleEn || ''} onChange={e => handleChange('membershipTitleEn', e.target.value)} className={inputClasses} placeholder="Annual Subscription" />
+                              </div>
+                              <div className="space-y-2">
+                                 <label className={labelClasses}>{t('تاريخ البدء', 'Start Date')}</label>
+                                 <input type="date" value={formData.membershipStartDate || ''} onChange={e => handleChange('membershipStartDate', e.target.value)} className={inputClasses} />
+                              </div>
+                              <div className="space-y-2">
+                                 <label className={labelClasses}>{t('تاريخ الانتهاء', 'Expiry Date')}</label>
+                                 <input type="date" value={formData.membershipExpiryDate || ''} onChange={e => handleChange('membershipExpiryDate', e.target.value)} className={inputClasses} />
+                              </div>
+                           </div>
+
+                           <div className={`pt-8 border-t dark:border-gray-800 space-y-6 transition-all ${formData.showMembership ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                              <h4 className={labelClasses}>{t('تخصيص ألوان العضوية', 'Custom Membership Colors')}</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                 <ColorPickerUI label={isRtl ? 'اللون المميز (Accent)' : 'Accent Color'} field="membershipAccentColor" icon={Zap} />
+                                 <ColorPickerUI label={isRtl ? 'لون خلفية' : 'Background'} field="membershipBgColor" icon={Palette} />
+                                 <ColorPickerUI label={isRtl ? 'لون النصوص' : 'Text Color'} field="membershipTextColor" icon={Type} />
+                                 <ColorPickerUI label={isRtl ? 'لون الإطار' : 'Border Color'} field="membershipBorderColor" icon={Ruler} />
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                   )}
                 </div>
               )}
 
@@ -861,17 +987,11 @@ const Editor: React.FC<EditorProps> = ({ lang, onSave, onCancel, initialData, is
                          <ColorPickerUI label={t('nameColor')} field="nameColor" icon={UserIcon} />
                          <ColorPickerUI label={t('titleColor')} field="titleColor" icon={Briefcase} />
                          <ColorPickerUI label={t('bioColor')} field="bioTextColor" icon={TypographyIcon} />
-                         <ColorPickerUI label={t('linksBtnColor')} field="linksColor" icon={LinkIcon} />
+                         <ColorPickerUI label={t('linksColor')} field="linksColor" icon={LinkIcon} />
                          <ColorPickerUI label={t('socialIconColor')} field="socialIconsColor" icon={Share2} />
                          <ColorPickerUI label={t('phoneBtnColor')} field="contactPhoneColor" icon={Phone} />
                          <ColorPickerUI label={t('whatsappBtnColor')} field="contactWhatsappColor" icon={MessageCircle} />
                       </div>
-                      
-                      <p className="text-[9px] font-bold text-gray-400 italic px-2 leading-relaxed">
-                         {isRtl 
-                           ? "* هذا القسم يسمح لك بتجاوز الألوان الافتراضية للقالب واختيار ألوان تناسب ذوقك الخاص." 
-                           : "* This section allows you to override default template colors and pick colors that match your own style."}
-                      </p>
                    </div>
 
                    <div className="p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm space-y-6">

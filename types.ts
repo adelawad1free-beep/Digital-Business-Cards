@@ -18,6 +18,23 @@ export interface SpecialLinkItem {
 export type ThemeType = 'color' | 'gradient' | 'image';
 export type PageBgStrategy = 'solid' | 'mirror-header';
 
+export interface PricingPlan {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  price: string;
+  billingCycleAr: string;
+  billingCycleEn: string;
+  featuresAr: string[];
+  featuresEn: string[];
+  isPopular: boolean;
+  isActive: boolean;
+  order: number;
+  iconName: string;
+  buttonTextAr?: string;
+  buttonTextEn?: string;
+}
+
 export interface TemplateConfig {
   headerType: 
     | 'classic' | 'split-left' | 'split-right' | 'overlay' 
@@ -394,6 +411,7 @@ export interface CustomTemplate {
   id: string;
   categoryId?: string; 
   parentStyleId?: string; 
+  restrictedUserId?: string; // ID المستخدم المخصص له القالب
   nameAr: string;
   nameEn: string;
   descAr: string;

@@ -28,7 +28,9 @@ import {
   updateDoc,
   getAggregateFromServer,
   sum,
-  serverTimestamp
+  serverTimestamp,
+  startAt,
+  endAt
 } from "firebase/firestore";
 import { CardData, TemplateCategory, VisualStyle } from "./types";
 
@@ -66,21 +68,47 @@ const sanitizeData = (data: any) => {
 
 // --- User Management ---
 
+export const searchUsersByEmail = async (emailSearch: string) => {
+  if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return [];
+  if (!emailSearch || emailSearch.length < 3) return [];
+  
+  try {
+    const q = query(
+      collection(db, "users_registry"),
+      where("email", ">=", emailSearch.toLowerCase()),
+      where("email", "<=", emailSearch.toLowerCase() + "\uf8ff"),
+      limit(5)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
+  } catch (e) {
+    console.error("Search error:", e);
+    return [];
+  }
+};
+
 export const syncUserProfile = async (user: User) => {
   if (!user) return;
   try {
     const userRef = doc(db, "users_registry", user.uid);
+    const snap = await getDoc(userRef);
+    
     const userData = {
       uid: user.uid,
-      email: user.email,
+      email: user.email?.toLowerCase(),
       lastLogin: new Date().toISOString(),
       updatedAt: serverTimestamp()
     };
-    await setDoc(userRef, {
-      ...userData,
-      createdAt: userData.lastLogin,
-      role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
-    }, { merge: true });
+    
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        ...userData,
+        createdAt: userData.lastLogin,
+        role: user.email === ADMIN_EMAIL ? 'admin' : 'user'
+      });
+    } else {
+      await updateDoc(userRef, userData);
+    }
   } catch (error) {
     console.warn("Registry sync failed:", error);
   }
@@ -234,7 +262,7 @@ export const getAdminStats = async () => {
     const recentDocs = await getDocs(query(collection(db, "public_cards"), orderBy("updatedAt", "desc"), limit(100)));
     return { 
       totalCards: totalSnap.data().count, 
-      activeCards: totalSnap.data().count, // Simplified
+      activeCards: totalSnap.data().count,
       totalViews: viewSumSnap.data().totalViews || 0,
       recentCards: recentDocs.docs.map(doc => doc.data()) 
     };
