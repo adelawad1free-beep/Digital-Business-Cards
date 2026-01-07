@@ -1,5 +1,5 @@
 
-import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon, Link as LinkIcon, ShoppingCart } from 'lucide-react';
+import { Mail, Phone, Globe, MessageCircle, UserPlus, Camera, Download, QrCode, Cpu, Calendar, MapPin, Timer, PartyPopper, Navigation2, Quote, Sparkle, CheckCircle, Star, ExternalLink, Map as MapIcon, Link as LinkIcon, ShoppingCart, ShieldCheck } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { CardData, Language, TemplateConfig, SpecialLinkItem } from '../types';
 import { TRANSLATIONS, PATTERN_PRESETS } from '../constants';
@@ -16,6 +16,84 @@ interface CardPreviewProps {
   hideHeader?: boolean; 
   bodyOffsetYOverride?: number;
 }
+
+const MembershipBar = ({ 
+  startDate, 
+  expiryDate, 
+  title, 
+  isDark, 
+  isGlassy,
+  bgColor,
+  borderColor,
+  textColor,
+  accentColor
+}: { 
+  startDate?: string, 
+  expiryDate?: string, 
+  title?: string, 
+  isDark: boolean, 
+  isGlassy?: boolean,
+  bgColor?: string,
+  borderColor?: string,
+  textColor?: string,
+  accentColor?: string
+}) => {
+  if (!expiryDate) return null;
+
+  const now = new Date();
+  const start = startDate ? new Date(startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const end = new Date(expiryDate);
+  
+  const total = end.getTime() - start.getTime();
+  const remaining = end.getTime() - now.getTime();
+  const progress = Math.max(0, Math.min(100, (remaining / total) * 100));
+  const daysLeft = Math.ceil(remaining / (1000 * 60 * 60 * 24));
+
+  // Default color logic if no accentColor is provided
+  let dynamicColor = accentColor;
+  if (!dynamicColor) {
+    const r = Math.floor(239 - (239 - 34) * (progress / 100));
+    const g = Math.floor(68 + (197 - 68) * (progress / 100));
+    const b = Math.floor(68 + (94 - 68) * (progress / 100));
+    dynamicColor = `rgb(${r}, ${g}, ${b})`;
+  }
+
+  const finalBg = bgColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(249, 250, 251, 1)');
+  const finalBorder = borderColor || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(243, 244, 246, 1)');
+  const finalTextColor = textColor || (isDark ? 'rgba(255,255,255,0.6)' : 'rgba(107, 114, 128, 1)');
+
+  return (
+    <div 
+      className={`w-full p-5 rounded-[2rem] border transition-all duration-500 animate-fade-in-up ${isGlassy ? 'backdrop-blur-xl' : ''}`}
+      style={{ 
+        backgroundColor: finalBg,
+        borderColor: finalBorder
+      }}
+    >
+       <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+             <ShieldCheck size={16} style={{ color: dynamicColor }} />
+             <span className="text-[10px] font-black uppercase tracking-widest opacity-80" style={{ color: textColor || undefined }}>{title || (daysLeft > 0 ? 'ACTIVE SUBSCRIPTION' : 'EXPIRED')}</span>
+          </div>
+          <span className="text-[10px] font-black" style={{ color: dynamicColor }}>{daysLeft > 0 ? `${daysLeft} DAYS LEFT` : 'EXPIRED'}</span>
+       </div>
+       <div className="h-3 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
+          <div 
+            className="h-full transition-all duration-1000 ease-out rounded-full shadow-lg"
+            style={{ 
+              width: `${progress}%`, 
+              backgroundColor: dynamicColor,
+              boxShadow: `0 0 10px ${dynamicColor}44`
+            }}
+          />
+       </div>
+       <div className="flex justify-between mt-2 text-[8px] font-black uppercase tracking-tighter" style={{ color: finalTextColor }}>
+          <span>{start.toLocaleDateString()}</span>
+          <span>{end.toLocaleDateString()}</span>
+       </div>
+    </div>
+  );
+};
 
 const CountdownTimer = ({ targetDate, isDark, primaryColor }: { targetDate: string, isDark: boolean, primaryColor: string }) => {
   const [timeLeft, setTimeLeft] = useState<{ d: number, h: number, m: number, s: number } | null>(null);
@@ -181,6 +259,7 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
   const showQrCode = isVisible(data.showQrCode, config.showQrCodeByDefault);
   const showSpecialLinks = isVisible(data.showSpecialLinks, config.showSpecialLinksByDefault);
   const showLocation = isVisible(data.showLocation, config.showLocationByDefault);
+  const showMembership = isVisible(data.showMembership, config.showMembershipByDefault);
 
   const hasContactButtons = (showPhone && data.phone) || 
                            (showWhatsapp && data.whatsapp) || 
@@ -580,6 +659,25 @@ const CardPreview: React.FC<CardPreviewProps> = ({ data, lang, customConfig, hid
                     <UserPlus size={14} className="shrink-0" /> <span className="truncate">{t('saveContact')}</span>
                   </button>
                 )}
+              </div>
+           )}
+
+           {showMembership && (data.membershipExpiryDate || config.membershipExpiryDate) && (
+              <div 
+                className="w-full px-2 mt-4"
+                style={{ transform: `translateY(${data.membershipOffsetY ?? config.membershipOffsetY ?? 0}px)` }}
+              >
+                 <MembershipBar 
+                    startDate={data.membershipStartDate || config.membershipStartDate} 
+                    expiryDate={data.membershipExpiryDate || config.membershipExpiryDate} 
+                    title={isRtl ? (data.membershipTitleAr || config.membershipTitleAr) : (data.membershipTitleEn || config.membershipTitleEn)}
+                    isDark={isDark}
+                    isGlassy={data.membershipGlassy ?? config.membershipGlassy}
+                    bgColor={data.membershipBgColor || config.membershipBgColor}
+                    borderColor={data.membershipBorderColor || config.membershipBorderColor}
+                    textColor={data.membershipTextColor || config.membershipTextColor}
+                    accentColor={data.membershipAccentColor || config.membershipAccentColor}
+                 />
               </div>
            )}
 

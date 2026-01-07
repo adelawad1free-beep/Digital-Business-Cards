@@ -15,10 +15,10 @@ import {
   Phone, Globe, MessageCircle, Camera, Download, Tablet, Monitor, 
   Eye, QrCode, Wind, GlassWater, ChevronRight, ChevronLeft, 
   Waves, Square, Columns, Minus, ToggleLeft, ToggleRight, Calendar, MapPin, Timer, PartyPopper, Link as LinkIcon, FolderOpen, Plus, Tag, Settings2, SlidersHorizontal, Share2, FileCode, HardDrive, Database,
-  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, ShoppingCart, Quote, User as UserIcon, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone
+  CheckCircle2, Grid, RefreshCcw, Shapes, Code2, MousePointer2, AlignJustify, EyeOff, Briefcase, Wand2, RotateCcw, AlertTriangle, Repeat, Sparkle, LogIn, Trophy, Trash2, ImagePlus, Navigation2, Map as MapIcon, ShoppingCart, Quote, User as UserIcon, Image as ImageIconLucide, ArrowLeftRight, ArrowUpDown, MonitorDot, TabletSmartphone, ShieldCheck
 } from 'lucide-react';
 
-type BuilderTab = 'header' | 'body-style' | 'avatar' | 'visuals' | 'bio-lab' | 'identity-lab' | 'direct-links' | 'contact-lab' | 'desktop-lab' | 'special-links' | 'location' | 'social-lab' | 'qrcode' | 'special-features';
+type BuilderTab = 'header' | 'body-style' | 'avatar' | 'visuals' | 'bio-lab' | 'identity-lab' | 'direct-links' | 'membership-lab' | 'contact-lab' | 'desktop-lab' | 'special-links' | 'location' | 'social-lab' | 'qrcode' | 'special-features';
 
 interface TemplateBuilderProps {
   lang: Language;
@@ -131,6 +131,17 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       specialLinksAspectRatio: 'square',
       specialLinksOffsetY: 0,
       defaultSpecialLinks: [],
+      showMembershipByDefault: false,
+      membershipTitleAr: 'اشتراك مفعل',
+      membershipTitleEn: 'Active Subscription',
+      membershipStartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      membershipExpiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      membershipOffsetY: 0,
+      membershipGlassy: false,
+      membershipBgColor: '',
+      membershipBorderColor: '',
+      membershipTextColor: '',
+      membershipAccentColor: '',
       showLocationByDefault: true,
       locationOffsetY: 0,
       locationBgColor: '',
@@ -279,6 +290,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
       specialLinksOffsetY: 0,
       locationOffsetY: 0,
       linksSectionOffsetY: 0,
+      membershipOffsetY: 0,
       spacing: 'normal',
       contentAlign: 'center',
       mobileBodyOffsetY: 0,
@@ -444,12 +456,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
 
   const isFullHeaderPreview = template.config.desktopLayout === 'full-width-header' && previewDevice === 'desktop';
 
-  // منطق المعاينة الحية ليعكس السلوك الفعلي تماماً
   const previewBodyOffsetY = (previewDevice === 'mobile' || previewDevice === 'tablet') 
     ? (template.config.mobileBodyOffsetY ?? 0) 
     : 0;
 
-  // استخدام transform لضمان عمل الإزاحة بدقة في المحاكي المقيّد بالحجم
   const previewDesktopPullUp = (previewDevice === 'desktop' && template.config.desktopLayout === 'full-width-header')
     ? (template.config.desktopBodyOffsetY ?? -60)
     : 0;
@@ -525,6 +535,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
           <NavItem id="identity-lab" label={t('بيانات الهوية', 'Identity Details')} icon={UserIcon} />
           <NavItem id="bio-lab" label={t('النبذة المهنية', 'Professional Bio')} icon={Quote} />
           <NavItem id="direct-links" label={t('قسم الروابط المباشرة', 'Direct Links Section')} icon={LinkIcon} />
+          <NavItem id="membership-lab" label={t('membershipSection')} icon={ShieldCheck} />
           <NavItem id="contact-lab" label={t('قسم الاتصال', 'Contact Section')} icon={Phone} />
           <NavItem id="special-links" label={t('روابط صور (عروض/منتجات)', 'Image Links (Offers/Products)')} icon={ImagePlus} />
           <NavItem id="location" label={t('الموقع الجغرافي', 'Geographical Location')} icon={MapIcon} />
@@ -642,6 +653,75 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                      </div>
                   </div>
                </div>
+            )}
+
+            {activeTab === 'membership-lab' && (
+              <div className="space-y-8 animate-fade-in">
+                 <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-100 dark:border-gray-800 shadow-xl space-y-10">
+                    <div className="flex items-center gap-4">
+                       <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-2xl shadow-sm"><ShieldCheck size={24} /></div>
+                       <div>
+                          <h2 className="text-2xl font-black dark:text-white uppercase leading-none mb-1">{t('membershipSection')}</h2>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRtl ? 'إدارة تواريخ العضوية والاشتراكات وشريط الإنجاز' : 'Manage membership dates and subscription progress bar'}</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-10">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('عنون العضوية (AR)', 'Membership Title (AR)')}</label>
+                             <input type="text" value={template.config.membershipTitleAr || ''} onChange={e => updateConfig('membershipTitleAr', e.target.value)} className={inputClasses} placeholder="اشتراك مفعل" />
+                          </div>
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('عنون العضوية (EN)', 'Membership Title (EN)')}</label>
+                             <input type="text" value={template.config.membershipTitleEn || ''} onChange={e => updateConfig('membershipTitleEn', e.target.value)} className={inputClasses} placeholder="Active Subscription" />
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('تاريخ البدء', 'Start Date')}</label>
+                             <input type="date" value={template.config.membershipStartDate || ''} onChange={e => updateConfig('membershipStartDate', e.target.value)} className={inputClasses} />
+                          </div>
+                          <div className="space-y-2">
+                             <label className={labelTextClasses}>{t('تاريخ الانتهاء', 'Expiry Date')}</label>
+                             <input type="date" value={template.config.membershipExpiryDate || ''} onChange={e => updateConfig('membershipExpiryDate', e.target.value)} className={inputClasses} />
+                          </div>
+                       </div>
+
+                       <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
+                          <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-6">{isRtl ? 'ألوان قسم العضوية والاشتراك' : 'Membership Section Colors'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <ColorPicker label={t('لون الخلفية (المربع)', 'Box Background')} value={template.config.membershipBgColor} onChange={(v: string) => updateConfig('membershipBgColor', v)} />
+                             <ColorPicker label={t('لون الإطار (الفريم)', 'Border/Frame Color')} value={template.config.membershipBorderColor} onChange={(v: string) => updateConfig('membershipBorderColor', v)} />
+                             <ColorPicker label={t('لون النصوص', 'Text Color')} value={template.config.membershipTextColor} onChange={(v: string) => updateConfig('membershipTextColor', v)} />
+                             <ColorPicker label={t('اللون المميز (ACCENT)', 'Accent Color')} value={template.config.membershipAccentColor} onChange={(v: string) => updateConfig('membershipAccentColor', v)} />
+                          </div>
+                          <p className="text-[9px] font-bold text-gray-400 mt-4 italic px-2">
+                             {isRtl ? "* اللون المميز يتحكم في الأيقونة وشريط الإنجاز ونص الأيام المتبقية." : "* Accent color controls icon, progress bar, and remaining days text."}
+                          </p>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t dark:border-gray-800 items-center">
+                          <ToggleSwitch label={t('نمط زجاجي', 'Glassy Style')} value={template.config.membershipGlassy} onChange={(v: boolean) => updateConfig('membershipGlassy', v)} icon={GlassWater} color="bg-indigo-600" />
+                          <div className="bg-white dark:bg-[#121215] p-5 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm space-y-3">
+                             <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                   <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg"><Move size={14} /></div>
+                                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('الإزاحة الرأسية')}</span>
+                                </div>
+                                <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full">{template.config.membershipOffsetY || 0}px</span>
+                             </div>
+                             <input type="range" min={-100} max={150} value={template.config.membershipOffsetY || 0} onChange={(e) => updateConfig('membershipOffsetY', parseInt(e.target.value))} className="w-full h-1 bg-gray-100 dark:bg-gray-800 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                          </div>
+                       </div>
+
+                       <div className="pt-4 flex justify-end">
+                          <ToggleSwitch label={t('إظهار قسم العضوية', 'Show Section')} value={template.config.showMembershipByDefault} onChange={(v: boolean) => updateConfig('showMembershipByDefault', v)} icon={Eye} color="bg-emerald-600" />
+                       </div>
+                    </div>
+                 </div>
+              </div>
             )}
 
             {activeTab === 'avatar' && (
@@ -993,7 +1073,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                              <ColorPicker label={t('لون الروابط العامة', 'Links Base Color')} value={template.config.linksColor || '#3b82f6'} onChange={(v: string) => updateConfig('linksColor', v)} />
                              <ColorPicker label={t('خلفية قسم الروابط', 'Section Background')} value={template.config.linksSectionBgColor} onChange={(v: string) => updateConfig('linksSectionBgColor', v)} />
-                             <ColorPicker label={t('لون النص في الروابط', 'Links Text Color')} value={template.config.linksSectionTextColor} onChange={(v: string) => updateConfig('linksSectionTextColor', v)} />
+                             <ColorPicker label={t('لون نص في الروابط', 'Links Text Color')} value={template.config.linksSectionTextColor} onChange={(v: string) => updateConfig('linksSectionTextColor', v)} />
                              <ColorPicker label={t('لون الأيقونة في الروابط', 'Links Icon Color')} value={template.config.linksSectionIconColor} onChange={(v: string) => updateConfig('linksSectionIconColor', v)} />
                           </div>
                        </div>
@@ -1581,6 +1661,17 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ lang, onSave, onCance
                          specialLinks: currentSpecialLinks,
                          showSpecialLinks: template.config.showSpecialLinksByDefault,
                          showSocialLinks: template.config.showSocialLinksByDefault,
+                         showMembership: template.config.showMembershipByDefault,
+                         membershipTitleAr: template.config.membershipTitleAr,
+                         membershipTitleEn: template.config.membershipTitleEn,
+                         membershipStartDate: template.config.membershipStartDate,
+                         membershipExpiryDate: template.config.membershipExpiryDate,
+                         membershipGlassy: template.config.membershipGlassy,
+                         membershipOffsetY: template.config.membershipOffsetY,
+                         membershipBgColor: template.config.membershipBgColor,
+                         membershipBorderColor: template.config.membershipBorderColor,
+                         membershipTextColor: template.config.membershipTextColor,
+                         membershipAccentColor: template.config.membershipAccentColor,
                          showLocation: template.config.showLocationByDefault,
                          location: isRtl ? 'عنوان الموقع الجغرافي الافتراضي' : 'Default Location Address',
                          locationUrl: 'https://maps.google.com',

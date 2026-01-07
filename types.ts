@@ -93,6 +93,19 @@ export interface TemplateConfig {
   specialLinksOffsetY?: number;
   defaultSpecialLinks?: SpecialLinkItem[];
 
+  // Membership & Subscription Config
+  showMembershipByDefault?: boolean;
+  membershipTitleAr?: string;
+  membershipTitleEn?: string;
+  membershipStartDate?: string;
+  membershipExpiryDate?: string;
+  membershipOffsetY?: number;
+  membershipGlassy?: boolean;
+  membershipBgColor?: string;
+  membershipBorderColor?: string;
+  membershipTextColor?: string;
+  membershipAccentColor?: string;
+
   // Location Config
   showLocationByDefault?: boolean;
   locationOffsetY?: number;
@@ -274,6 +287,19 @@ export interface CardData {
   linksShowText?: boolean;
   linksShowBg?: boolean;
   specialLinksCols?: number;
+
+  // Membership & Subscription
+  showMembership?: boolean;
+  membershipTitleAr?: string;
+  membershipTitleEn?: string;
+  membershipStartDate?: string;
+  membershipExpiryDate?: string;
+  membershipOffsetY?: number;
+  membershipGlassy?: boolean;
+  membershipBgColor?: string;
+  membershipBorderColor?: string;
+  membershipTextColor?: string;
+  membershipAccentColor?: string;
 
   // Premium Overrides
   showStars?: boolean;
